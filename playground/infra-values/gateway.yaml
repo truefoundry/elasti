@@ -1,0 +1,35 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: activator-gateway
+  namespace: elasti
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http2
+      protocol: HTTP2
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: activator-virtual-service
+  namespace: elasti
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - activator-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /ping
+    route:
+    - destination:
+        host: activator-service
+        port:
+          number: 9009

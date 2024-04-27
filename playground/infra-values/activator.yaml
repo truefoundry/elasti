@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: activator 
+  template:
+    metadata:
+      labels:
+        app: activator 
+    spec:
+      containers:
+      - name: elasti-activator
+        image: localhost:5000/activator:latest
+        ports:
+        - containerPort: 9009
+        resources:
+          requests:
+            memory: "500Mi"
+            cpu: "250m"  
+          limits:
+            memory: "1Gi"
+            cpu: "750m"  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: activator-service
+spec:
+  selector:
+    app: activator
+  ports:
+  - name: http-activator
+    protocol: TCP
+    port: 9009
+  type: LoadBalancer
+
