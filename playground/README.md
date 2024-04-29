@@ -1,4 +1,3 @@
-
 # Playground Setup
 
 We will set up a playground, to do POCs, Development, and Testing of Elasti. 
@@ -56,11 +55,11 @@ export PATH=$HOME/.istioctl/bin:$PATH
 
 ### Install Istio via Istioctl
 ```bash
-// We are installing the demo profile for testing
-istioctl install --set profile=demo -y
-
 // Add default namespace to istio injection
 kubectl label namespace default istio-injection=enabled
+
+// We are installing the demo profile for testing
+istioctl install --set profile=demo -y
 ```
 
 ## Setup Demo Application
@@ -122,6 +121,7 @@ Apply activator yaml in elasti namespace.
 ```bash
 $ kubectl create namespace elasti
 $ kubectl label namespace elasti istio-injection=enabled
+
 $ kubectl apply -f activator.yaml -n elasti
 ```
 
@@ -150,4 +150,13 @@ istioctl dashboard kiali
 
 This will open the kiali dashboard with following traffic graph.
 ![kiali](../assets/kiali-first-map.png)
+
+## Working with Controller
+
+- Install steps: [Get Operator SDK](https://sdk.operatorframework.io/docs/installation/#install-from-github-release)
+
+- Got to controller dir.
+```bash
+
+```
 

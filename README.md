@@ -70,6 +70,8 @@ The name Elasti comes from a superhero from DC Comics, which can grow large and 
 - CRDs to configure Elasti, and identify deployments, and their rules. 
 
 
+# Resources
 
-
+- [Write controller for pod labels](https://kubernetes.io/blog/2021/06/21/writing-a-controller-for-pod-labels/)
+- [K8s Operator Pattern](https://iximiuz.com/en/posts/kubernetes-operator-pattern/)
 
