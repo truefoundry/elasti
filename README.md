@@ -69,6 +69,10 @@ The name Elasti comes from a superhero from DC Comics, which can grow large and 
 - Automatically configure ScaledJobs CRD to match the Activator config, like the number of pods etc, which will overwrite the KEDA configuration for that service. 
 - CRDs to configure Elasti, and identify deployments, and their rules. 
 
+## Traffic Monitoring
+
+![traffic monitoring](./assets/traffic-monitoring.png)
+
 
 # Resources
 

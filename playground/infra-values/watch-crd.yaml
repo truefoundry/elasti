@@ -1,0 +1,8 @@
+apiVersion: stable.truefoundry.com/v1alpha1
+kind: ElastiWatch
+metadata:
+  name: product-watch
+spec:
+  serviceName: productpage
+  queueTimeout: 30
+  idlePeriod: 60

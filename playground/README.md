@@ -160,3 +160,11 @@ This will open the kiali dashboard with following traffic graph.
 
 ```
 
+https://github.com/operator-framework/operator-sdk/issues/1335
+
+
+## Define Custom Resources
+
+We will need to define some custom resources, so we can apply CRDs and work with our controller. 
+
+The CRs defined in controller-cr folder, apply them. 
