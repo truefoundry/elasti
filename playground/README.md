@@ -153,11 +153,28 @@ This will open the kiali dashboard with following traffic graph.
 
 ## Working with Controller
 
+- Go version, 1.21. 
+- There is bug in 1.22, so if you have that, please downgrade. 
+
 - Install steps: [Get Operator SDK](https://sdk.operatorframework.io/docs/installation/#install-from-github-release)
 
-- Got to controller dir.
+- Step to initiate operator
 ```bash
 
+mkdir elasti-operator
+cd elasti-operator
+
+operator-sdk init --domain=elasti.truefoundry.com --repo=github.com/truefoundry/elasti-operator
+ operator-sdk create api --group=core --version=v1alpha1 --kind=Pod --resource --controller --verbose  
+
+// Make your changes
+
+// Build and Publish
+make docker-build docker-push IMG="example.com/memcached-operator:v0.0.1"
+make deploy IMG="localhost:5000/elasti-operator:latest"   
+
+// Run Locally
+make install run
 ```
 
 https://github.com/operator-framework/operator-sdk/issues/1335

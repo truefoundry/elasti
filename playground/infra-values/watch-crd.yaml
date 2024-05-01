@@ -1,8 +1,8 @@
-apiVersion: stable.truefoundry.com/v1alpha1
-kind: ElastiWatch
+apiVersion: elasti.elasti.truefoundry.com/v1alpha1
+kind: ElastiService
 metadata:
-  name: product-watch
+  name: product-elasti-service
 spec:
-  serviceName: productpage
-  queueTimeout: 30
+  queueTimeout: 60
   idlePeriod: 60
+  scaledObjectRef: sample
