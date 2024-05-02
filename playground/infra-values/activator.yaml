@@ -23,7 +23,7 @@ spec:
         - name: POD_IP
           value: 10.1.0.56
         ports:
-        - containerPort: 9009
+        - containerPort: 8012
         resources:
           requests:
             memory: "500Mi"
@@ -42,6 +42,6 @@ spec:
   ports:
   - name: http-activator
     protocol: TCP
-    port: 9009
+    port: 8012
   type: LoadBalancer
 
