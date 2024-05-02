@@ -15,6 +15,13 @@ spec:
       containers:
       - name: elasti-activator
         image: localhost:5000/activator:latest
+        env:
+        - name: SYSTEM_NAMESPACE
+          value: istio-demo
+        - name: POD_NAME
+          value: productpage-v1-87d54dd59-b7z2l
+        - name: POD_IP
+          value: 10.1.0.56
         ports:
         - containerPort: 9009
         resources:

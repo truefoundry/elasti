@@ -290,7 +290,7 @@ func main() {
 	// At this moment activator with TLS does not disable HTTP.
 	// See also https://github.com/knative/serving/issues/12808.
 	if tlsEnabled {
-		name, server := "https", pkgnet.NewServer(":"+strconv.Itoa(networking.BackendHTTPSPort), ah)
+		name, server := "https", pkgnet.NewServer(":"+strconv.Itoa(httpPort), ah)
 		go func(name string, s *http.Server) {
 			s.TLSConfig = &tls.Config{
 				MinVersion:     tls.VersionTLS13,
