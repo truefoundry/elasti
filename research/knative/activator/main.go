@@ -74,10 +74,6 @@ const (
 
 	// The port on which autoscaler WebSocket server listens.
 	autoscalerPort = ":8080"
-
-	// Ports
-	httpPort  = 8012
-	httpPort2 = 8013
 )
 
 type config struct {
@@ -271,8 +267,8 @@ func main() {
 	}
 
 	servers := map[string]*http.Server{
-		"http1":   pkgnet.NewServer(":"+strconv.Itoa(httpPort), ah),
-		"h2c":     pkgnet.NewServer(":"+strconv.Itoa(httpPort2), ah),
+		"http1":   pkgnet.NewServer(":"+strconv.Itoa(networking.BackendHTTPPort), ah),
+		"h2c":     pkgnet.NewServer(":"+strconv.Itoa(networking.BackendHTTP2Port), ah),
 		"profile": profiling.NewServer(profilingHandler),
 	}
 
