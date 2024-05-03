@@ -3,6 +3,7 @@
 - [What is Knative?](https://www.youtube.com/watch?v=69OfdJ5BIzs)
 - [Use Knative When You Can, and Kubernetes When You Must - David Hadas & Michael Maximilien, IBM](https://www.youtube.com/watch?v=0IwysONytqc)
 - [Everything you want to know about Knative](https://www.youtube.com/watch?v=PSnVGk73CjQ)
+[text](https://www.youtube.com/watch?v=-Zhie5KtSh4)
 
 # Quick Start Guide
 

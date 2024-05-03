@@ -46,7 +46,6 @@ import (
 	"knative.dev/pkg/configmap"
 	configmapinformer "knative.dev/pkg/configmap/informer"
 	"knative.dev/pkg/controller"
-	"knative.dev/pkg/injection/sharedmain"
 	pkglogging "knative.dev/pkg/logging"
 	"knative.dev/pkg/logging/logkey"
 	"knative.dev/pkg/metrics"
@@ -95,14 +94,15 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Report stats on Go memory usage every 30 seconds.
-	metrics.MemStatsOrDie(ctx)
-
 	cfg := injection.ParseAndGetRESTConfigOrDie()
 
 	log.Printf("Registering %d clients", len(injection.Default.GetClients()))
+	log.Print("clients", injection.Default.GetClients())
 	log.Printf("Registering %d informer factories", len(injection.Default.GetInformerFactories()))
+	log.Print("Informer Factories", injection.Default.GetInformerFactories())
 	log.Printf("Registering %d informers", len(injection.Default.GetInformers()))
+	log.Print("Informers", injection.Default.GetInformers())
+	log.Print("config: ", cfg)
 
 	ctx, informers := injection.Default.SetupInformers(ctx, cfg)
 
@@ -125,11 +125,14 @@ func main() {
 	}
 
 	// Set up our logger.
-	loggingConfig, err := sharedmain.GetLoggingConfig(ctx)
-	if err != nil {
-		log.Fatal("Error loading/parsing logging configuration: ", err)
-	}
+	// loggingConfig, err := sharedmain.GetLoggingConfig(ctx)
+	// if err != nil {
+	//	log.Fatal("Error loading/parsing logging configuration: ", err)
+	//	loggingConfig = &pkglogging.Config{
+	//	}
+	//}
 
+	loggingConfig := &pkglogging.Config{}
 	logger, atomicLevel := pkglogging.NewLoggerFromConfig(loggingConfig, component)
 	logger = logger.With(zap.String(logkey.ControllerType, component),
 		zap.String(logkey.Pod, env.PodName))
