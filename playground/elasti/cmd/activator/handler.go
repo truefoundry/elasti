@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 
 	"go.uber.org/zap"
 )
@@ -28,7 +30,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if tryErr := h.throttler.Try(ctx, func(dest string) error {
 		// If the try is successful, how do we want to handle the reuqest.
 		h.logger.Debug("Try successful, processing request")
-		w.WriteHeader(http.StatusOK)
+		h.ProxyRequest(w, r, "http://localhost:1090/mock/whatever-name-i-want/request")
 		return nil
 	}); tryErr != nil {
 		h.logger.Error("throttler try error: ", zap.Error(tryErr))
@@ -40,4 +42,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+}
+
+func (h *Handler) ProxyRequest(w http.ResponseWriter, r *http.Request, target string) {
+	targetURL, _ := url.Parse(target)
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	r.Host = targetURL.Host
+	proxy.ServeHTTP(w, r)
 }

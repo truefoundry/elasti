@@ -11,7 +11,7 @@ func main() {
 	ctx := context.Background()
 	logger, _ := zap.NewDevelopment()
 
-	PodIP := "192.168.0.1"
+	PodIP := "http://localhost:1090/mock/whatever-name-i-want/request"
 	MaxIdleProxyConns := 100
 	MaxIdleProxyConnsPerHost := 1000
 
