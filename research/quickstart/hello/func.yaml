@@ -1,0 +1,8 @@
+specVersion: 0.36.0
+name: hello
+runtime: go
+registry: localhost:5000
+image: localhost:5000/hello:latest
+created: 2024-05-02T02:11:23.887838968+05:30
+build:
+  builder: pack
