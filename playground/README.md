@@ -189,5 +189,13 @@ The CRs defined in controller-cr folder, apply them.
 ## Add cluster-admin to activator
 ```
  k create clusterrolebinding default-admin --clusterrole=cluster-admin --serviceaccount=elasti:default    
+
 ```
+
+## Run Fake API for testing
+
+```
+docker run -d -p 1090:1090 --name fake-api reachfive/fake-api-server:latest 
+```
+
 

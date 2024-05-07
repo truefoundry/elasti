@@ -17,11 +17,11 @@ spec:
         image: localhost:5000/activator:latest
         env:
         - name: SYSTEM_NAMESPACE
-          value: istio-demo
+          value: fake
         - name: POD_NAME
-          value: productpage-v1-87d54dd59-b7z2l
+          value: fake-api
         - name: POD_IP
-          value: 10.1.0.56
+          value: http://10.101.163.207:1090/mock/whatever-name-i-want/request
         ports:
         - containerPort: 8012
         resources:

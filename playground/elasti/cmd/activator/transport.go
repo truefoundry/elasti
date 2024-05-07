@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/zap"
 	"golang.org/x/net/http2"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -33,13 +34,15 @@ var backOffTemplate = wait.Backoff{
 	Steps:    15,
 }
 
-func NewProxyAutoTransport(maxIdleProxyConns, maxIdleProxyConnsPerHost int) http.RoundTripper {
+func NewProxyAutoTransport(log *zap.Logger, maxIdleProxyConns, maxIdleProxyConnsPerHost int) http.RoundTripper {
 	v1 := newHTTPTransport(false /*disable keep-alives*/, true /*disable auto-compression*/, maxIdleProxyConns, maxIdleProxyConnsPerHost)
 	v2 := newH2CTransport(true)
 	return RoundTripperFunc(func(r *http.Request) (*http.Response, error) {
 		t := v1
+		log.Debug("Transport v1 selected")
 		if r.ProtoMajor == 2 {
 			t = v2
+			log.Debug("Transport v2 selected")
 		}
 		return t.RoundTrip(r)
 	})

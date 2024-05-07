@@ -12,6 +12,7 @@ require (
 
 require (
 	github.com/go-logr/logr v1.4.1 // indirect
+	github.com/kelseyhightower/envconfig v1.4.0
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
