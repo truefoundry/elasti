@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: activator
+  namespace: elasti
 spec:
   replicas: 1
   selector:
@@ -17,11 +18,11 @@ spec:
         image: localhost:5000/activator:latest
         env:
         - name: SYSTEM_NAMESPACE
-          value: fake
+          value: default
         - name: POD_NAME
-          value: fake-api
+          value: target
         - name: POD_IP
-          value: http://10.101.163.207:1090/mock/whatever-name-i-want/request
+          value: http://target-service.default.svc.cluster.local:8014
         ports:
         - containerPort: 8012
         resources:
@@ -36,6 +37,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: activator-service
+  namespace: elasti
 spec:
   selector:
     app: activator

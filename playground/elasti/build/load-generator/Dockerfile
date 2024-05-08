@@ -1,0 +1,15 @@
+FROM golang:1.22.2-alpine3.19 AS builder
+WORKDIR /app
+COPY go.sum .
+COPY go.mod .
+RUN go mod tidy
+RUN go mod download
+COPY ../../ .
+RUN go build -o load-generator ./cmd/load-generator
+# Break
+FROM alpine:latest
+WORKDIR /root/
+COPY --from=builder /app/load-generator .
+CMD ["./load-generator"]
+
+ 

@@ -16,6 +16,15 @@ help:
 run-activator: ## Run activator locally
 	go run ./cmd/activator
 
+.PHONY: run-load-generator
+run-load-generator: ## Run load-generator locally
+	go run ./cmd/load-generator
+
+.PHONY: run-target
+run-target: ## Run target locally
+	go run ./cmd/target
+
+
 .PHONY: docker-context 
 docker-context: ## Switch to docker desktop context
 	docker context use desktop-linux
@@ -29,19 +38,52 @@ docker-build-activator: ## Build docker image for the activator
 	docker build -t activator -f ./build/activator/Dockerfile .          
 	docker tag activator localhost:5000/activator
 
-.PHONY: docker-publish
+.PHONY: docker-publish-activator
 docker-publish-activator: ## Publish docker image for the activator
 	docker push localhost:5000/activator:latest
 
+.PHONY: docker-build-load-generator
+docker-build-load-generator: ## Build docker image for the load-generator
+	docker build -t load-generator -f ./build/load-generator/Dockerfile .          
+	docker tag load-generator localhost:5000/load-generator
 
+.PHONY: docker-publish-load-generator
+docker-publish-load-generator: ## Publish docker image for the load-generator
+	docker push localhost:5000/load-generator:latest
 
-.PHONY: deploy-activator
-build-deploy-activator: docker-build-activator docker-publish-activator ## & Deploy to k8s
-	kubectl delete -f activator.yaml -n elasti
-	kubectl apply -f activator.yaml -n elasti
+.PHONY: docker-build-target
+docker-build-target: ## Build docker image for the target
+	docker build -t target -f ./build/target/Dockerfile .          
+	docker tag target localhost:5000/target
+
+.PHONY: docker-publish-target
+docker-publish-target: ## Publish docker image for the target
+	docker push localhost:5000/target:latest
 
 .PHONY: deploy-activator
 deploy-activator: ## Build docker image for activator, publish it, and deploy it on k8s
-	kubectl delete -f activator.yaml -n elasti
-	kubectl apply -f activator.yaml -n elasti
+	kubectl apply -f ./infra/activator.yaml -n elasti
+
+.PHONY: deploy-load-generator
+deploy-load-generator: ## Build docker image for load-generator, publish it, and deploy it on k8s
+	kubectl apply -f ./infra/load-generator.yaml -n non-istio
+
+.PHONY: deploy-target
+deploy-target: ## Build docker image for target, publish it, and deploy it on k8s
+	kubectl apply -f ./infra/target.yaml -n default
+
+.PHONY: build-deploy-activator
+build-deploy-activator: docker-build-activator docker-publish-activator ## & Deploy to k8s
+	kubectl delete -f ./infra/activator.yaml -n elasti
+	kubectl apply -f ./infra/activator.yaml -n elasti
+
+.PHONY: build-deploy-load-generator
+build-deploy-load-generator: docker-build-load-generator docker-publish-load-generator ## & Deploy to k8s
+	kubectl delete -f ./infra/load-generator.yaml -n non-istio
+	kubectl apply -f ./infra/load-generator.yaml -n non-istio
+
+.PHONY: build-deploy-target
+build-deploy-target: docker-build-target docker-publish-target ## & Deploy to k8s
+	kubectl delete -f ./infra/target.yaml -n default
+	kubectl apply -f ./infra/target.yaml -n default
 

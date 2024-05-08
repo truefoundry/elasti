@@ -29,7 +29,7 @@ func main() {
 
 	transport := NewProxyAutoTransport(logger, env.MaxIdleProxyConns, env.MaxIdleProxyConnsPerHost)
 	logger.Debug("Transport initiated")
-	throttler := NewThrottler(ctx, logger, env.PodIP)
+	throttler := NewThrottler(ctx, logger)
 	logger.Debug("Throttler initiated")
 	handler := NewHandler(ctx, logger, transport, *throttler, env.PodIP)
 	logger.Debug("Handler initiated")

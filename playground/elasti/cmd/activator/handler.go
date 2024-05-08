@@ -6,34 +6,55 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"sync"
 
 	"go.uber.org/zap"
 )
 
 type Handler struct {
-	logger    *zap.Logger
-	throttler Throttler
-	transport http.RoundTripper
-	targetURL *url.URL
+	logger     *zap.Logger
+	throttler  Throttler
+	transport  http.RoundTripper
+	targetURL  *url.URL
+	bufferPool httputil.BufferPool
 }
 
 func NewHandler(ctx context.Context, logger *zap.Logger, transport http.RoundTripper, throttle Throttler, targetURLStr string) *Handler {
 	targetURL, _ := url.Parse(targetURLStr)
 	return &Handler{
-		throttler: throttle,
-		logger:    logger,
-		transport: transport,
-		targetURL: targetURL,
+		throttler:  throttle,
+		logger:     logger,
+		transport:  transport,
+		targetURL:  targetURL,
+		bufferPool: NewBufferPool(),
 	}
 }
 
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+type Response struct {
+	Message string `json:"message"`
+}
+
+func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx := context.Background()
 	h.logger.Debug("Sending request for try")
-	if tryErr := h.throttler.Try(ctx, func(dest string) error {
+	if tryErr := h.throttler.Try(ctx, func() error {
 		// If the try is successful, how do we want to handle the reuqest.
 		h.logger.Debug("Try successful, processing request")
-		h.ProxyRequest(w, r)
+		h.logger.Debug("Proxy Request",
+			zap.Any("url", h.targetURL),
+			zap.Any("header", req.Header),
+			zap.Any("method", req.Method),
+			zap.Any("proto", req.Proto),
+			zap.Any("host", req.Host),
+		)
+
+		target := &url.URL{}
+		if req.Host == "external-target-service.default.svc.cluster.local:8012" {
+			// We can do the routing here based on the host, or we can use CRDs to do it
+			target = h.targetURL
+		}
+
+		h.ProxyRequest(w, req, target)
 		return nil
 	}); tryErr != nil {
 		h.logger.Error("throttler try error: ", zap.Error(tryErr))
@@ -44,28 +65,16 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}
-
 }
 
-func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request) {
+func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetURL *url.URL) {
 	h.logger.Debug("Requesting Proxy")
-
 	proxy := httputil.NewSingleHostReverseProxy(h.targetURL)
-	//proxy := h.NewHeaderPruningReverseProxy(h.targetURL.Host, "Proxy", false)
+	proxy.BufferPool = h.bufferPool
 	proxy.Transport = h.transport
 	proxy.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
 		h.logger.Info("proxy error handler triggered", zap.Error(err))
 	}
-
-	req.Host = h.targetURL.Host
-	h.logger.Debug("Proxy Request",
-		zap.Any("url", h.targetURL),
-		zap.Any("header", req.Header),
-		zap.Any("method", req.Method),
-		zap.Any("proto", req.Proto),
-		zap.Any("host", req.Host),
-	)
-
 	proxy.ServeHTTP(w, req)
 }
 
@@ -92,5 +101,35 @@ func (h *Handler) NewHeaderPruningReverseProxy(target, hostOverride string, useH
 				req.Host = target
 			}
 		},
+	}
+}
+
+type bufferPool struct {
+	pool *sync.Pool
+}
+
+// Get gets a []byte from the bufferPool, or creates a new one if none are
+// available in the pool.
+func (b *bufferPool) Get() []byte {
+	buf := b.pool.Get()
+	if buf == nil {
+		// Use the default buffer size as defined in the ReverseProxy itself.
+		return make([]byte, 32*1024)
+	}
+
+	return *buf.(*[]byte)
+}
+
+// Put returns the given Buffer to the bufferPool.
+func (b *bufferPool) Put(buffer []byte) {
+	b.pool.Put(&buffer)
+}
+
+func NewBufferPool() httputil.BufferPool {
+	return &bufferPool{
+		// We don't use the New function of sync.Pool here to avoid an unnecessary
+		// allocation when creating the slices. They are implicitly created in the
+		// Get function below.
+		pool: &sync.Pool{},
 	}
 }
