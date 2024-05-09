@@ -45,7 +45,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			zap.Any("header", req.Header),
 			zap.Any("method", req.Method),
 			zap.Any("proto", req.Proto),
-			zap.Any("host", req.Host),
+			zap.Any("Req", req),
 		)
 
 		target := &url.URL{}

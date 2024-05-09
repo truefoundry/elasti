@@ -23,7 +23,9 @@ spec:
         image: localhost:5000/load-generator:latest
         env:
         - name: TARGET_URL
-          value: http://external-target-service.default.svc.cluster.local:8012
+          value: http://external-target-service.default.svc.cluster.local:8014/api/in-target
+        - name: TARGET_URL_2
+          value: http://external-target-service.default.svc.cluster.local:8014/api/in-target-2
         resources:
           requests:
             memory: "500Mi"
