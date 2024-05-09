@@ -29,7 +29,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: target-service
+  name: target-pvt-service
   namespace: default
 spec:
   selector:
@@ -38,19 +38,4 @@ spec:
   - name: http-target
     protocol: TCP
     port: 8014
-    targetPort: 8014
   type: LoadBalancer
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: external-target-service
-  namespace: default
-spec:
-  type: ExternalName
-  externalName: activator-service.elasti.svc.cluster.local
-  ports:
-  - port: 8014
-    targetPort: http-activator
-    protocol: TCP
-

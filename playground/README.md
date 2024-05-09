@@ -198,4 +198,57 @@ The CRs defined in controller-cr folder, apply them.
 docker run -d -p 1090:1090 --name fake-api reachfive/fake-api-server:latest 
 ```
 
+## Questions
+
+- Host can tell the origin, but we don’t know the exact endpoint that was hit by the original service.
+    - If we do get to know which endpoint was origin trying to hit, we will need to manage a map, and keep it dynamic and accessable via activator.
+
+- In the “load-generation” service, Port has to be mentioned in the env TARGET_URL
+    - If the external-target-service is pointing to activator
+        - Activator is on 8012
+    - If the external-target-service is pointing to Target
+        - Target is on 8014
+    - So switching values in external-target-service, will require updating load-generation menifest also.
+
+- Connection with activator close before it is fulfilled if it’s under istio.
+
+- POC proxy mode vs serve mode.
+
+- How does controller gets to know that service is going to 0?
+    - Controller POC to get 0 traffic metric of a service.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

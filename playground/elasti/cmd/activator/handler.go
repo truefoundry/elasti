@@ -51,7 +51,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		target := &url.URL{}
 		if req.Host == "external-target-service.default.svc.cluster.local:8012" {
 			// We can do the routing here based on the host, or we can use CRDs to do it
-			target = h.targetURL
+			target = req.
 		}
 
 		h.ProxyRequest(w, req, target)
