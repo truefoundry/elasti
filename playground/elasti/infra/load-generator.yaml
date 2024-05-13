@@ -23,7 +23,7 @@ spec:
         image: localhost:5000/load-generator:latest
         env:
         - name: TARGET_URL
-          value: http://target-service.default.svc.cluster.local:8014
+          value: http://target-service.default.svc.cluster.local:8014/api/v1/sayHello
         resources:
           requests:
             memory: "500Mi"

@@ -41,17 +41,21 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// If the try is successful, how do we want to handle the reuqest.
 		h.logger.Debug("Try successful, processing request")
 		h.logger.Debug("Proxy Request",
-			zap.Any("url", h.targetURL),
+			zap.Any("Target URL", h.targetURL),
+			zap.Any("host", req.Host),
 			zap.Any("header", req.Header),
 			zap.Any("method", req.Method),
 			zap.Any("proto", req.Proto),
-			zap.Any("Req", req),
+			zap.Any("Req URI", req.RequestURI),
+			zap.Any("Req Body", req.Body),
+			zap.Any("Req Remote Addr", req.RemoteAddr),
+			zap.Any("Req URL", req.URL),
 		)
 
-		target := &url.URL{}
+		target := h.targetURL
 		if req.Host == "external-target-service.default.svc.cluster.local:8012" {
 			// We can do the routing here based on the host, or we can use CRDs to do it
-			target = req.
+			target = h.targetURL
 		}
 
 		h.ProxyRequest(w, req, target)

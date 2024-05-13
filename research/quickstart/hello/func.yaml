@@ -1,8 +1,11 @@
 specVersion: 0.36.0
 name: hello
 runtime: go
-registry: localhost:5000
-image: localhost:5000/hello:latest
-created: 2024-05-02T02:11:23.887838968+05:30
+registry: ramantehlan
+image: index.docker.io/ramantehlan/hello:latest
+imageDigest: sha256:36c5fafdd10afc647fb8478bd94af5aa1d3f1ae3e0cdebaadd529c8eeab303a2
+created: 2024-05-09T13:40:43.847282069+05:30
 build:
   builder: pack
+deploy:
+  namespace: default
