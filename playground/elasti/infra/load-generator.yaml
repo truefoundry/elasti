@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: elasti-load-generator
-        image: localhost:5000/load-generator:latest
+        image: localhost:5001/load-generator:latest
         env:
         - name: TARGET_URL
           value: http://target-service.default.svc.cluster.local:8014/api/v1/sayHello

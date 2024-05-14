@@ -15,14 +15,10 @@ spec:
     spec:
       containers:
       - name: elasti-activator
-        image: localhost:5000/activator:latest
+        image: localhost:5001/activator:latest
         env:
         - name: SYSTEM_NAMESPACE
-          value: default
-        - name: POD_NAME
-          value: target
-        - name: POD_IP
-          value: http://target-pvt-service.default.svc.cluster.local:8014
+          value: elasti
         ports:
         - containerPort: 8012
         resources:
@@ -32,18 +28,4 @@ spec:
           limits:
             memory: "1Gi"
             cpu: "750m"  
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: activator-service
-  namespace: elasti
-spec:
-  selector:
-    app: activator
-  ports:
-  - name: http-activator
-    protocol: TCP
-    port: 8012
-  type: LoadBalancer
 

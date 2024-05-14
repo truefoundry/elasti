@@ -198,6 +198,13 @@ The CRs defined in controller-cr folder, apply them.
 docker run -d -p 1090:1090 --name fake-api reachfive/fake-api-server:latest 
 ```
 
+## Activator needs cluster-admin permission
+
+```
+k create clusterrolebinding default-admin --clusterrole=cluster-admin --serviceaccount=elasti:default
+```
+
+
 ## Questions
 
 - Host can tell the origin, but we don’t know the exact endpoint that was hit by the original service.

@@ -16,8 +16,9 @@ func NewBreaker(totalSlots int64) *Breaker {
 	}
 }
 
-func (b *Breaker) Reserve(ctx context.Context) (func(), bool) {
+func (b *Breaker) Reserve(ctx context.Context) {
 	// Try to acquire the pending transaction,
 	// if not found, return false
 	// Else return the callback and true.
+
 }

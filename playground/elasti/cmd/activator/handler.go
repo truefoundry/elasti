@@ -15,17 +15,14 @@ type Handler struct {
 	logger     *zap.Logger
 	throttler  Throttler
 	transport  http.RoundTripper
-	targetURL  *url.URL
 	bufferPool httputil.BufferPool
 }
 
-func NewHandler(ctx context.Context, logger *zap.Logger, transport http.RoundTripper, throttle Throttler, targetURLStr string) *Handler {
-	targetURL, _ := url.Parse(targetURLStr)
+func NewHandler(ctx context.Context, logger *zap.Logger, transport http.RoundTripper, throttle Throttler) *Handler {
 	return &Handler{
 		throttler:  throttle,
 		logger:     logger,
 		transport:  transport,
-		targetURL:  targetURL,
 		bufferPool: NewBufferPool(),
 	}
 }
@@ -36,28 +33,35 @@ type Response struct {
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx := context.Background()
-	h.logger.Debug("Sending request for try")
-	if tryErr := h.throttler.Try(ctx, func() error {
+
+	h.logger.Debug("Proxy Request",
+		zap.Any("host", req.Host),
+		zap.Any("header", req.Header),
+		zap.Any("method", req.Method),
+		zap.Any("proto", req.Proto),
+		zap.Any("Req URI", req.RequestURI),
+		zap.Any("Req Body", req.Body),
+		zap.Any("Req Remote Addr", req.RemoteAddr),
+		zap.Any("Req URL", req.URL),
+	)
+
+	ns, svc := "elasti", "activator-service"
+	if values, ok := req.Header["X-Envoy-Decorator-Operation"]; ok {
+		// Request coming from istio
+		h.logger.Debug("X-Envoy-Decorator-Operation", zap.Any("values", values))
+
+	} else {
+		// Request is coming from internal pods
+		h.logger.Debug("Request no from istio")
+		ns, svc, _ = h.throttler.extractNamespaceAndService(req.Host, true)
+		svc = svc + "-pvt"
+	}
+
+	h.logger.Debug("Extracted Info", zap.String("ns", ns), zap.Any("svc", svc))
+	if tryErr := h.throttler.Try(ctx, ns, svc, func() error {
 		// If the try is successful, how do we want to handle the reuqest.
-		h.logger.Debug("Try successful, processing request")
-		h.logger.Debug("Proxy Request",
-			zap.Any("Target URL", h.targetURL),
-			zap.Any("host", req.Host),
-			zap.Any("header", req.Header),
-			zap.Any("method", req.Method),
-			zap.Any("proto", req.Proto),
-			zap.Any("Req URI", req.RequestURI),
-			zap.Any("Req Body", req.Body),
-			zap.Any("Req Remote Addr", req.RemoteAddr),
-			zap.Any("Req URL", req.URL),
-		)
-
-		target := h.targetURL
-		if req.Host == "external-target-service.default.svc.cluster.local:8012" {
-			// We can do the routing here based on the host, or we can use CRDs to do it
-			target = h.targetURL
-		}
-
+		// TODO: Handle this error
+		target, _ := url.Parse(svc + req.RequestURI)
 		h.ProxyRequest(w, req, target)
 		return nil
 	}); tryErr != nil {
@@ -73,7 +77,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetURL *url.URL) {
 	h.logger.Debug("Requesting Proxy")
-	proxy := httputil.NewSingleHostReverseProxy(h.targetURL)
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.BufferPool = h.bufferPool
 	proxy.Transport = h.transport
 	proxy.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {

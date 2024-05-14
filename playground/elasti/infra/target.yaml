@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: elasti-target
-        image: localhost:5000/target:latest
+        image: localhost:5001/target:latest
         ports:
         - containerPort: 8014
         resources:
@@ -29,7 +29,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: target-pvt-service
+  name: target-service-pvt
   namespace: default
 spec:
   selector:

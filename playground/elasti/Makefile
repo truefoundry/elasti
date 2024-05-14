@@ -31,38 +31,39 @@ docker-context: ## Switch to docker desktop context
 
 .PHONY: setup-registry
 setup-registry: ## Setup docker registery, where we publish our images
-	docker run -d -p 5000:5000 --name elasti-registry registry:2 
+	docker run -d -p 5001:5000 --name elasti-registry registry:2 
 
 .PHONY: docker-build-activator
 docker-build-activator: ## Build docker image for the activator
 	docker build -t activator -f ./build/activator/Dockerfile .          
-	docker tag activator localhost:5000/activator
+	docker tag activator localhost:5001/activator
 
 .PHONY: docker-publish-activator
 docker-publish-activator: ## Publish docker image for the activator
-	docker push localhost:5000/activator:latest
+	docker push localhost:5001/activator:latest
 
 .PHONY: docker-build-load-generator
 docker-build-load-generator: ## Build docker image for the load-generator
 	docker build -t load-generator -f ./build/load-generator/Dockerfile .          
-	docker tag load-generator localhost:5000/load-generator
+	docker tag load-generator localhost:5001/load-generator
 
 .PHONY: docker-publish-load-generator
 docker-publish-load-generator: ## Publish docker image for the load-generator
-	docker push localhost:5000/load-generator:latest
+	docker push localhost:5001/load-generator:latest
 
 .PHONY: docker-build-target
 docker-build-target: ## Build docker image for the target
 	docker build -t target -f ./build/target/Dockerfile .          
-	docker tag target localhost:5000/target
+	docker tag target localhost:5001/target
 
 .PHONY: docker-publish-target
 docker-publish-target: ## Publish docker image for the target
-	docker push localhost:5000/target:latest
+	docker push localhost:5001/target:latest
 
 .PHONY: deploy-activator
 deploy-activator: ## Build docker image for activator, publish it, and deploy it on k8s
-	kubectl apply -f ./infra/activator.yaml -n elasti
+	kubectl apply -f ./infra/activator-deployment.yaml -n elasti
+	kubectl apply -f ./infra/activator-service.yaml -n elasti
 
 .PHONY: deploy-load-generator
 deploy-load-generator: ## Build docker image for load-generator, publish it, and deploy it on k8s
@@ -74,8 +75,9 @@ deploy-target: ## Build docker image for target, publish it, and deploy it on k8
 
 .PHONY: build-deploy-activator
 build-deploy-activator: docker-build-activator docker-publish-activator ## & Deploy to k8s
-	kubectl delete -f ./infra/activator.yaml -n elasti
-	kubectl apply -f ./infra/activator.yaml -n elasti
+	kubectl delete -f ./infra/activator-deployment.yaml -n elasti
+	kubectl apply -f ./infra/activator-deployment.yaml -n elasti
+	kubectl apply -f ./infra/activator-service.yaml -n elasti
 
 .PHONY: build-deploy-load-generator
 build-deploy-load-generator: docker-build-load-generator docker-publish-load-generator ## & Deploy to k8s
