@@ -25,6 +25,7 @@ ports:
     port: 8012
 endpoints:
   - addresses:
-      - 10.1.0.40
+      - 10.1.0.90
+
 
 
