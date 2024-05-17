@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -35,7 +36,8 @@ type Response struct {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	h.logger.Debug("Proxy Request",
 		zap.Any("host", req.Host),
@@ -75,17 +77,23 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		zap.Any("target", targetURL),
 		zap.Any("Host", targetHost))
 
-	if tryErr := h.throttler.Try(ctx, ns, svc, func() error {
-		h.ProxyRequest(w, req, targetURL)
-		return nil
-	}); tryErr != nil {
-		h.logger.Error("throttler try error: ", zap.Error(tryErr))
-		if errors.Is(tryErr, context.DeadlineExceeded) {
-			http.Error(w, tryErr.Error(), http.StatusServiceUnavailable)
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
+	go func() {
+		if tryErr := h.throttler.Try(ctx, ns, svc, func() error {
+			h.ProxyRequest(w, req, targetURL)
+			return nil
+		}); tryErr != nil {
+			h.logger.Error("throttler try error: ", zap.Error(tryErr))
+			if errors.Is(tryErr, context.DeadlineExceeded) {
+				http.Error(w, tryErr.Error(), http.StatusServiceUnavailable)
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+			}
 		}
-	}
+	}()
+
+	// Timeout the request if it takes too long
+	<-ctx.Done()
+	h.logger.Error("Request timeout", zap.Error(ctx.Err()))
 }
 
 func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetURL *url.URL) {
