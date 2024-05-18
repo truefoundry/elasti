@@ -1,0 +1,9 @@
+apiVersion: elasti.truefoundry.io/v1alpha1
+kind: ElastiService
+metadata:
+  labels:
+    app.kubernetes.io/name: elasti-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: elastiservice-sample
+spec:
+  # TODO(user): Add fields here

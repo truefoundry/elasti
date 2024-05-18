@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: activator-service
+  namespace: elasti
+spec:
+  selector:
+    app: activator
+  ports:
+  - name: http-elasti-activator
+    protocol: TCP
+    port: 8012
+  type: LoadBalancer

@@ -1,8 +1,0 @@
-apiVersion: elasti.elasti.truefoundry.com/v1alpha1
-kind: ElastiService
-metadata:
-  name: product-elasti-service
-spec:
-  queueTimeout: 60
-  idlePeriod: 60
-  scaledObjectRef: sample
