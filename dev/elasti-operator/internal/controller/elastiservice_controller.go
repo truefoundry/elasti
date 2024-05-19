@@ -26,9 +26,10 @@ import (
 	"truefoundry.io/elasti/api/v1alpha1"
 
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
+	networkingv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ElastiServiceReconciler reconciles a ElastiService object
@@ -52,7 +53,6 @@ type ElastiServiceReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
 func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	elastiService := &v1alpha1.ElastiService{}
 	err := r.Client.Get(ctx, req.NamespacedName, elastiService)
 	if err != nil {
@@ -62,43 +62,35 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	// Fetch Pods of 'activator'
-	pods := &corev1.PodList{}
-	// TODO: Change the label to the one that is used in the source service, make it dynamic
-	err = r.Client.List(ctx, pods, client.InNamespace("elasti"),
-		client.MatchingLabels{"app": "activator"})
-	if err != nil {
-		r.Logger.Error("Failed to list pods",
-			zap.Error(err),
-			zap.Any("req", req))
-		return ctrl.Result{}, err
-	}
+	if elastiService.Spec.Mode == "proxy" {
+		r.copyEndpointSlices(ctx, "activator-service", elastiService.Spec.TargetService)
 
-	var endpoints []discoveryv1.Endpoint
-	for _, pod := range pods.Items {
-		if pod.Status.PodIP != "" {
-			endpoints = append(endpoints, discoveryv1.Endpoint{
-				Addresses: []string{pod.Status.PodIP},
-			})
+		elastiService.Status.LastReconciledTime = metav1.Now()
+		err = r.Status().Update(ctx, elastiService)
+		if err != nil {
+			r.Logger.Error("Failed to update EndpointsliceReplacer status", zap.Error(err))
+			return ctrl.Result{}, err
 		}
-	}
+		r.Logger.Info("[Proxy Mode] Updated ElastiService status",
+			zap.String("Name", elastiService.Name),
+			zap.String("Namespace", elastiService.Namespace),
+			zap.String("CopyFrom", "activator-service"),
+			zap.String("CopyTo", elastiService.Spec.TargetService))
+	} else {
+		r.copyEndpointSlices(ctx, elastiService.Spec.TargetService+"-pvt", elastiService.Spec.TargetService)
 
-	r.Logger.Debug("Endpoints", zap.Any("Endpoints", endpoints))
-
-	/*
-		if elastiService.Spec.Mode == "proxy" {
-			// We need to get the pods of elasti-activator and add them to the target service endpointsSlice
-			log.Info("Proxy Mode")
-
-			// Code to fetch the pods of activator-service
-			// Code to add the pods to the target service endpointsSlice
-
-		} else {
-			// We remove the elasti-activator pods from the target service endpointsSlice
-			// We either add the selector, or we add target-service-pvt endpoints to it
-			log.Info("Serve Mode")
+		elastiService.Status.LastReconciledTime = metav1.Now()
+		err = r.Status().Update(ctx, elastiService)
+		if err != nil {
+			r.Logger.Error("Failed to update EndpointsliceReplacer status", zap.Error(err))
+			return ctrl.Result{}, err
 		}
-	*/
+		r.Logger.Info("[Serve Mode] Updated ElastiService status",
+			zap.String("Name", elastiService.Name),
+			zap.String("Namespace", elastiService.Namespace),
+			zap.String("CopyFrom", elastiService.Spec.TargetService+"-pvt"),
+			zap.String("CopyTo", elastiService.Spec.TargetService))
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -109,4 +101,58 @@ func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&v1alpha1.ElastiService{}).
 		Owns(&discoveryv1.EndpointSlice{}).
 		Complete(r)
+}
+
+func (r *ElastiServiceReconciler) copyEndpointSlices(ctx context.Context, copyFromService, copyToService string) error {
+	copyFromSlices := &networkingv1.EndpointSliceList{}
+	err := r.List(ctx, copyFromSlices, client.MatchingLabels{"kubernetes.io/service-name": copyFromService})
+	if err != nil {
+		r.Logger.Error("Failed to list EndpointSlices for copyFrom service", zap.Error(err))
+		return err
+	}
+	copyToSlices := &networkingv1.EndpointSliceList{}
+	err = r.List(ctx, copyToSlices, client.MatchingLabels{"kubernetes.io/service-name": copyToService})
+	if err != nil {
+		r.Logger.Error("Failed to list EndpointSlices for copyTo service", zap.Error(err))
+		return err
+	}
+	// Delete the existing EndpointSlices for the target service
+	/*
+		for _, targetSlice := range copyToSlices.Items {
+			err = r.Delete(ctx, &targetSlice)
+			if err != nil {
+				r.Logger.Error("Failed to delete copyToService EndpointSlice", zap.Error(err))
+				return err
+			}
+		}
+		for _, copyFromSlice := range copyFromSlices.Items {
+			newSlice := copyFromSlice.DeepCopy()
+			newSlice.ObjectMeta = metav1.ObjectMeta{
+				Name:      copyToService,
+				Namespace: copyToSlices.Items[0].Namespace,
+				Labels:    map[string]string{"kubernetes.io/service-name": copyToService},
+			}
+			newSlice.ResourceVersion = ""
+			newSlice.UID = ""
+			newSlice.CreationTimestamp = metav1.Time{}
+			err = r.Create(ctx, newSlice)
+			if err != nil {
+				r.Logger.Error("Failed to create new EndpointSlice for target service", zap.Error(err))
+				return err
+			}
+		} */
+
+	if len(copyFromSlices.Items) > 0 {
+		// Since we are taking only the first EndpointSlice, we have a limit of 1000 endpoints
+		activatorEndpoints := copyFromSlices.Items[0].Endpoints
+		for i := range copyToSlices.Items {
+			copyToSlices.Items[i].Endpoints = activatorEndpoints
+			err = r.Update(ctx, &copyToSlices.Items[i])
+			if err != nil {
+				r.Logger.Error("Failed to update target EndpointSlice", zap.Error(err))
+				return err
+			}
+		}
+	}
+	return nil
 }

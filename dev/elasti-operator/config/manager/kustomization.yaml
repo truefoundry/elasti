@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: localhost:5001/elasti-operator
-  newTag: latest
+  newTag: v1alpha1

@@ -6,8 +6,8 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: target
 spec:
-  queueTimeout: 30
-  idlePeriod: 60
+  queueTimeout: 4
+  idlePeriod: 20
   targetService: target-service
-  mode: proxy
+  mode: serve
 
