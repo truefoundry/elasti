@@ -48,6 +48,8 @@ spec:
                 description: Mode is added only for testing, to switch between the
                   proxy and serve mode
                 type: string
+              privateService:
+                type: string
               queueTimeout:
                 description: How long do elasti-activator hold the request for, before
                   dumping the queue. Default is 60s.

@@ -9,5 +9,5 @@ spec:
   queueTimeout: 4
   idlePeriod: 20
   targetService: target-service
+  privateService: target-service-pvt
   mode: serve
-

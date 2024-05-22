@@ -28,9 +28,10 @@ type ElastiServiceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	TargetService string `json:"targetService,omitempty"`
+	TargetSvc  string `json:"targetService,omitempty"`
+	PrivateSvc string `json:"privateService,omitempty"`
 	// How long do elasti-activator hold the request for, before dumping the queue. Default is 60s.
-	QueueTimout int32 `json:"queueTimeout,omitempty"`
+	QTimout int32 `json:"queueTimeout,omitempty"`
 	// Idle Period is how long should the target VirtualService be Idle(without requests), before we scale it down to 0.
 	IdlePeriod int32 `json:"idlePeriod,omitempty"`
 	// Mode is added only for testing, to switch between the proxy and serve mode
