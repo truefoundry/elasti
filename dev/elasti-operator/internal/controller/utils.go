@@ -5,10 +5,10 @@ import (
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
@@ -62,65 +62,69 @@ func (r *ElastiServiceReconciler) copySVC(_ context.Context, destSVC, sourceSVC 
 	return nil
 }
 
-// copyEPS copies the EndpointSlices from the copyFromService to the copyToService
-func (r *ElastiServiceReconciler) copyEPS(ctx context.Context, copyFromService, copyToService, namespace string) error {
-	copyFromSlices := &networkingv1.EndpointSliceList{}
-	err := r.List(ctx, copyFromSlices, client.MatchingLabels{
-		"kubernetes.io/service-name": copyFromService,
-	})
-	if err != nil {
-		r.Logger.Error("Failed to list EndpointSlices for copyFrom service", zap.Error(err))
+// createProxyEndpointSlice copies the EndpointSlices from the copyFromService to the copyToService
+func (r *ElastiServiceReconciler) createProxyEndpointSlice(ctx context.Context, service *v1.Service) error {
+	activatorSlices := &networkingv1.EndpointSliceList{}
+	if err := r.List(ctx, activatorSlices, client.MatchingLabels{
+		"kubernetes.io/service-name": "activator-service",
+	}); err != nil {
 		return err
 	}
-	// Collect IP addresses from activator EndpointSlices
-	var podIPs []string
-	for _, endpointSlice := range copyFromSlices.Items {
+	var activatorPodIPs []string
+	for _, endpointSlice := range activatorSlices.Items {
 		for _, endpoint := range endpointSlice.Endpoints {
-			podIPs = append(podIPs, endpoint.Addresses...)
+			activatorPodIPs = append(activatorPodIPs, endpoint.Addresses...)
+		}
+	}
+	if len(activatorPodIPs) == 0 {
+		return ErrNoActivatorPodFound
+	}
+
+	found := false
+	serviceEndpointSlices, err := r.getEndpointslices(ctx, service.Name)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		r.Logger.Debug("No EndpointSlices found for the service")
+	}
+
+	if len(serviceEndpointSlices.Items) > 0 {
+		for _, endpointSlice := range serviceEndpointSlices.Items {
+			if endpointSlice.Name == service.Name+"-elasti-endpointslice" {
+				r.Logger.Debug("EndpointSlice already exists")
+				found = true
+				continue
+			}
 		}
 	}
 
-	if len(podIPs) == 0 {
-		r.Logger.Info("No pod IPs found in activator EndpointSlices")
-		return nil
-	}
-
-	// TODO: We can add a check here to see if the endpointslice already exists
-
-	// Create the new EndpointSlice for the target service
-	newEndpointSlice := &networkingv1.EndpointSlice{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      copyToService + "-elasti-slice",
-			Namespace: namespace,
-			Labels: map[string]string{
-				"kubernetes.io/service-name": copyToService,
+	if !found {
+		newEndpointSlice := &networkingv1.EndpointSlice{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      service.Name + "-to-activator",
+				Namespace: service.Namespace,
+				Labels: map[string]string{
+					"kubernetes.io/service-name": service.Name,
+				},
 			},
-		},
-		AddressType: networkingv1.AddressTypeIPv4,
-		Ports: []networkingv1.EndpointPort{
-			{
-				Name:     ptr.To("http-activator-elasti"),
-				Protocol: ptr.To(corev1.ProtocolTCP),
-				Port:     ptr.To(int32(8012)),
+			AddressType: networkingv1.AddressTypeIPv4,
+			Ports: []networkingv1.EndpointPort{
+				{
+					Name:     ptr.To(service.Spec.Ports[0].Name),
+					Protocol: ptr.To(corev1.ProtocolTCP),
+					Port:     ptr.To(int32(8012)),
+				},
 			},
-		},
-	}
-
-	for _, ip := range podIPs {
-		newEndpointSlice.Endpoints = append(newEndpointSlice.Endpoints, networkingv1.Endpoint{
-			Addresses: []string{ip},
-			Conditions: networkingv1.EndpointConditions{
-				Ready:       ptr.To(true),
-				Serving:     ptr.To(true),
-				Terminating: ptr.To(false),
-			},
-		})
-	}
-
-	err = r.Create(ctx, newEndpointSlice)
-	if err != nil {
-		r.Logger.Error("Failed to create new EndpointSlice", zap.Error(err))
-		return err
+		}
+		for _, ip := range activatorPodIPs {
+			newEndpointSlice.Endpoints = append(newEndpointSlice.Endpoints, networkingv1.Endpoint{
+				Addresses: []string{ip},
+			})
+		}
+		if err = r.Create(ctx, newEndpointSlice); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -135,11 +139,12 @@ func (r *ElastiServiceReconciler) getSVC(ctx context.Context, svcName, namespace
 	return service, nil
 }
 
-func (r *ElastiServiceReconciler) getEndPoints(ctx context.Context, svcName, namespace string) (*corev1.Endpoints, error) {
-	endpoints := &corev1.Endpoints{}
-	if err := r.Get(ctx, types.NamespacedName{Name: svcName, Namespace: namespace}, endpoints); err != nil {
-		r.Logger.Error("Failed to get target service", zap.Error(err))
-		return endpoints, err
+func (r *ElastiServiceReconciler) getEndpointslices(ctx context.Context, svcName string) (*networkingv1.EndpointSliceList, error) {
+	endpointSlices := &networkingv1.EndpointSliceList{}
+	if err := r.List(ctx, endpointSlices, client.MatchingLabels{
+		"kubernetes.io/service-name": svcName,
+	}); err != nil {
+		return nil, err
 	}
-	return endpoints, nil
+	return endpointSlices, nil
 }

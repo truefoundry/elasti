@@ -40,15 +40,19 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	if es.Spec.Mode == "proxy" {
+		r.Logger.Info("Enabling proxy mode")
 		if err = r.EnableProxyMode(ctx, es); err != nil {
 			r.Logger.Error("Failed to enable proxy mode", zap.Error(err))
 			return res, err
 		}
+		r.Logger.Info("Proxy mode enabled")
 	} else {
+		r.Logger.Info("Enabling proxy mode")
 		if err = r.serveMode(ctx, es); err != nil {
 			r.Logger.Error("Failed to serve mode", zap.Error(err))
 			return res, err
 		}
+		r.Logger.Info("Serve mode enabled")
 	}
 	return res, nil
 }

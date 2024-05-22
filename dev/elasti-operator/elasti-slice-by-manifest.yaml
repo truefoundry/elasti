@@ -1,0 +1,23 @@
+apiVersion: discovery.k8s.io/v1
+endpoints:
+- addresses:
+  - 10.1.0.174
+  conditions: {}
+kind: EndpointSlice
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"addressType":"IPv4","apiVersion":"discovery.k8s.io/v1","endpoints":[{"addresses":["10.1.0.174"]}],"kind":"EndpointSlice","metadata":{"annotations":{},"labels":{"kubernetes.io/service-name":"target-service"},"name":"target-service","namespace":"default"},"ports":[{"name":"http-target-2","port":8012,"protocol":"TCP"}]}
+  creationTimestamp: "2024-05-22T13:59:45Z"
+  generation: 1
+  labels:
+    kubernetes.io/service-name: target-service
+  name: target-service
+  namespace: default
+  resourceVersion: "905397"
+  uid: 710b8218-8d2b-483a-9c9a-bffebda0d13e
+addressType: IPv4
+ports:
+- name: http-target-2
+  port: 8012
+  protocol: TCP

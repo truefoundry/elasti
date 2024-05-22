@@ -1,0 +1,17 @@
+apiVersion: discovery.k8s.io/v1
+endpoints:
+- addresses:
+  - 10.1.0.196
+  conditions: {}
+kind: EndpointSlice
+metadata:
+  generation: 1
+  labels:
+    kubernetes.io/service-name: target-service
+  name: target-service
+  namespace: default
+addressType: IPv4
+ports:
+- name: http-target-2
+  port: 8012
+  protocol: TCP
