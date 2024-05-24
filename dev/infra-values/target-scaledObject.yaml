@@ -1,0 +1,16 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: target-service-scaledobject
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: target-service-pvt
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  cooldownPeriod: 300
+  pollingInterval: 30
+  triggers:
+  - type: external
+    metadata:
+      scalerAddress: http://activator-service.elasti.svc.cluster.local

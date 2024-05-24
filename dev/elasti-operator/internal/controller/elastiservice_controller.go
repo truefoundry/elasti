@@ -10,7 +10,7 @@ import (
 	"truefoundry.io/elasti/api/v1alpha1"
 
 	"go.uber.org/zap"
-	discoveryv1 "k8s.io/api/discovery/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ElastiServiceReconciler reconciles a ElastiService object
@@ -38,7 +38,6 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if err = r.Client.Get(ctx, req.NamespacedName, es); err != nil {
 		return res, err
 	}
-
 	if es.Spec.Mode == "proxy" {
 		r.Logger.Info("Enabling proxy mode")
 		if err = r.EnableProxyMode(ctx, es); err != nil {
@@ -47,12 +46,18 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 		r.Logger.Info("Proxy mode enabled")
 	} else {
-		r.Logger.Info("Enabling proxy mode")
+		r.Logger.Info("Enabling Serve mode")
 		if err = r.serveMode(ctx, es); err != nil {
 			r.Logger.Error("Failed to serve mode", zap.Error(err))
 			return res, err
 		}
 		r.Logger.Info("Serve mode enabled")
+	}
+	es.Status.LastReconciledTime = metav1.Now()
+	err = r.Status().Update(ctx, es)
+	if err != nil {
+		r.Logger.Error("Failed to update status", zap.Error(err))
+		return ctrl.Result{}, err
 	}
 	return res, nil
 }
@@ -61,6 +66,5 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.ElastiService{}).
-		Owns(&discoveryv1.EndpointSlice{}).
 		Complete(r)
 }

@@ -23,13 +23,11 @@ func (r *ElastiServiceReconciler) EnableProxyMode(ctx context.Context, es *v1alp
 }
 
 func (r *ElastiServiceReconciler) serveMode(ctx context.Context, es *v1alpha1.ElastiService) error {
-	r.Logger.Info("Enabling serve mode")
 	privateSVCName := es.Spec.TargetSvc + "-pvt"
 	privateSVC, err := r.getSVC(ctx, privateSVCName, es.Namespace)
 	if err != nil {
 		return err
 	}
-
 	if targetSVC, err := r.getSVC(ctx, es.Spec.TargetSvc, es.Namespace); err != nil {
 		return err
 	} else {

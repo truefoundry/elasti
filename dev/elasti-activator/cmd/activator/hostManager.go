@@ -47,7 +47,6 @@ func (hm *hostManager) GetHost(req *http.Request) (*Host, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if _, ok := hm.hosts[sourceService]; !ok {
 		targetService = sourceService + "-pvt"
 		sourceHost = hm.removeTrailingWildcardIfNeeded(sourceHost)

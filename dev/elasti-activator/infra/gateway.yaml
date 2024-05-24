@@ -33,3 +33,23 @@ spec:
         host: target-service
         port:
           number: 8014
+--- 
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: target-virtual-service
+  namespace: default
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - target-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: target-service
+        port:
+          number: 8014

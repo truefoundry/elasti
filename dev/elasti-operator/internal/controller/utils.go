@@ -64,6 +64,7 @@ func (r *ElastiServiceReconciler) copySVC(_ context.Context, destSVC, sourceSVC 
 
 // createProxyEndpointSlice copies the EndpointSlices from the copyFromService to the copyToService
 func (r *ElastiServiceReconciler) createProxyEndpointSlice(ctx context.Context, service *v1.Service) error {
+	newEndpointsliceName := service.Name + "-to-activator"
 	activatorSlices := &networkingv1.EndpointSliceList{}
 	if err := r.List(ctx, activatorSlices, client.MatchingLabels{
 		"kubernetes.io/service-name": "activator-service",
@@ -91,18 +92,19 @@ func (r *ElastiServiceReconciler) createProxyEndpointSlice(ctx context.Context, 
 
 	if len(serviceEndpointSlices.Items) > 0 {
 		for _, endpointSlice := range serviceEndpointSlices.Items {
-			if endpointSlice.Name == service.Name+"-elasti-endpointslice" {
-				r.Logger.Debug("EndpointSlice already exists")
+			if endpointSlice.Name == newEndpointsliceName {
 				found = true
 				continue
 			}
 		}
+	} else {
+		r.Logger.Debug("Target Service Endpointslice list EMPTY")
 	}
 
 	if !found {
 		newEndpointSlice := &networkingv1.EndpointSlice{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      service.Name + "-to-activator",
+				Name:      newEndpointsliceName,
 				Namespace: service.Namespace,
 				Labels: map[string]string{
 					"kubernetes.io/service-name": service.Name,
