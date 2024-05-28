@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"runtime"
+	"strconv"
 	"sync"
 	"time"
-	"runtime"
 
 	"go.uber.org/zap"
 )
@@ -38,16 +39,6 @@ type Response struct {
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), h.timeout)
 	defer cancel()
-	/*h.logger.Debug("Request",
-		zap.Any("host", req.Host),
-		zap.Any("header", req.Header),
-		zap.Any("method", req.Method),
-		zap.Any("proto", req.Proto),
-		zap.Any("Req URI", req.RequestURI),
-		zap.Any("Req Body", req.Body),
-		zap.Any("Req Remote Addr", req.RemoteAddr),
-		zap.Any("Req URL", req.URL),
-	)*/
 	host, err := HostManager.GetHost(req)
 	if err != nil {
 		h.logger.Error("Error getting host", zap.Error(err))
@@ -73,8 +64,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		h.logger.Error("Request timeout", zap.Error(ctx.Err()))
 		w.WriteHeader(http.StatusInternalServerError)
 	default:
-		if tryErr := h.throttler.Try(ctx, host, func() error {
-			return h.ProxyRequest(w, req, targetURL)
+		if tryErr := h.throttler.Try(ctx, host, func(count int) error {
+			return h.ProxyRequest(w, req, targetURL, count)
 		}); tryErr != nil {
 			h.logger.Error("throttler try error: ", zap.Error(tryErr))
 			if errors.Is(tryErr, context.DeadlineExceeded) {
@@ -86,7 +77,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetURL *url.URL) (rErr error) {
+func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetURL *url.URL, count int) (rErr error) {
 	defer func() {
 		if r := recover(); r != nil {
 			h.logger.Error("Recovered from panic", zap.Any("panic", r))
@@ -96,26 +87,20 @@ func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetU
 			rErr = r.(error)
 		}
 	}()
-	h.logger.Debug("Requesting Proxy", zap.Any("targetURL", targetURL))
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.BufferPool = h.bufferPool
 	proxy.Transport = h.transport
-	var hErr error
+	req.Header.Set("elasti-retry-count", strconv.Itoa(count))
 	proxy.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
-		h.logger.Error("proxy error handler triggered", zap.Error(err))
-		w.Header().Set("error", err.Error())
+		req.Header.Set("error", err.Error())
 	}
-	defer func() {
-		h.logger.Debug("Defer: Proxy request done", zap.Error(hErr))
-	}()
 	proxy.ServeHTTP(w, req)
 	if err := w.Header().Get("error"); err != "" {
 		h.logger.Error("error header found", zap.String("error", err))
-		hErr = errors.New(err)
-		return hErr
+		return errors.New(err)
 	}
-	h.logger.Debug("Proxy request done", zap.Error(hErr))
-	return hErr
+	h.logger.Debug("Proxy request completed")
+	return nil
 }
 
 // NoHostOverride signifies that no host overriding should be done and that the host

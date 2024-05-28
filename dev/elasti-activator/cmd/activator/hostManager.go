@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -21,7 +22,7 @@ type Host struct {
 
 type hostManager struct {
 	logger                  *zap.Logger
-	hosts                   map[string]*Host
+	hosts                   sync.Map
 	reEnableTrafficDuration time.Duration
 }
 
@@ -30,7 +31,7 @@ var HostManager *hostManager
 func InitHostManager(logger *zap.Logger) {
 	HostManager = &hostManager{
 		logger:                  logger,
-		hosts:                   make(map[string]*Host),
+		hosts:                   sync.Map{},
 		reEnableTrafficDuration: 3 * time.Second,
 	}
 }
@@ -47,37 +48,41 @@ func (hm *hostManager) GetHost(req *http.Request) (*Host, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := hm.hosts[sourceService]; !ok {
+	host, ok := hm.hosts.Load(sourceService)
+	if !ok {
 		targetService = sourceService + "-pvt"
 		sourceHost = hm.removeTrailingWildcardIfNeeded(sourceHost)
 		sourceHost = hm.addHTTPIfNeeded(sourceHost)
 		targetHost = hm.replaceServiceName(sourceHost, targetService)
 		targetHost = hm.addHTTPIfNeeded(targetHost)
 		trafficAllowed := true
-		hm.hosts[sourceService] = &Host{
+		hm.hosts.Store(sourceService, &Host{
 			Namespace:      namespace,
 			SourceService:  sourceService,
 			TargetService:  targetService,
 			SourceHost:     sourceHost,
 			TargetHost:     targetHost,
 			TrafficAllowed: trafficAllowed,
-		}
-		hm.logger.Debug("Adding host", zap.Any("host", hm.hosts[sourceService]))
+		})
 	}
-	return hm.hosts[sourceService], nil
+	return host.(*Host), nil
 }
 
 func (hm *hostManager) DisableTrafficForHost(service string) {
-	if hm.hosts[service].TrafficAllowed {
-		hm.hosts[service].TrafficAllowed = false
+	host, _ := hm.hosts.Load(service)
+	if host.(*Host).TrafficAllowed {
+		host.(*Host).TrafficAllowed = false
+		hm.hosts.Store(service, host)
 		hm.logger.Debug("Disabling traffic for host", zap.Any("service", service))
 	}
 	go hm.enableReEnableTrafficForHost(service)
 }
 
 func (hm *hostManager) EnableTrafficForHost(service string) {
-	if !hm.hosts[service].TrafficAllowed {
-		hm.hosts[service].TrafficAllowed = true
+	host, _ := hm.hosts.Load(service)
+	if !host.(*Host).TrafficAllowed {
+		host.(*Host).TrafficAllowed = true
+		hm.hosts.Store(service, host)
 		hm.logger.Debug("Enabling traffic for host", zap.Any("service", service))
 	}
 }

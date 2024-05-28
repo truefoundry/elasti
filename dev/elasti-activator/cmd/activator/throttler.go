@@ -27,8 +27,9 @@ func NewThrottler(ctx context.Context, logger *zap.Logger, k8sUtil *k8sHelper) *
 	}
 }
 
-func (t *Throttler) Try(ctx context.Context, host *Host, resolve func() error) error {
+func (t *Throttler) Try(ctx context.Context, host *Host, resolve func(int) error) error {
 	reenqueue := true
+	retryCount := 1
 	for reenqueue {
 		reenqueue = false
 		if err := t.breaker.Maybe(ctx, func() {
@@ -41,13 +42,16 @@ func (t *Throttler) Try(ctx context.Context, host *Host, resolve func() error) e
 				reenqueue = true
 				return
 			}
-			if res := resolve(); res != nil {
+			if res := resolve(retryCount); res != nil {
 				t.logger.Error("Error resolving proxy request", zap.Error(res))
 				reenqueue = true
 			} else {
 				HostManager.DisableTrafficForHost(host.SourceService)
 			}
-			time.Sleep(3 * time.Second)
+			if reenqueue {
+				retryCount++
+				time.Sleep(3 * time.Second)
+			}
 		}); err != nil {
 			t.logger.Info("Error resolving request", zap.Error(err))
 		}
