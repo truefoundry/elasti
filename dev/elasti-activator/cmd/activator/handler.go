@@ -73,8 +73,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	default:
 		if tryErr := h.throttler.Try(ctx, host, func() error {
-			h.ProxyRequest(w, req, targetURL)
-			return nil
+			return h.ProxyRequest(w, req, targetURL)
 		}); tryErr != nil {
 			h.logger.Error("throttler try error: ", zap.Error(tryErr))
 			if errors.Is(tryErr, context.DeadlineExceeded) {
@@ -86,15 +85,32 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetURL *url.URL) {
+func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetURL *url.URL) error {
+	defer func() {
+		if r := recover(); r != nil {
+			h.logger.Error("Recovered from panic", zap.Any("panic", r))
+		}
+	}()
 	h.logger.Debug("Requesting Proxy", zap.Any("targetURL", targetURL))
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.BufferPool = h.bufferPool
 	proxy.Transport = h.transport
+	var hErr error
 	proxy.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
-		h.logger.Info("proxy error handler triggered", zap.Error(err))
+		h.logger.Error("proxy error handler triggered", zap.Error(err))
+		w.Header().Set("error", err.Error())
 	}
+	defer func() {
+		h.logger.Debug("Defer: Proxy request done", zap.Error(hErr))
+	}()
 	proxy.ServeHTTP(w, req)
+	if err := w.Header().Get("error"); err != "" {
+		h.logger.Error("error header found", zap.String("error", err))
+		hErr = errors.New(err)
+		return hErr
+	}
+	h.logger.Debug("Proxy request done", zap.Error(hErr))
+	return hErr
 }
 
 // NoHostOverride signifies that no host overriding should be done and that the host

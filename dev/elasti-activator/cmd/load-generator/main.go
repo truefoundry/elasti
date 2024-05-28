@@ -36,6 +36,6 @@ func main() {
 		fmt.Println("Response from API:", string(body))
 		resp.Body.Close()
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 }

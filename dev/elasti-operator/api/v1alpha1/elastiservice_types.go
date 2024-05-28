@@ -28,13 +28,12 @@ type ElastiServiceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	TargetSvc string `json:"targetService,omitempty"`
+	Service        string `json:"service,omitempty"`
+	DeploymentName string `json:"deploymentName,omitempty"`
 	// How long do elasti-activator hold the request for, before dumping the queue. Default is 60s.
 	QTimout int32 `json:"queueTimeout,omitempty"`
 	// Idle Period is how long should the target VirtualService be Idle(without requests), before we scale it down to 0.
 	IdlePeriod int32 `json:"idlePeriod,omitempty"`
-	// Mode is added only for testing, to switch between the proxy and serve mode
-	Mode string `json:"mode,omitempty"`
 }
 
 // ElastiServiceStatus defines the observed state of ElastiService
@@ -43,6 +42,7 @@ type ElastiServiceStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	LastReconciledTime metav1.Time `json:"lastReconciledTime,omitempty"`
 	State              string      `json:"state,omitempty"`
+	Mode               string      `json:"mode,omitempty"`
 }
 
 //+kubebuilder:object:root=true

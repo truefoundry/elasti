@@ -8,5 +8,5 @@ metadata:
 spec:
   queueTimeout: 4
   idlePeriod: 20
-  targetService: target-service
-  mode: proxy
+  service: target-service
+  deploymentName: target

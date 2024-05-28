@@ -38,7 +38,7 @@ spec:
   - name: http-target
     protocol: TCP
     port: 8014
-  type: LoadBalancer
+  type: ClusterIP
 ---
 apiVersion: v1
 kind: Service
@@ -53,3 +53,17 @@ spec:
     protocol: TCP
     port: 8014
   type: LoadBalancer
+---
+# apiVersion: autoscaling/v1
+# kind: HorizontalPodAutoscaler
+# metadata:
+#  name: target-service-hpa
+#  namespace: default
+#spec:
+#  scaleTargetRef:
+#    apiVersion: apps/v1
+#    kind: Deployment
+#    name: target
+#  maxReplicas: 13
+#  targetCPUUtilizationPercentage: 80
+

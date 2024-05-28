@@ -31,7 +31,7 @@ func InitHostManager(logger *zap.Logger) {
 	HostManager = &hostManager{
 		logger:                  logger,
 		hosts:                   make(map[string]*Host),
-		reEnableTrafficDuration: 1 * time.Minute,
+		reEnableTrafficDuration: 3 * time.Second,
 	}
 }
 

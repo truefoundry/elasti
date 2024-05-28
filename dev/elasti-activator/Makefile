@@ -89,3 +89,16 @@ build-deploy-target: docker-build-target docker-publish-target ## & Deploy to k8
 	kubectl delete -f ./infra/target.yaml -n default
 	kubectl apply -f ./infra/target.yaml -n default
 
+.PHONY: demo-reset 
+demo-reset: ## Reset the environment for demo 
+	kubectl scale --replicas=1 deployment target 
+	kubectl scale --replicas=0 deployment load-generator -n non-istio
+	kubectl apply -f ../infra-values/watch-crd.yaml  
+	kubectl rollout restart -n elasti deployment activator
+	## kubectl rollout restart -n elasti-operator-system deployment elasti-operator-controller-manager 
+	
+.PHONY: demo-1
+demo-1: ## Set the part 1 of the demo
+	kubectl scale --replicas=0 deployment target 
+	kubectl scale --replicas=1 deployment load-generator -n non-istio
+

@@ -126,7 +126,7 @@ func main() {
 	}
 
 	zapLogger, _ := uberZap.NewDevelopment()
-	// TODO: Remove the dev mode from here, and make it dynamic.
+	controller.NewWatcher(zapLogger)
 	if err = (&controller.ElastiServiceReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),

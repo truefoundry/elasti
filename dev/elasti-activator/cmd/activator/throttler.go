@@ -31,7 +31,7 @@ func (t *Throttler) Try(ctx context.Context, host *Host, resolve func() error) e
 	for reenqueue {
 		reenqueue = false
 		if err := t.breaker.Maybe(ctx, func() {
-			if isPodActive, err := t.k8sUtil.CheckIfPodsActive(host.Namespace, host.TargetService); err != nil {
+			if isPodActive, err := t.k8sUtil.CheckIfPodsActiveV2(host.Namespace, host.TargetService); err != nil {
 				t.logger.Error("Error getting pods", zap.Error(err))
 				reenqueue = true
 				return
@@ -40,12 +40,12 @@ func (t *Throttler) Try(ctx context.Context, host *Host, resolve func() error) e
 				reenqueue = true
 				return
 			}
-			t.logger.Debug("Target have active pods", zap.Any("host", host))
 			if res := resolve(); res != nil {
 				t.logger.Error("Error resolving proxy request", zap.Error(res))
 				reenqueue = true
+			} else {
+				HostManager.DisableTrafficForHost(host.SourceService)
 			}
-			HostManager.DisableTrafficForHost(host.SourceService)
 		}); err != nil {
 			t.logger.Info("Error resolving request", zap.Error(err))
 		}

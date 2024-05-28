@@ -57,6 +57,31 @@ func (k *k8sHelper) CheckIfPodsActive(ns, svc string) (bool, error) {
 	return podActive, nil
 }
 
+func (k *k8sHelper) CheckIfPodsActiveV2(ns, svc string) (bool, error) {
+	selectors, err := k.GetServiceSelectorStr(ns, svc)
+	if err != nil {
+		k.logger.Error("Error getting pod selectors", zap.Error(err))
+		return false, err
+	}
+	pods, err := k.client.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: selectors,
+	})
+	if err != nil {
+		return false, err
+	}
+	if len(pods.Items) == 0 {
+		return false, fmt.Errorf("no pods found for service %s", svc)
+	}
+	podActive := false
+	for _, pod := range pods.Items {
+		if pod.Status.Phase == corev1.PodRunning {
+			podActive = true
+			break
+		}
+	}
+	return podActive, nil
+}
+
 func (k *k8sHelper) GetServiceSelectorStr(ns, svc string) (string, error) {
 	service, err := k.client.CoreV1().Services(ns).Get(context.TODO(), svc, metav1.GetOptions{})
 	if err != nil {

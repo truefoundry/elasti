@@ -7,7 +7,7 @@ import (
 )
 
 func (r *ElastiServiceReconciler) EnableProxyMode(ctx context.Context, es *v1alpha1.ElastiService) error {
-	targetSVC, err := r.getSVC(ctx, es.Spec.TargetSvc, es.Namespace)
+	targetSVC, err := r.getSVC(ctx, es.Spec.Service, es.Namespace)
 	if err != nil {
 		return err
 	}
@@ -23,15 +23,15 @@ func (r *ElastiServiceReconciler) EnableProxyMode(ctx context.Context, es *v1alp
 }
 
 func (r *ElastiServiceReconciler) serveMode(ctx context.Context, es *v1alpha1.ElastiService) error {
-	privateSVCName := es.Spec.TargetSvc + "-pvt"
+	privateSVCName := es.Spec.Service + "-pvt"
 	privateSVC, err := r.getSVC(ctx, privateSVCName, es.Namespace)
 	if err != nil {
 		return err
 	}
-	if targetSVC, err := r.getSVC(ctx, es.Spec.TargetSvc, es.Namespace); err != nil {
+	if targetSVC, err := r.getSVC(ctx, es.Spec.Service, es.Namespace); err != nil {
 		return err
 	} else {
-		if err = r.checkAndDeleteEendpointslices(ctx, es.Spec.TargetSvc); err != nil {
+		if err = r.checkAndDeleteEendpointslices(ctx, es.Spec.Service); err != nil {
 			return err
 		}
 		if err = r.copySVC(ctx, targetSVC, privateSVC); err != nil {
