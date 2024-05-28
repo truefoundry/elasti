@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"sync"
 	"time"
+	"runtime"
 
 	"go.uber.org/zap"
 )
@@ -85,10 +86,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetURL *url.URL) error {
+func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetURL *url.URL) (rErr error) {
 	defer func() {
 		if r := recover(); r != nil {
 			h.logger.Error("Recovered from panic", zap.Any("panic", r))
+			buf := make([]byte, 4096)
+			n := runtime.Stack(buf, false)
+			h.logger.Error("Panic stack trace", zap.ByteString("stacktrace", buf[:n]))
+			rErr = r.(error)
 		}
 	}()
 	h.logger.Debug("Requesting Proxy", zap.Any("targetURL", targetURL))

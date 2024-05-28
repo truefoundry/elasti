@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -46,6 +47,7 @@ func (t *Throttler) Try(ctx context.Context, host *Host, resolve func() error) e
 			} else {
 				HostManager.DisableTrafficForHost(host.SourceService)
 			}
+			time.Sleep(3 * time.Second)
 		}); err != nil {
 			t.logger.Info("Error resolving request", zap.Error(err))
 		}

@@ -3,7 +3,6 @@ WORKDIR /app
 COPY go.sum .
 COPY go.mod .
 RUN go mod tidy
-RUN go mod download
 COPY ../../ .
 RUN go build -o activator ./cmd/activator
 # Break
