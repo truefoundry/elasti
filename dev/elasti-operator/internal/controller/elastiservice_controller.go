@@ -2,14 +2,9 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
 	"sync"
 
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -19,18 +14,23 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const ServeMode = "serve"
-const ProxyMode = "proxy"
-const NullMode = ""
+type (
+	RunReconcileFunc        func(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService, mode string) (res ctrl.Result, err error)
+	ElastiServiceReconciler struct {
+		client.Client
+		Scheme  *runtime.Scheme
+		Logger  *zap.Logger
+		Watcher *WatcherType
+	}
+)
 
-var statusLock *sync.Mutex
+const (
+	ServeMode = "serve"
+	ProxyMode = "proxy"
+	NullMode  = ""
+)
 
-// ElastiServiceReconciler reconciles a ElastiService object
-type ElastiServiceReconciler struct {
-	client.Client
-	Scheme *runtime.Scheme
-	Logger *zap.Logger
-}
+var esLock = &sync.Mutex{}
 
 //+kubebuilder:rbac:groups=elasti.truefoundry.io,resources=elastiservices,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=elasti.truefoundry.io,resources=elastiservices/status,verbs=get;update;patch
@@ -47,20 +47,22 @@ type ElastiServiceReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
 func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, err error) {
 	es := &v1alpha1.ElastiService{}
+	esLock.Lock()
 	if err = r.Client.Get(ctx, req.NamespacedName, es); err != nil {
+		esLock.Unlock()
 		return res, err
 	}
-	if es.Status.Mode == NullMode {
-		es.Status.Mode = ServeMode
-	}
-
-	go Watcher.AddDeploymentWatch(es.Spec.DeploymentName, req.Namespace, es, r.RunReconcile)
+	esLock.Unlock()
+	go r.Watcher.AddAndRunDeploymentWatch(es.Spec.DeploymentName, req.Namespace, es, r.RunReconcile)
 	return r.RunReconcile(ctx, req, es, es.Status.Mode)
 }
 
-type RunReconcileFunc func(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService, mode string) (res ctrl.Result, err error)
-
 func (r *ElastiServiceReconciler) RunReconcile(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService, mode string) (res ctrl.Result, err error) {
+	if mode == NullMode {
+		r.Logger.Info("No mode specified")
+		mode = ServeMode
+	}
+
 	if mode == ProxyMode {
 		r.Logger.Info("Enabling proxy mode")
 		if err = r.EnableProxyMode(ctx, es); err != nil {
@@ -76,12 +78,12 @@ func (r *ElastiServiceReconciler) RunReconcile(ctx context.Context, req ctrl.Req
 		}
 		r.Logger.Info("Serve mode enabled")
 	} else {
-		r.Logger.Info("No mode specified")
+		r.Logger.Error("No mode or incorrect mode specified")
 		return res, nil
 	}
 
-	statusLock.Lock()
-	defer statusLock.Unlock()
+	esLock.Lock()
+	defer esLock.Unlock()
 	if err = r.Client.Get(ctx, req.NamespacedName, es); err != nil {
 		return res, err
 	}
@@ -95,74 +97,47 @@ func (r *ElastiServiceReconciler) RunReconcile(ctx context.Context, req ctrl.Req
 	return res, nil
 }
 
-type RequestCount struct {
-	Count     int    `json:"count"`
-	Svc       string `json:"svc"`
-	Namespace string `json:"namespace"`
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	statusLock = &sync.Mutex{}
-	http.HandleFunc("/request-count", func(w http.ResponseWriter, req *http.Request) {
-		ctx := context.Background()
-		if req.Method != http.MethodPost {
-			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-			return
-		}
-		var body RequestCount
-		if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
-			return
-		}
-		defer req.Body.Close()
-		r.Logger.Info("Received request", zap.Any("body", body))
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"message": "Request received"}`))
-
-		namespace := types.NamespacedName{
-			Name:      "target",
-			Namespace: body.Namespace,
-		}
-		r.scaleDeployment(ctx, namespace)
-		var ctrlReq ctrl.Request
-		ctrlReq.NamespacedName = namespace
-		statusLock.Lock()
-		defer statusLock.Unlock()
-		es := &v1alpha1.ElastiService{}
-		if err := r.Client.Get(ctx, namespace, es); err != nil {
-			r.Logger.Error("Failed to get ElastiService", zap.Error(err))
-			return
-		}
-		es.Status.Mode = ServeMode
-		go r.RunReconcile(ctx, ctrlReq, es, ServeMode)
-	})
-	go http.ListenAndServe(":8080", nil)
-
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.ElastiService{}).
-		Complete(r)
-}
-
-func (r *ElastiServiceReconciler) scaleDeployment(ctx context.Context, target types.NamespacedName) error {
-	// Fetch the Deployment
-	deployment := &appsv1.Deployment{}
-	if err := r.Get(ctx, target, deployment); err != nil {
-		if errors.IsNotFound(err) {
-			r.Logger.Info("Deployment not found", zap.Any("Deployment", target))
-			return nil
-		}
+func (r *ElastiServiceReconciler) EnableProxyMode(ctx context.Context, es *v1alpha1.ElastiService) error {
+	targetSVC, err := r.getSVC(ctx, es.Spec.Service, es.Namespace)
+	if err != nil {
 		return err
 	}
+	r.removeSelector(ctx, targetSVC)
+	r.addTargetPort(ctx, targetSVC, 8012)
+	if err = r.Update(ctx, targetSVC); err != nil {
+		return err
+	}
+	if err = r.createProxyEndpointSlice(ctx, targetSVC); err != nil {
+		return err
+	}
+	return nil
+}
 
-	if *deployment.Spec.Replicas == 0 {
-		// Scale up the Deployment by 1
-		*deployment.Spec.Replicas = 1
-		if err := r.Update(ctx, deployment); err != nil {
-			r.Logger.Error("Failed to scale up the Deployment", zap.Error(err))
+func (r *ElastiServiceReconciler) serveMode(ctx context.Context, es *v1alpha1.ElastiService) error {
+	privateSVCName := es.Spec.Service + "-pvt"
+	privateSVC, err := r.getSVC(ctx, privateSVCName, es.Namespace)
+	if err != nil {
+		return err
+	}
+	if targetSVC, err := r.getSVC(ctx, es.Spec.Service, es.Namespace); err != nil {
+		return err
+	} else {
+		if err = r.checkAndDeleteEendpointslices(ctx, es.Spec.Service); err != nil {
+			return err
+		}
+		if err = r.copySVC(ctx, targetSVC, privateSVC); err != nil {
+			return err
+		}
+		if err = r.Update(ctx, targetSVC); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	go r.StartElastiServer()
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&v1alpha1.ElastiService{}).
+		Complete(r)
 }

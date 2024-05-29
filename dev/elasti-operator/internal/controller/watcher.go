@@ -15,69 +15,55 @@ import (
 	"k8s.io/client-go/informers"
 )
 
-var creationLock = &sync.Mutex{}
-var Watcher *WatcherType
-
 type WatcherType struct {
-	client              *kubernetes.Clientset
-	logger              *zap.Logger
-	hpaWatchList        map[string]bool
-	deploymentWatchList map[string]bool
+	client *kubernetes.Clientset
+	logger *zap.Logger
+	//hpaWatchList        map[string]bool
+	deploymentWatchList sync.Map
 	informerFactory     informers.SharedInformerFactory
 }
 
-func NewWatcher(logger *zap.Logger) *WatcherType {
-	if Watcher == nil {
-		creationLock.Lock()
-		defer creationLock.Unlock()
-		if Watcher == nil {
-			config, err := rest.InClusterConfig()
-			if err != nil {
-				logger.Fatal("Error fetching cluster config", zap.Error(err))
-			}
-			clientset, cerr := kubernetes.NewForConfig(config)
-			if err != nil {
-				logger.Fatal("Error connecting with kubernetes", zap.Error(cerr))
-			}
-
-			Watcher = &WatcherType{
-				client:              clientset,
-				logger:              logger,
-				hpaWatchList:        make(map[string]bool),
-				deploymentWatchList: make(map[string]bool),
-				informerFactory:     informers.NewSharedInformerFactory(clientset, 0),
-			}
-		} else {
-			logger.Info("HPAWatcher already initialized")
-		}
-	} else {
-		logger.Info("HPAWatcher already initialized")
+func NewWatcher(logger *zap.Logger, kConfig *rest.Config) *WatcherType {
+	clientset, cerr := kubernetes.NewForConfig(kConfig)
+	if cerr != nil {
+		logger.Fatal("Error connecting with kubernetes", zap.Error(cerr))
 	}
-
-	return Watcher
+	return &WatcherType{
+		client: clientset,
+		logger: logger.With(zap.String("component", "watcher")),
+		//hpaWatchList:        make(map[string]bool),
+		deploymentWatchList: sync.Map{},
+		informerFactory:     informers.NewSharedInformerFactory(clientset, 0),
+	}
 }
 
-func (hw *WatcherType) AddDeploymentWatch(deploymentName, namespace string, es *v1alpha1.ElastiService, runReconcile RunReconcileFunc) {
-	if enabled, ok := hw.deploymentWatchList[deploymentName]; ok {
-		if enabled {
+func (hw *WatcherType) AddAndRunDeploymentWatch(deploymentName, namespace string, es *v1alpha1.ElastiService, runReconcile RunReconcileFunc) {
+	if enabled, ok := hw.deploymentWatchList.Load(deploymentName); ok {
+		if enabled.(bool) {
 			return
 		}
 	}
 	reconcileChan := make(chan string)
-	go hw.RunDeploymentWatch(deploymentName, namespace, reconcileChan)
+	go hw.StartDeploymentWatch(deploymentName, namespace, reconcileChan)
 	for mode := range reconcileChan {
 		hw.logger.Debug("Reconciling", zap.String("mode", mode))
 		runReconcile(context.Background(), ctrl.Request{}, es, mode)
 	}
 }
 
-func (hw *WatcherType) RunDeploymentWatch(deploymentName, namespace string, updateMode chan<- string) {
+func (hw *WatcherType) StartDeploymentWatch(deploymentName, namespace string, updateMode chan<- string) {
+	defer func() {
+		if r := recover(); r != nil {
+			hw.logger.Error("Recovered from panic", zap.Any("error", r))
+			hw.deploymentWatchList.Store(deploymentName, false)
+			go hw.StartDeploymentWatch(deploymentName, namespace, updateMode)
+		}
+	}()
 	hw.logger.Info("Adding Deployment watch", zap.String("deployment_name", deploymentName))
 	informer := hw.informerFactory.Apps().V1().Deployments().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			newDeployment := newObj.(*appsv1.Deployment)
-			// Condition[0] is Progressing and Condition[1] is Available
 			condition := newDeployment.Status.Conditions
 			if newDeployment.Status.Replicas == 0 {
 				hw.logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", deploymentName))
@@ -92,7 +78,7 @@ func (hw *WatcherType) RunDeploymentWatch(deploymentName, namespace string, upda
 	stop := make(chan struct{})
 	defer close(stop)
 	go informer.Run(stop)
-	hw.deploymentWatchList[deploymentName] = true
+	hw.deploymentWatchList.Store(deploymentName, true)
 	select {}
 }
 

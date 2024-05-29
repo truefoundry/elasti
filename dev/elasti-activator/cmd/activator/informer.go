@@ -12,6 +12,8 @@ import (
 	"sync"
 )
 
+var creationLock = &sync.Mutex{}
+
 type informerSVC struct {
 	logger      *zap.Logger
 	lockTimeout time.Duration
@@ -21,9 +23,10 @@ type informerSVC struct {
 var Informer *informerSVC
 
 func InitInformer(logger *zap.Logger, lockTimeout time.Duration) {
+	creationLock.Lock()
 	locks := map[string]*sync.Mutex{}
 	Informer = &informerSVC{
-		logger:      logger,
+		logger:      logger.With(zap.String("component", "informer")),
 		lockTimeout: lockTimeout,
 		locks:       locks,
 	}
@@ -54,24 +57,28 @@ func (i *informerSVC) Inform(ns, svc string) {
 	// Marshal the request body to JSON
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
-		fmt.Printf("Error marshalling request body: %v\n", err)
+		i.logger.Error("Error marshalling request body", zap.Error(err))
 		return
 	}
-	url := "http://elasti-operator-controller-manager-metrics-service.elasti-operator-system.svc.cluster.local:8080/request-count"
+	url := "http://elasti-operator-controller-service.elasti-operator-system.svc.cluster.local:8013/informer/incoming-request"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		fmt.Printf("Error creating request: %v\n", err)
+		i.logger.Error("Error creating request", zap.Error(err))
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("Error sending request: %v\n", err)
+		i.logger.Error("Error sending request", zap.Error(err))
 		return
 	}
 	defer resp.Body.Close()
-	fmt.Printf("Response from service: %s\n", resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		i.logger.Error("Request failed with status code", zap.Int("status_code", resp.StatusCode))
+		return
+	}
+	i.logger.Info("Request sent to controller", zap.Int("statusCode", resp.StatusCode), zap.Any("body", resp.Body))
 }
 
 // getLock check if the lock already taken, if yes, it returns false

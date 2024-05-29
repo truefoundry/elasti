@@ -66,6 +66,10 @@ spec:
           - --metrics-bind-address=0
         image: controller:latest
         name: manager
+        ports:
+        - containerPort: 8013
+          name: metrics
+          protocol: TCP
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

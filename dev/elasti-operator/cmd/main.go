@@ -40,6 +40,7 @@ import (
 	//+kubebuilder:scaffold:imports
 
 	uberZap "go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -125,12 +126,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	zapLogger, _ := uberZap.NewDevelopment()
-	controller.NewWatcher(zapLogger)
+	encoderConfig := uberZap.NewDevelopmentEncoderConfig()
+	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	encoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	encoderConfig.EncodeDuration = zapcore.StringDurationEncoder
+	consoleEncoder := zapcore.NewConsoleEncoder(encoderConfig)
+	core := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel)
+	zapLogger := uberZap.New(core)
+	watcher := controller.NewWatcher(zapLogger, mgr.GetConfig())
 	if err = (&controller.ElastiServiceReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Logger: zapLogger,
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Logger:  zapLogger,
+		Watcher: watcher,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
 		os.Exit(1)

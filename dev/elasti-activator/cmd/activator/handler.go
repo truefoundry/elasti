@@ -25,7 +25,7 @@ type Handler struct {
 func NewHandler(ctx context.Context, logger *zap.Logger, transport http.RoundTripper, throttle Throttler) *Handler {
 	return &Handler{
 		throttler:  throttle,
-		logger:     logger,
+		logger:     logger.With(zap.String("component", "handler")),
 		transport:  transport,
 		bufferPool: NewBufferPool(),
 		timeout:    10 * time.Second,
@@ -45,14 +45,16 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Error getting host", http.StatusInternalServerError)
 		return
 	}
-	h.logger.Debug("Host", zap.Any("host", host))
+	h.logger.Debug("host received", zap.Any("host", host))
 	if !host.TrafficAllowed {
 		h.logger.Error("Traffic not allowed", zap.Any("host", host))
 		w.Header().Set("Connection", "close")
-		w.Write([]byte("Traffic is switched"))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(`{"error": "traffic is switched"}`))
 		return
 	}
-	Informer.Inform(host.Namespace, host.SourceService)
+	go Informer.Inform(host.Namespace, host.SourceService)
 	targetURL, err := url.Parse(host.TargetHost + req.RequestURI)
 	if err != nil {
 		h.logger.Error("Error parsing target URL", zap.Error(err))
@@ -92,14 +94,9 @@ func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetU
 	proxy.Transport = h.transport
 	req.Header.Set("elasti-retry-count", strconv.Itoa(count))
 	proxy.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
-		req.Header.Set("error", err.Error())
+		panic(err)
 	}
 	proxy.ServeHTTP(w, req)
-	if err := w.Header().Get("error"); err != "" {
-		h.logger.Error("error header found", zap.String("error", err))
-		return errors.New(err)
-	}
-	h.logger.Debug("Proxy request completed")
 	return nil
 }
 

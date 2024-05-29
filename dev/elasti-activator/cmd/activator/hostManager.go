@@ -30,7 +30,7 @@ var HostManager *hostManager
 
 func InitHostManager(logger *zap.Logger) {
 	HostManager = &hostManager{
-		logger:                  logger,
+		logger:                  logger.With(zap.String("component", "hostManager")),
 		hosts:                   sync.Map{},
 		reEnableTrafficDuration: 3 * time.Second,
 	}
@@ -56,14 +56,15 @@ func (hm *hostManager) GetHost(req *http.Request) (*Host, error) {
 		targetHost = hm.replaceServiceName(sourceHost, targetService)
 		targetHost = hm.addHTTPIfNeeded(targetHost)
 		trafficAllowed := true
-		hm.hosts.Store(sourceService, &Host{
+		host = &Host{
 			Namespace:      namespace,
 			SourceService:  sourceService,
 			TargetService:  targetService,
 			SourceHost:     sourceHost,
 			TargetHost:     targetHost,
 			TrafficAllowed: trafficAllowed,
-		})
+		}
+		hm.hosts.Store(sourceService, host)
 	}
 	return host.(*Host), nil
 }
