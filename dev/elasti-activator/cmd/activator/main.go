@@ -27,7 +27,7 @@ func main() {
 	core := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel)
 	logger := zap.New(core)
 
-	InformerLockTimeout := time.Duration(30 * time.Second)
+	InformerLockTimeout := time.Duration(15 * time.Second)
 
 	var env config
 	if err := envconfig.Process("", &env); err != nil {

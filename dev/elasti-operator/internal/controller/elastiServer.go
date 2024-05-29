@@ -9,14 +9,16 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"truefoundry.io/elasti/api/v1alpha1"
 )
 
 type RequestCount struct {
 	Count     int    `json:"count"`
 	Svc       string `json:"svc"`
 	Namespace string `json:"namespace"`
+}
+
+type Response struct {
+	Message string `json:"message"`
 }
 
 func (r *ElastiServiceReconciler) StartElastiServer() {
@@ -53,25 +55,32 @@ func (r *ElastiServiceReconciler) activatorReqHandler(w http.ResponseWriter, req
 	r.Logger.Info("Received request from activator", zap.String("component", "elastiServer"), zap.Any("body", body))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message": "Request received"}`))
+	response := Response{
+		Message: "Request received successfully!",
+	}
+	jsonResponse, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(jsonResponse)
 	// TODOs: The deployment name should be dynamic
 	namespace := types.NamespacedName{
 		Name:      "target",
 		Namespace: body.Namespace,
 	}
 	r.compareAndScaleDeployment(ctx, namespace)
-	var ctrlReq ctrl.Request
-	ctrlReq.NamespacedName = namespace
-	esLock.Lock()
-	defer esLock.Unlock()
-	es := &v1alpha1.ElastiService{}
-	if err := r.Client.Get(ctx, namespace, es); err != nil {
-		r.Logger.Error("Failed to get ElastiService", zap.String("component", "elastiServer"), zap.Error(err))
-		return
-	}
-	es.Status.Mode = ServeMode
-	r.RunReconcile(ctx, ctrlReq, es, ServeMode)
-	r.Logger.Info("Received request from activator", zap.String("component", "elastiServer"), zap.Any("body", body))
+	// var ctrlReq ctrl.Request
+	// ctrlReq.NamespacedName = namespace
+	// esLock.Lock()
+	// defer esLock.Unlock()
+	// es := &v1alpha1.ElastiService{}
+	// if err := r.Client.Get(ctx, namespace, es); err != nil {
+	// 	r.Logger.Error("Failed to get ElastiService", zap.String("component", "elastiServer"), zap.Error(err))
+	// 	return
+	// }
+	// go r.RunReconcile(ctx, ctrlReq, es, ServeMode)
+	r.Logger.Info("Received fullfilled from activator", zap.String("component", "elastiServer"), zap.Any("body", body))
 }
 
 func (r *ElastiServiceReconciler) compareAndScaleDeployment(ctx context.Context, target types.NamespacedName) error {
