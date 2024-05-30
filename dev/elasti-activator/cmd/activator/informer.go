@@ -45,7 +45,7 @@ func (i *informerSVC) Inform(ns, svc string) {
 		i.logger.Info("Controller already informed, nothing to do here.")
 		return
 	}
-	i.logger.Debug("Lock Acquired", zap.String("key", lockKey))
+	i.logger.Debug("controller informer lock acquired", zap.String("key", lockKey))
 
 	// Create the request body
 	requestBody := RequestCount{
@@ -92,7 +92,7 @@ func (i *informerSVC) getLock(key string) bool {
 	i.locks[key].Lock()
 	time.AfterFunc(i.lockTimeout, func() {
 		i.locks[key].Unlock()
-		i.logger.Debug("Lock Released", zap.String("key", key))
+		i.logger.Debug("controller informer lock release", zap.String("key", key))
 		delete(i.locks, key)
 	})
 	return true

@@ -18,9 +18,9 @@ func NewThrottler(ctx context.Context, logger *zap.Logger, k8sUtil *k8sHelper) *
 		logger: logger.With(zap.String("component", "throttler")),
 		// TODOs: We will make this parameter dynamic
 		breaker: NewBreaker(BreakerParams{
-			QueueDepth:      5,
-			MaxConcurrency:  2,
-			InitialCapacity: 10,
+			QueueDepth:      200,
+			MaxConcurrency:  10,
+			InitialCapacity: 200,
 			Logger:          logger,
 		}),
 		k8sUtil: k8sUtil,

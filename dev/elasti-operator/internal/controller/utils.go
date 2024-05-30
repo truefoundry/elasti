@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -37,22 +36,22 @@ func (r *ElastiServiceReconciler) checkAndDeleteEendpointslices(ctx context.Cont
 	return nil
 }
 
-func (r *ElastiServiceReconciler) addTargetPort(_ context.Context, service *corev1.Service, targetPort int) {
+func (r *ElastiServiceReconciler) addTargetPort(_ context.Context, service *v1.Service, targetPort int) {
 	for i := range service.Spec.Ports {
 		service.Spec.Ports[i].TargetPort = intstr.FromInt(targetPort)
 	}
 }
 
-func (r *ElastiServiceReconciler) removeSelector(_ context.Context, service *corev1.Service) {
-	service.Spec.Selector = nil
-}
+// func (r *ElastiServiceReconciler) removeSelector(_ context.Context, service *v1.Service) {
+// 	service.Spec.Selector = nil
+// }
 
 // copySVC copies the service from the source service to the destination service
-func (r *ElastiServiceReconciler) copySVC(_ context.Context, destSVC, sourceSVC *corev1.Service) error {
+func (r *ElastiServiceReconciler) copySVC(_ context.Context, destSVC, sourceSVC *v1.Service) error {
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		// TODO: Reset the destSvc ports, and map the sourceSvc ports to destSvc ports
 		destSVC.Spec.Ports[0].TargetPort = sourceSVC.Spec.Ports[0].TargetPort
-		destSVC.Spec.Selector = sourceSVC.Spec.Selector
+		// destSVC.Spec.Selector = sourceSVC.Spec.Selector
 		return nil
 	})
 	if retryErr != nil {
@@ -114,7 +113,7 @@ func (r *ElastiServiceReconciler) createProxyEndpointSlice(ctx context.Context, 
 			Ports: []networkingv1.EndpointPort{
 				{
 					Name:     ptr.To(service.Spec.Ports[0].Name),
-					Protocol: ptr.To(corev1.ProtocolTCP),
+					Protocol: ptr.To(v1.ProtocolTCP),
 					Port:     ptr.To(int32(8012)),
 				},
 			},
@@ -132,8 +131,8 @@ func (r *ElastiServiceReconciler) createProxyEndpointSlice(ctx context.Context, 
 	return nil
 }
 
-func (r *ElastiServiceReconciler) getSVC(ctx context.Context, svcName, namespace string) (*corev1.Service, error) {
-	service := &corev1.Service{}
+func (r *ElastiServiceReconciler) getSVC(ctx context.Context, svcName, namespace string) (*v1.Service, error) {
+	service := &v1.Service{}
 	if err := r.Get(ctx, client.ObjectKey{Name: svcName, Namespace: namespace}, service); err != nil {
 		r.Logger.Error("Failed to get service", zap.Error(err), zap.String("service", svcName))
 		return nil, err

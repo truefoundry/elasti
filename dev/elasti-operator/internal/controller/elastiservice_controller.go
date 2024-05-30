@@ -58,20 +58,13 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *ElastiServiceReconciler) RunReconcile(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService, mode string) (res ctrl.Result, err error) {
-	if mode == NullMode {
-		r.Logger.Info("No mode specified")
-		mode = ServeMode
-	}
-
 	if mode == ProxyMode {
-		r.Logger.Info("Enabling proxy mode")
 		if err = r.EnableProxyMode(ctx, es); err != nil {
 			r.Logger.Error("Failed to enable proxy mode", zap.Error(err))
 			return res, err
 		}
-		r.Logger.Info("Proxy mode enabled")
+		r.Logger.Debug("Proxy mode enabled")
 	} else if mode == ServeMode {
-		r.Logger.Info("Enabling Serve mode")
 		if err = r.serveMode(ctx, es); err != nil {
 			r.Logger.Error("Failed to serve mode", zap.Error(err))
 			return res, err
@@ -92,6 +85,8 @@ func (r *ElastiServiceReconciler) RunReconcile(ctx context.Context, req ctrl.Req
 	if err := r.Status().Update(ctx, es); err != nil {
 		r.Logger.Error("Failed to update status", zap.Error(err))
 		return ctrl.Result{}, err
+	} else {
+		r.Logger.Info("CRD Status updated successfully")
 	}
 
 	return res, nil
@@ -102,7 +97,7 @@ func (r *ElastiServiceReconciler) EnableProxyMode(ctx context.Context, es *v1alp
 	if err != nil {
 		return err
 	}
-	r.removeSelector(ctx, targetSVC)
+	//r.removeSelector(ctx, targetSVC)
 	r.addTargetPort(ctx, targetSVC, 8012)
 	if err = r.Update(ctx, targetSVC); err != nil {
 		return err

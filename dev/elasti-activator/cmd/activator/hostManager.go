@@ -32,7 +32,7 @@ func InitHostManager(logger *zap.Logger) {
 	HostManager = &hostManager{
 		logger:                  logger.With(zap.String("component", "hostManager")),
 		hosts:                   sync.Map{},
-		reEnableTrafficDuration: 3 * time.Second,
+		reEnableTrafficDuration: 10 * time.Second,
 	}
 }
 
