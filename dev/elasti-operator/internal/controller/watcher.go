@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"runtime/debug"
 	"sync"
 
 	"go.uber.org/zap"
@@ -10,7 +11,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"truefoundry.io/elasti/api/v1alpha1"
 
 	"k8s.io/client-go/informers"
 )
@@ -21,6 +21,11 @@ type WatcherType struct {
 	//hpaWatchList        map[string]bool
 	deploymentWatchList sync.Map
 	informerFactory     informers.SharedInformerFactory
+}
+
+type watch struct {
+	active bool
+	stop   chan struct{}
 }
 
 func NewWatcher(logger *zap.Logger, kConfig *rest.Config) *WatcherType {
@@ -37,28 +42,52 @@ func NewWatcher(logger *zap.Logger, kConfig *rest.Config) *WatcherType {
 	}
 }
 
-func (hw *WatcherType) AddAndRunDeploymentWatch(deploymentName, namespace string, es *v1alpha1.ElastiService, runReconcile RunReconcileFunc) {
-	if enabled, ok := hw.deploymentWatchList.Load(deploymentName); ok {
-		if enabled.(bool) {
-			return
+func (hw *WatcherType) StopDeplymentWatch(deploymentName string) {
+	if deplWatch, ok := hw.deploymentWatchList.Load(deploymentName); ok {
+		if deplWatch.(watch).active {
+			hw.logger.Info("Stopping Deployment watch", zap.String("deployment_name", deploymentName))
+			close(deplWatch.(watch).stop)
 		}
-	}
-	reconcileChan := make(chan string)
-	go hw.StartDeploymentWatch(deploymentName, namespace, reconcileChan)
-	for mode := range reconcileChan {
-		hw.logger.Debug("Reconciling", zap.String("mode", mode))
-		runReconcile(context.Background(), ctrl.Request{}, es, mode)
 	}
 }
 
-func (hw *WatcherType) StartDeploymentWatch(deploymentName, namespace string, updateMode chan<- string) {
-	defer func() {
+func (hw *WatcherType) AddAndRunDeploymentWatch(deploymentName string, req ctrl.Request, runReconcile RunReconcileFunc) {
+	deplWatch, ok := hw.deploymentWatchList.Load(deploymentName)
+	if ok && deplWatch.(watch).active {
+		return
+	}
+	watchStop := make(chan struct{})
+	informerStop := make(chan struct{})
+	defer func(ws, is chan struct{}) {
 		if r := recover(); r != nil {
 			hw.logger.Error("Recovered from panic", zap.Any("error", r))
-			hw.deploymentWatchList.Store(deploymentName, false)
-			go hw.StartDeploymentWatch(deploymentName, namespace, updateMode)
+			debug.PrintStack()
+			close(watchStop)
+			close(informerStop)
+			hw.deploymentWatchList.Store(deploymentName, watch{active: false, stop: watchStop})
+			go hw.AddAndRunDeploymentWatch(deploymentName, req, runReconcile)
 		}
-	}()
+	}(watchStop, informerStop)
+	reconcileChan := make(chan string)
+	informer := hw.GetModeInformer(deploymentName, req.Namespace, reconcileChan)
+	go informer.Run(informerStop)
+	defer close(informerStop)
+	hw.deploymentWatchList.Store(deploymentName, watch{active: true, stop: watchStop})
+	deplWatch, _ = hw.deploymentWatchList.Load(deploymentName)
+	for {
+		select {
+		case mode := <-reconcileChan:
+			hw.logger.Debug("Reconciling", zap.String("mode", mode), zap.String("deployment_name", deploymentName), zap.Any("namespace", req))
+			runReconcile(context.Background(), req, mode)
+		case <-deplWatch.(watch).stop:
+			hw.deploymentWatchList.Store(deploymentName, watch{active: false, stop: watchStop})
+			hw.logger.Info("deployment watch stopped", zap.String("deployment_name", deploymentName))
+			return
+		}
+	}
+}
+
+func (hw *WatcherType) GetModeInformer(deploymentName, namespace string, updateMode chan<- string) cache.SharedIndexInformer {
 	hw.logger.Info("Adding Deployment watch", zap.String("deployment_name", deploymentName))
 	informer := hw.informerFactory.Apps().V1().Deployments().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -74,12 +103,7 @@ func (hw *WatcherType) StartDeploymentWatch(deploymentName, namespace string, up
 			}
 		},
 	})
-
-	stop := make(chan struct{})
-	defer close(stop)
-	go informer.Run(stop)
-	hw.deploymentWatchList.Store(deploymentName, true)
-	select {}
+	return informer
 }
 
 /*

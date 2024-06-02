@@ -70,16 +70,6 @@ func (r *ElastiServiceReconciler) activatorReqHandler(w http.ResponseWriter, req
 		Namespace: body.Namespace,
 	}
 	r.compareAndScaleDeployment(ctx, namespace)
-	// var ctrlReq ctrl.Request
-	// ctrlReq.NamespacedName = namespace
-	// esLock.Lock()
-	// defer esLock.Unlock()
-	// es := &v1alpha1.ElastiService{}
-	// if err := r.Client.Get(ctx, namespace, es); err != nil {
-	// 	r.Logger.Error("Failed to get ElastiService", zap.String("component", "elastiServer"), zap.Error(err))
-	// 	return
-	// }
-	// go r.RunReconcile(ctx, ctrlReq, es, ServeMode)
 	r.Logger.Info("Received fullfilled from activator", zap.String("component", "elastiServer"), zap.Any("body", body))
 }
 

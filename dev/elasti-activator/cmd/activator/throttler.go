@@ -34,10 +34,10 @@ func (t *Throttler) Try(ctx context.Context, host *Host, resolve func(int) error
 		reenqueue = false
 		if err := t.breaker.Maybe(ctx, func() {
 			if isPodActive, err := t.k8sUtil.CheckIfPodsActiveV2(host.Namespace, host.TargetService); err != nil {
-				t.logger.Error("Error getting pods", zap.Error(err), zap.Int("retryCount", retryCount))
+				t.logger.Info("Unable to get target active pod", zap.Error(err), zap.Int("retryCount", retryCount))
 				reenqueue = true
 			} else if !isPodActive {
-				t.logger.Debug("No active pods", zap.Any("host", host), zap.Int("retryCount", retryCount))
+				t.logger.Info("No active pods", zap.Any("host", host), zap.Int("retryCount", retryCount))
 				reenqueue = true
 			} else {
 				if res := resolve(retryCount); res != nil {
