@@ -133,12 +133,10 @@ func main() {
 	consoleEncoder := zapcore.NewConsoleEncoder(encoderConfig)
 	core := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel)
 	zapLogger := uberZap.New(core)
-	watcher := controller.NewWatcher(zapLogger, mgr.GetConfig())
 	if err = (&controller.ElastiServiceReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Logger:  zapLogger,
-		Watcher: watcher,
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Logger: zapLogger,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
 		os.Exit(1)

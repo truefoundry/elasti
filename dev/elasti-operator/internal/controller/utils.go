@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
@@ -31,17 +33,15 @@ func (r *ElastiServiceReconciler) GetModeFromDeployment(ctx context.Context, nam
 		r.Logger.Error("Failed to get deployment", zap.Any("namespacedName", nam), zap.Error(err))
 		return "", err
 	}
-
 	mode := ServeMode
 	condition := depl.Status.Conditions
 	if depl.Status.Replicas == 0 {
-		r.Logger.Debug("Deployment has 0 replicas", zap.Any("namespacedName", nam))
 		mode = ProxyMode
 	} else if depl.Status.Replicas > 0 && condition[1].Status == "True" {
-		r.Logger.Debug("Deployment has replicas", zap.Any("namespacedName", nam))
 		mode = ServeMode
 	}
 
+	r.Logger.Debug("Got mode from deployment", zap.Any("namespacedName", nam), zap.String("mode", mode))
 	return mode, nil
 }
 
@@ -146,27 +146,8 @@ func (r *ElastiServiceReconciler) CreateOrupdateEndpointsliceToActivator(ctx con
 	return nil
 }
 
-/*
----
-apiVersion: v1
-kind: Service
-metadata:
-
-	name: target-service-pvt
-	namespace: default
-
-spec:
-
-	selector:
-	  app: target
-	ports:
-	- name: http-target
-	  protocol: TCP
-	  port: 8014
-	type: ClusterIP
-*/
 func (r *ElastiServiceReconciler) CheckAndCreatePrivateService(ctx context.Context, publicSVC *v1.Service, es *v1alpha1.ElastiService) (PVTName string, err error) {
-	PVTName = publicSVC.Name + "-pvt"
+	PVTName = r.getPrivateSerivceName(publicSVC.Name)
 
 	// See if private service already exist
 	privateSVC := &v1.Service{}
@@ -213,7 +194,7 @@ func (r *ElastiServiceReconciler) CheckAndCreatePrivateService(ctx context.Conte
 }
 
 func (r *ElastiServiceReconciler) DeletePrivateService(ctx context.Context, namespacedName types.NamespacedName) (err error) {
-	namespacedName.Name = namespacedName.Name + "-pvt"
+	namespacedName.Name = r.getPrivateSerivceName(namespacedName.Name)
 	privateSVC := &v1.Service{}
 	if err := r.Get(ctx, namespacedName, privateSVC); err != nil {
 		if errors.IsNotFound(err) {
@@ -249,4 +230,11 @@ func (r *ElastiServiceReconciler) UpdateESStatus(ctx context.Context, namespaced
 		return
 	}
 	r.Logger.Info("CRD Status updated successfully")
+}
+
+func (r *ElastiServiceReconciler) getPrivateSerivceName(publicSVCName string) string {
+	hash := sha256.New()
+	hash.Write([]byte(publicSVCName))
+	hashed := hex.EncodeToString(hash.Sum(nil))
+	return publicSVCName + "-" + string(hashed)[:8] + "-pvt"
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -12,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"k8s.io/client-go/tools/cache"
 	"truefoundry.io/elasti/api/v1alpha1"
 
 	"go.uber.org/zap"
@@ -23,7 +25,7 @@ type (
 		client.Client
 		Scheme  *runtime.Scheme
 		Logger  *zap.Logger
-		Watcher *WatcherType
+		Watcher *InformerManager
 	}
 )
 
@@ -66,7 +68,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
 			r.Logger.Info("ElastiService is being deleted", zap.String("name", es.Name), zap.Any("deletionTimestamp", es.ObjectMeta.DeletionTimestamp))
-			go r.Watcher.StopDeplymentWatch(es.Spec.DeploymentName)
+			go r.Watcher.StopInformer(es.Spec.DeploymentName, req.Namespace)
 			if err = r.EnableServeMode(ctx, es); err != nil {
 				r.Logger.Error("Failed to server mode", zap.Error(err))
 				return res, err
@@ -89,17 +91,31 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}
 
-	go r.Watcher.AddAndRunDeploymentWatch(es.Spec.DeploymentName, req, r.RunReconcile)
+	go r.Watcher.Add(es.Spec.DeploymentName, req.Namespace, cache.ResourceEventHandlerFuncs{
+		UpdateFunc: func(old, new interface{}) {
+			newDeployment := new.(*appsv1.Deployment)
+			condition := newDeployment.Status.Conditions
+			if newDeployment.Status.Replicas == 0 {
+				r.Logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", es.Spec.DeploymentName))
+				r.RunReconcile(context.Background(), req, ProxyMode)
+			} else if newDeployment.Status.Replicas > 0 && condition[1].Status == "True" {
+				r.Logger.Debug("Deployment has replicas", zap.String("deployment_name", es.Spec.DeploymentName))
+				r.RunReconcile(context.Background(), req, ServeMode)
+			}
+		},
+	})
+
 	return r.RunReconcile(ctx, req, NullMode)
 }
 
 func (r *ElastiServiceReconciler) RunReconcile(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error) {
+	r.Logger.Debug("- In RunReconcile", zap.String("key", req.NamespacedName.String()))
+	// Only 1 reconcile should run at a time for a given ElastiService. This prevents conflicts when updating different objects.
 	mutex := getMutexForRequest(req.NamespacedName.String())
 	mutex.Lock()
-	r.Logger.Debug("In RunReconcile", zap.String("key", req.NamespacedName.String()))
-	defer r.Logger.Debug("Out of RunReconcile", zap.String("key", req.NamespacedName.String()))
+	defer r.Logger.Debug("- Out of RunReconcile", zap.String("key", req.NamespacedName.String()))
 	defer mutex.Unlock()
-	defer r.UpdateESStatus(ctx, req.NamespacedName, mode)
+
 	es, err := r.GetES(ctx, req.NamespacedName)
 	if mode != ProxyMode && mode != ServeMode {
 		nam := types.NamespacedName{
@@ -112,6 +128,7 @@ func (r *ElastiServiceReconciler) RunReconcile(ctx context.Context, req ctrl.Req
 			return res, err
 		}
 	}
+	defer r.UpdateESStatus(ctx, req.NamespacedName, mode)
 
 	switch mode {
 	case ServeMode:
@@ -167,6 +184,10 @@ func (r *ElastiServiceReconciler) EnableServeMode(ctx context.Context, es *v1alp
 
 func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	go r.StartElastiServer()
+
+	r.Watcher = NewInformerManager(r.Logger, mgr.GetConfig())
+	r.Watcher.Start()
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.ElastiService{}).
 		Complete(r)
