@@ -1,18 +1,22 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
-	"k8s.io/client-go/informers"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 type InformerManager struct {
@@ -63,7 +67,7 @@ func (m *InformerManager) monitorInformers() {
 
 func (m *InformerManager) Add(deploymentName, namespace string, handlers cache.ResourceEventHandlerFuncs) {
 	m.logger.Info("Adding Deployment informer", zap.String("deployment_name", deploymentName))
-	go m.enableInformer(deploymentName, namespace, handlers)
+	m.enableInformer(deploymentName, namespace, handlers)
 }
 
 func (m *InformerManager) enableInformer(deploymentName, namespace string, handlers cache.ResourceEventHandlerFuncs) {
@@ -79,8 +83,23 @@ func (m *InformerManager) enableInformer(deploymentName, namespace string, handl
 		m.logger.Info("Informer already running", zap.String("key", key))
 		return
 	}
-	factory := informers.NewSharedInformerFactory(m.client, m.resyncPeriod)
-	informer := factory.Apps().V1().Deployments().Informer()
+	informer := cache.NewSharedIndexInformer(
+		&cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return m.client.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{
+					FieldSelector: "metadata.name=" + deploymentName,
+				})
+			},
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return m.client.AppsV1().Deployments(namespace).Watch(context.TODO(), metav1.ListOptions{
+					FieldSelector: "metadata.name=" + deploymentName,
+				})
+			},
+		},
+		&appsv1.Deployment{},
+		m.resyncPeriod,
+		cache.Indexers{},
+	)
 	informer.AddEventHandler(handlers)
 	informerStop := make(chan struct{})
 	go informer.Run(informerStop)
