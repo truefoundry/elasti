@@ -1,2 +1,6 @@
-playground/istio
 resolver/resolver
+operator/bin
+playground/load-generator
+playground/target
+
+.idea

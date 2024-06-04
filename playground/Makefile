@@ -30,17 +30,15 @@ setup-registry: ## Setup docker registery, where we publish our images
 
 .PHONY: docker-build-load-generator
 docker-build-load-generator: ## Build docker image for the load-generator
-	docker build -t load-generator -f ./build/load-generator/Dockerfile .          
-	docker tag load-generator localhost:5001/load-generator
+	docker build -t localhost:5001/load-generator -f ./build/load-generator/Dockerfile .   
+
+.PHONY: docker-build-target
+docker-build-target: ## Build docker image for the target
+	docker build -t localhost:5001/target -f ./build/target/Dockerfile .
 
 .PHONY: docker-publish-load-generator
 docker-publish-load-generator: ## Publish docker image for the load-generator
 	docker push localhost:5001/load-generator:latest
-
-.PHONY: docker-build-target
-docker-build-target: ## Build docker image for the target
-	docker build -t target -f ./build/target/Dockerfile .          
-	docker tag target localhost:5001/target
 
 .PHONY: docker-publish-target
 docker-publish-target: ## Publish docker image for the target
@@ -48,27 +46,17 @@ docker-publish-target: ## Publish docker image for the target
 
 .PHONY: deploy-load-generator
 deploy-load-generator: ## Build docker image for load-generator, publish it, and deploy it on k8s
-	kubectl apply -f ./infra/load-generator.yaml -n non-istio
+	kubectl apply -f ./config/load-generator.yaml -n non-istio
 
 .PHONY: deploy-target
 deploy-target: ## Build docker image for target, publish it, and deploy it on k8s
-	kubectl apply -f ./infra/target.yaml -n default
-
-.PHONY: build-deploy-load-generator
-build-deploy-load-generator: docker-build-load-generator docker-publish-load-generator ## & Deploy to k8s
-	kubectl delete -f ./infra/load-generator.yaml -n non-istio
-	kubectl apply -f ./infra/load-generator.yaml -n non-istio
-
-.PHONY: build-deploy-target
-build-deploy-target: docker-build-target docker-publish-target ## & Deploy to k8s
-	kubectl delete -f ./infra/target.yaml -n default
-	kubectl apply -f ./infra/target.yaml -n default
+	kubectl apply -f ./config/target.yaml -n default
 
 .PHONY: demo-reset 
 demo-reset: ## Reset the environment for demo 
 	kubectl scale --replicas=1 deployment target 
 	kubectl scale --replicas=0 deployment load-generator -n non-istio
-	kubectl apply -f ../infra-values/watch-crd.yaml  
+	kubectl apply -f ./config/watch-crd.yaml
 	kubectl rollout restart -n elasti deployment resolver
 	kubectl rollout restart -n elasti-operator-system deployment elasti-operator-controller-manager 
 	
