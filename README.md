@@ -10,18 +10,18 @@ The name Elasti comes from a superhero from DC Comics, which can grow large and 
 
 # Challenges 
 
-- Activator Switching Traffic using Knative Code
+- resolver Switching Traffic using Knative Code
 - Identify services based on the label using custom CRDs
-- Activator scaling 0 -> 1
-- KEDA and Activator Communication
+- resolver scaling 0 -> 1
+- KEDA and resolver Communication
 
-### Scaling 0 to N can happen from keda? Activator doesn’t need to do that
-- We are using activator to make sure 0 to 1 goes through faster
+### Scaling 0 to N can happen from keda? resolver doesn't need to do that
+- We are using resolver to make sure 0 to 1 goes through faster
 
-### A controller will be separate from the activator and will act to switch traffic
+### A controller will be separate from the resolver and will act to switch traffic
 - Why?
   - Will be difficult to scale to multiple replicas
-- We can achieve certain single-threaded functionality via locks etc in Activator now, but will eventually separate it out in a controller. - RT
+- We can achieve certain single-threaded functionality via locks etc in resolver now, but will eventually separate it out in a controller. - RT
 - This is decided only to save time of development.  - RT
 
 ### What happens for east-west traffic?
@@ -30,13 +30,14 @@ The name Elasti comes from a superhero from DC Comics, which can grow large and 
 
 ### Instead of doing a label based thing, can the controller act whenever a service is scaled down to 0? There is nothing we save from excluding few of the services
 - We want to select a subset. We can use * to select all the service
+- "?
 
 | Switching should happen a bit before the service is scaled to 0 - probably just when the pod is getting the terminating signal - and we have the 30 seconds drain period from Kubernetes. 
 
 ### What is the cron in CRDs? The informer takes care of letting the controller know of changes automatically
 - No cron in CRDs, we will depend on the informer only, but a handler will be introduced for those changes. Cron was used to represent the handler, I will correct that. - RT 
 
-### How does the activator scale? What should be the scaling criteria?
+### How does the resolver scale? What should be the scaling criteria?
 - Will be covered Testing phase
 - We will decide the criteria as we go, it can be memory or CPU, or open connections, or queue size etc. - RT
 
@@ -44,7 +45,7 @@ The name Elasti comes from a superhero from DC Comics, which can grow large and 
 
 # Components
 
-## Activator
+## resolver
  
 - Read labels to identify watched services.
 - Get the Destination to those services, to watch the traffic to those routes. 
@@ -55,18 +56,18 @@ The name Elasti comes from a superhero from DC Comics, which can grow large and 
 - Handle CRDs to get the latest configurations.
   - How long to wait for requests to remain 0.
   - How many instances to create when a request comes in after a long time.
-  - How long to hold the request in the activator, timeout. 
+  - How long to hold the request in the resolver, timeout. 
 - Create a queue for the requests. 
 - APIs to take the incoming request, and the kind of request we can take in. 
-- Switch the destination in VirtualService to the point between Activator and the actual service. Utilise Knative code to make the activator behave like a proxy. 
+- Switch the destination in VirtualService to the point between resolver and the actual service. Utilise Knative code to make the resolver behave like a proxy. 
 
 
-| We can later decide to move out some responsibilities from Activator to Controller, like watching the traffic and switching the traffic.  
+| We can later decide to move out some responsibilities from resolver to Controller, like watching the traffic and switching the traffic.  
 
 ## CRDs
 
-- Create ScaledObjects CRD to register the activator as a Scalar.
-- Automatically configure ScaledJobs CRD to match the Activator config, like the number of pods etc, which will overwrite the KEDA configuration for that service. 
+- Create ScaledObjects CRD to register the resolver as a Scalar.
+- Automatically configure ScaledJobs CRD to match the resolver config, like the number of pods etc, which will overwrite the KEDA configuration for that service. 
 - CRDs to configure Elasti, and identify deployments, and their rules. 
 
 ## Traffic Monitoring
@@ -172,9 +173,9 @@ istioctl analyze
 http://localhost/productpage
 ```
 
-## Build and Publish Activator
+## Build and Publish resolver
 
-You can use the Make command to build and publish Activator in the Activator folder.
+You can use the Make command to build and publish resolver in the resolver folder.
 
 1. If you are using Docker Desktop, you will need to change your context to use the docker engine use by Docker Desktop.
 ```bash
@@ -196,11 +197,11 @@ $ make docker-build
 $ make docker-publish
 ```
 
-You will need to repeat the 3rd and 4th steps when making any changes in the activator and need to test it inside k8s.
+You will need to repeat the 3rd and 4th steps when making any changes in the resolver and need to test it inside k8s.
 
-## Deploy Activator
+## Deploy resolver
 
-Apply activator yaml in elasti namespace.
+Apply resolver yaml in elasti namespace.
 ```bash
 $ kubectl create namespace elasti
 $ kubectl label namespace elasti istio-injection=enabled
@@ -208,15 +209,15 @@ $ kubectl label namespace elasti istio-injection=enabled
 $ kubectl apply -f playground.yaml -n elasti
 ```
 
-## Expose your Activator 
+## Expose your resolver 
 
-We will apply gateway.yaml, which will create a gateway and virtualService for activator. 
+We will apply gateway.yaml, which will create a gateway and virtualService for resolver. 
 ```bash
 $ kubectl apply -f gateway.yaml -n elasti
 
 ```
 
-If you have followed so far, you should be able to access the demo and activator based on the endpoints exposed in the virtualService.
+If you have followed so far, you should be able to access the demo and resolver based on the endpoints exposed in the virtualService.
 - http://localhost/ping
 - http://localhost/productpage
 
@@ -269,7 +270,7 @@ We will need to define some custom resources, so we can apply CRDs and work with
 
 The CRs defined in controller-cr folder, apply them. 
 
-## Add cluster-admin to activator
+## Add cluster-admin to resolver
 ```
  k create clusterrolebinding default-admin --clusterrole=cluster-admin --serviceaccount=elasti:default    
 
@@ -284,7 +285,7 @@ The CRs defined in controller-cr folder, apply them.
 docker run -d -p 1090:1090 --name fake-api reachfive/fake-api-server:latest 
 ```
 
-## Activator needs cluster-admin permission
+## resolver needs cluster-admin permission
 
 ```
 k create clusterrolebinding default-admin --clusterrole=cluster-admin --serviceaccount=elasti:default

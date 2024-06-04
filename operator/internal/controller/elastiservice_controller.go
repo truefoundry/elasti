@@ -162,7 +162,7 @@ func (r *ElastiServiceReconciler) EnableProxyMode(ctx context.Context, es *v1alp
 	if err != nil {
 		return err
 	}
-	if err = r.CreateOrupdateEndpointsliceToActivator(ctx, targetSVC); err != nil {
+	if err = r.CreateOrupdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
 		return err
 	}
 	return nil
@@ -173,7 +173,7 @@ func (r *ElastiServiceReconciler) EnableServeMode(ctx context.Context, es *v1alp
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
 	}
-	if err := r.DeleteEndpointsliceToActivator(ctx, targetNamespacedName); err != nil {
+	if err := r.DeleteEndpointsliceToResolver(ctx, targetNamespacedName); err != nil {
 		return err
 	}
 	if err := r.DeletePrivateService(ctx, targetNamespacedName); err != nil {

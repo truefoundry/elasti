@@ -2,4 +2,4 @@ package controller
 
 import "errors"
 
-var ErrNoActivatorPodFound = errors.New("no activator pod found")
+var ErrNoResolverPodFound = errors.New("no Resolver pod found")

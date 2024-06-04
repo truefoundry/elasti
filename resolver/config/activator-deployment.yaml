@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: activator
+  name: resolver
   namespace: elasti
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: activator 
+      app: resolver 
   template:
     metadata:
       labels:
-        app: activator 
+        app: resolver 
     spec:
       containers:
       - name: playground
-        image: localhost:5001/activator:latest
+        image: localhost:5001/resolver:latest
         env:
         - name: SYSTEM_NAMESPACE
           value: elasti

@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	activatorServiceName = "activator-service"
-	activatorPort        = 8012
+	resolverServiceName = "resolver-service"
+	resolverPort        = 8012
 )
 
 func (r *ElastiServiceReconciler) GetModeFromDeployment(ctx context.Context, nam types.NamespacedName) (string, error) {
@@ -45,9 +45,9 @@ func (r *ElastiServiceReconciler) GetModeFromDeployment(ctx context.Context, nam
 	return mode, nil
 }
 
-func (r *ElastiServiceReconciler) DeleteEndpointsliceToActivator(ctx context.Context, namespacedName types.NamespacedName) error {
+func (r *ElastiServiceReconciler) DeleteEndpointsliceToResolver(ctx context.Context, namespacedName types.NamespacedName) error {
 	endpointSlice := &networkingv1.EndpointSlice{}
-	namespacedName.Name = namespacedName.Name + "-to-activator"
+	namespacedName.Name = namespacedName.Name + "-to-resolver"
 	if err := r.Get(ctx, namespacedName, endpointSlice); err != nil {
 		if errors.IsNotFound(err) {
 			r.Logger.Info("EndpointSlice already deleted or not found", zap.Any("namespacedName", namespacedName))
@@ -62,49 +62,49 @@ func (r *ElastiServiceReconciler) DeleteEndpointsliceToActivator(ctx context.Con
 	return nil
 }
 
-func (r *ElastiServiceReconciler) GetIPsForActivator(ctx context.Context) ([]string, error) {
-	activatorSlices := &networkingv1.EndpointSliceList{}
-	if err := r.List(ctx, activatorSlices, client.MatchingLabels{
-		"kubernetes.io/service-name": activatorServiceName,
+func (r *ElastiServiceReconciler) GetIPsForResolver(ctx context.Context) ([]string, error) {
+	resolverSlices := &networkingv1.EndpointSliceList{}
+	if err := r.List(ctx, resolverSlices, client.MatchingLabels{
+		"kubernetes.io/service-name": resolverServiceName,
 	}); err != nil {
-		r.Logger.Error("Failed to get activator endpoint slices", zap.Error(err))
+		r.Logger.Error("Failed to get Resolver endpoint slices", zap.Error(err))
 		return nil, err
 	}
-	var activatorPodIPs []string
-	for _, endpointSlice := range activatorSlices.Items {
+	var resolverPodIPs []string
+	for _, endpointSlice := range resolverSlices.Items {
 		for _, endpoint := range endpointSlice.Endpoints {
-			activatorPodIPs = append(activatorPodIPs, endpoint.Addresses...)
+			resolverPodIPs = append(resolverPodIPs, endpoint.Addresses...)
 		}
 	}
-	if len(activatorPodIPs) == 0 {
-		return nil, ErrNoActivatorPodFound
+	if len(resolverPodIPs) == 0 {
+		return nil, ErrNoResolverPodFound
 	}
-	return activatorPodIPs, nil
+	return resolverPodIPs, nil
 }
 
-func (r *ElastiServiceReconciler) CreateOrupdateEndpointsliceToActivator(ctx context.Context, service *v1.Service) error {
-	activatorPodIPs, err := r.GetIPsForActivator(ctx)
+func (r *ElastiServiceReconciler) CreateOrupdateEndpointsliceToResolver(ctx context.Context, service *v1.Service) error {
+	resolverPodIPs, err := r.GetIPsForResolver(ctx)
 	if err != nil {
-		r.Logger.Error("Failed to get IPs for activator", zap.Error(err))
+		r.Logger.Error("Failed to get IPs for Resolver", zap.Error(err))
 		return err
 	}
 
-	newEndpointsliceName := service.Name + "-to-activator"
+	newEndpointsliceName := service.Name + "-to-resolver"
 	EndpointsliceNamespacedName := types.NamespacedName{
 		Name:      newEndpointsliceName,
 		Namespace: service.Namespace,
 	}
 
-	isActivatorSliceFound := false
-	sliceToActivator := &networkingv1.EndpointSlice{}
-	if err := r.Get(ctx, EndpointsliceNamespacedName, sliceToActivator); err != nil && !errors.IsNotFound(err) {
-		r.Logger.Debug("Error getting a endpoint slice to activator", zap.Error(err))
+	isResolverSliceFound := false
+	sliceToResolver := &networkingv1.EndpointSlice{}
+	if err := r.Get(ctx, EndpointsliceNamespacedName, sliceToResolver); err != nil && !errors.IsNotFound(err) {
+		r.Logger.Debug("Error getting a endpoint slice to Resolver", zap.Error(err))
 		return err
 	} else if errors.IsNotFound(err) {
-		isActivatorSliceFound = false
+		isResolverSliceFound = false
 		r.Logger.Debug("EndpointSlice not found, will try creating one", zap.Any("namespacedName", EndpointsliceNamespacedName))
 	} else {
-		isActivatorSliceFound = true
+		isResolverSliceFound = true
 		r.Logger.Debug("EndpointSlice Found", zap.Any("namespacedName", EndpointsliceNamespacedName))
 	}
 
@@ -121,24 +121,24 @@ func (r *ElastiServiceReconciler) CreateOrupdateEndpointsliceToActivator(ctx con
 			{
 				Name:     ptr.To(service.Spec.Ports[0].Name),
 				Protocol: ptr.To(v1.ProtocolTCP),
-				Port:     ptr.To(int32(activatorPort)),
+				Port:     ptr.To(int32(resolverPort)),
 			},
 		},
 	}
-	for _, ip := range activatorPodIPs {
+	for _, ip := range resolverPodIPs {
 		newEndpointSlice.Endpoints = append(newEndpointSlice.Endpoints, networkingv1.Endpoint{
 			Addresses: []string{ip},
 		})
 	}
 
-	if isActivatorSliceFound {
+	if isResolverSliceFound {
 		if err := r.Update(ctx, newEndpointSlice); err != nil {
-			r.Logger.Error("failed to update sliceToActivator", zap.Any("namespacedName", EndpointsliceNamespacedName), zap.Error(err))
+			r.Logger.Error("failed to update sliceToResolver", zap.Any("namespacedName", EndpointsliceNamespacedName), zap.Error(err))
 			return err
 		}
 	} else {
 		if err := r.Create(ctx, newEndpointSlice); err != nil {
-			r.Logger.Error("failed to create sliceToActivator", zap.Any("namespacedName", EndpointsliceNamespacedName), zap.Error(err))
+			r.Logger.Error("failed to create sliceToResolver", zap.Any("namespacedName", EndpointsliceNamespacedName), zap.Error(err))
 			return err
 		}
 	}

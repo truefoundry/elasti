@@ -12,21 +12,21 @@ help:
 		printf "  %-15s %s\n", target, helpMsg; \
 	}' $(MAKEFILE_LIST) | column -s ':' -t
 
-.PHONY: run-activator
-run-activator: ## Run activator locally
-	go run ./cmd/activator
+.PHONY: run-resolver
+run-resolver: ## Run resolver locally
+	go run ./cmd/resolver
 
-.PHONY: docker-build-activator
-docker-build-activator: ## Build docker image for the activator
-	docker build -t activator -f ./build/activator/Dockerfile .          
-	docker tag activator localhost:5001/activator
+.PHONY: docker-build-resolver
+docker-build-resolver: ## Build docker image for the resolver
+	docker build -t resolver -f ./build/resolver/Dockerfile .          
+	docker tag resolver localhost:5001/resolver
 
-.PHONY: docker-publish-activator
-docker-publish-activator: ## Publish docker image for the activator
-	docker push localhost:5001/activator:latest
+.PHONY: docker-publish-resolver
+docker-publish-resolver: ## Publish docker image for the resolver
+	docker push localhost:5001/resolver:latest
 
-.PHONY: deploy-activator
-deploy-activator: ## Build docker image for activator, publish it, and deploy it on k8s
-	kubectl apply -f ./infra/activator-deployment.yaml -n elasti
-	kubectl apply -f ./infra/activator-service.yaml -n elasti
+.PHONY: deploy-resolver
+deploy-resolver: ## Build docker image for resolver, publish it, and deploy it on k8s
+	kubectl apply -f ./infra/resolver-deployment.yaml -n elasti
+	kubectl apply -f ./infra/resolver-service.yaml -n elasti
 

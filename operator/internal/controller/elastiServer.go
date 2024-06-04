@@ -28,14 +28,14 @@ func (r *ElastiServiceReconciler) StartElastiServer() {
 			go r.StartElastiServer()
 		}
 	}()
-	http.HandleFunc("/informer/incoming-request", r.activatorReqHandler)
+	http.HandleFunc("/informer/incoming-request", r.resolverReqHandler)
 	r.Logger.Info("Starting ElastiServer", zap.String("port", "8013"))
 	if err := http.ListenAndServe(":8013", nil); err != nil {
 		r.Logger.Fatal("Failed to start StartElastiServer", zap.String("component", "elastiServer"), zap.Error(err))
 	}
 }
 
-func (r *ElastiServiceReconciler) activatorReqHandler(w http.ResponseWriter, req *http.Request) {
+func (r *ElastiServiceReconciler) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		if rec := recover(); rec != nil {
 			r.Logger.Error("Recovered from panic", zap.Any("error", rec))
@@ -52,7 +52,7 @@ func (r *ElastiServiceReconciler) activatorReqHandler(w http.ResponseWriter, req
 		return
 	}
 	defer req.Body.Close()
-	r.Logger.Info("Received request from activator", zap.String("component", "elastiServer"), zap.Any("body", body))
+	r.Logger.Info("Received request from Resolver", zap.String("component", "elastiServer"), zap.Any("body", body))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	response := Response{
@@ -70,7 +70,7 @@ func (r *ElastiServiceReconciler) activatorReqHandler(w http.ResponseWriter, req
 		Namespace: body.Namespace,
 	}
 	r.compareAndScaleDeployment(ctx, namespace)
-	r.Logger.Info("Received fullfilled from activator", zap.String("component", "elastiServer"), zap.Any("body", body))
+	r.Logger.Info("Received fullfilled from Resolver", zap.String("component", "elastiServer"), zap.Any("body", body))
 }
 
 func (r *ElastiServiceReconciler) compareAndScaleDeployment(ctx context.Context, target types.NamespacedName) error {

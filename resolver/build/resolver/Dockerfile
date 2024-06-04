@@ -4,14 +4,14 @@ COPY go.sum .
 COPY go.mod .
 RUN go mod tidy
 COPY ../../ .
-RUN go build -o activator ./cmd/activator
+RUN go build -o resolver ./cmd/resolver
 # Break
 FROM alpine:latest
 WORKDIR /root/
-COPY --from=builder /app/activator .
+COPY --from=builder /app/resolver .
 EXPOSE 8080
 EXPOSE 8012
 EXPOSE 8013
-CMD ["./activator"]
+CMD ["./resolver"]
 
  
