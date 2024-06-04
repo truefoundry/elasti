@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "elasti.fullname" . }}-controller-service
+  labels:
+    control-plane: controller-manager
+  {{- include "elasti.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.controllerService.type }}
+  selector:
+    control-plane: controller-manager
+  {{- include "elasti.selectorLabels" . | nindent 4 }}
+  ports:
+	{{- .Values.controllerService.ports | toYaml | nindent 2 }}

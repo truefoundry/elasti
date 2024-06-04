@@ -91,7 +91,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
+	$(CONTAINER_TOOL) build -t ${IMG} -f ./Dockerfile ../
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -196,3 +196,9 @@ GOBIN=$(LOCALBIN) go install $${package} ;\
 mv "$$(echo "$(1)" | sed "s/-$(3)$$//")" $(1) ;\
 }
 endef
+
+.PHONY: helm-chart 
+helm-chart: ## Create Helm chart for the operator
+	 $(KUSTOMIZE) build config/default | helmify ../charts/elasti
+
+

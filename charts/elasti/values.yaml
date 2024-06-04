@@ -1,0 +1,61 @@
+controllerManager:
+  manager:
+    args:
+    - --leader-elect
+    - --health-probe-bind-address=:8081
+    - --metrics-bind-address=0
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+    image:
+      repository: controller
+      tag: latest
+    resources:
+      limits:
+        cpu: 500m
+        memory: 128Mi
+      requests:
+        cpu: 10m
+        memory: 64Mi
+  replicas: 1
+  serviceAccount:
+    annotations: {}
+controllerService:
+  ports:
+  - name: custom-port
+    port: 8013
+    protocol: TCP
+    targetPort: 8013
+  type: ClusterIP
+kubernetesClusterDomain: cluster.local
+metricsService:
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  type: ClusterIP
+resolver:
+  playground:
+    env:
+      systemNamespace: elasti
+    image:
+      repository: localhost:5001/resolver
+      tag: latest
+    resources:
+      limits:
+        cpu: 750m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 500Mi
+  replicas: 1
+resolverService:
+  ports:
+  - name: http-playground
+    port: 8012
+    protocol: TCP
+    targetPort: 0
+  type: LoadBalancer

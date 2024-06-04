@@ -26,11 +26,13 @@ docker-publish-resolver: ## Publish docker image for the resolver
 
 .PHONY: deploy-resolver
 deploy-resolver: ## Deploy resolver on k8s
-	kubectl apply -f ./config/resolver-deployment.yaml -n elasti
-	kubectl apply -f ./config/resolver-service.yaml -n elasti
+	kubectl apply -f ./config/namespace.yaml -n elasti
+	kubectl apply -f ./config/deployment.yaml -n elasti
+	kubectl apply -f ./config/service.yaml -n elasti
 
 .PHONY: undeploy-resolver
 undeploy-resolver: ## undeploy docker image for resolver, publish it, and deploy it on k8s
-	kubectl delete -f ./config/resolver-deployment.yaml -n elasti
-	kubectl delete -f ./config/resolver-service.yaml -n elasti
+	kubectl delete -f ./config/namespace.yaml -n elasti
+	kubectl delete -f ./config/deployment.yaml -n elasti
+	kubectl delete -f ./config/service.yaml -n elasti
 
