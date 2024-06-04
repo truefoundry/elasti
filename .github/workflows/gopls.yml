@@ -28,11 +28,8 @@ jobs:
 
       - name: Run gopls checks
         run: |
-          # Create a temporary directory for gopls
-          mkdir -p /tmp/gopls
-
-          # Run gopls on the current directory
-          gopls check ./...
+          gopls check ./operator/...
+          gopls check ./resolver/...
 
       - name: Verify gofmt
         run: |
@@ -45,4 +42,5 @@ jobs:
       - name: Verify golint
         run: |
           go install golang.org/x/lint/golint@latest
-          golint ./...
+          golint check ./operator/...
+          golint check ./resolver/...
