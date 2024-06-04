@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: target
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: target
+  template:
+    metadata:
+      labels:
+        app: target 
+    spec:
+      containers:
+      - name: elasti-target
+        image: localhost:5001/target:latest
+        ports:
+        - containerPort: 8014
+        resources:
+          requests:
+            memory: "500Mi"
+            cpu: "250m"  
+          limits:
+            memory: "1Gi"
+            cpu: "750m"  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: target-service
+  namespace: default
+spec:
+  selector:
+    app: target 
+  ports:
+  - name: http-target-2
+    protocol: TCP
+    port: 8014
+  type: LoadBalancer
+
+

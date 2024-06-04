@@ -1,6 +1,7 @@
 go 1.22.3
 
 use (
-	./dev/elasti-activator
-	./dev/elasti-operator
+	./playground
+	./operator
+	./resolver
 )

@@ -1,0 +1,21 @@
+digraph finite_state_machine {
+	fontname="Helvetica,Arial,sans-serif"
+	node [fontname="Helvetica,Arial,sans-serif"]
+	edge [fontname="Helvetica,Arial,sans-serif"]
+	rankdir=TB;
+	node [shape = doublecircle]; AtScale At0;
+	node [shape = circle];
+
+
+    AtScale -> AtScale [label = "Serve"];
+    AtScale -> To0 [label = "Proxy"];
+    To0 -> At0 [label = "Proxy"];
+    To0 -> ToScale [label = "Serve"];
+    At0 -> At0 [label = "Proxy"];
+    At0 -> ToScale [label = "Serve"];
+    ToScale -> AtScale [label = "Serve"];
+    ToScale -> To0 [label = "Proxy"];
+
+{ rank=same; AtScale; To0; At0; }
+
+}
