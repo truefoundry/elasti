@@ -47,8 +47,8 @@ spec:
                 format: int32
                 type: integer
               queueTimeout:
-                description: How long do playground hold the request for, before
-                  dumping the queue. Default is 60s.
+                description: How long do playground hold the request for, before dumping
+                  the queue. Default is 60s.
                 format: int32
                 type: integer
               service:
