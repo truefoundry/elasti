@@ -4,4 +4,5 @@ use (
 	./playground
 	./operator
 	./resolver
+	./pkg
 )

@@ -5,17 +5,12 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
-
-type RequestCount struct {
-	Count     int    `json:"count"`
-	Svc       string `json:"svc"`
-	Namespace string `json:"namespace"`
-}
 
 type Response struct {
 	Message string `json:"message"`
@@ -46,7 +41,7 @@ func (r *ElastiServiceReconciler) resolverReqHandler(w http.ResponseWriter, req 
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
-	var body RequestCount
+	var body messages.RequestCount
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return

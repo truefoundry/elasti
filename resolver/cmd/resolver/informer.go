@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
 
 	"sync"
@@ -32,12 +33,6 @@ func InitInformer(logger *zap.Logger, lockTimeout time.Duration) {
 	}
 }
 
-type RequestCount struct {
-	Count     int    `json:"count"`
-	Svc       string `json:"svc"`
-	Namespace string `json:"namespace"`
-}
-
 // Inform send update to controller about the incoming requests
 func (i *informerSVC) Inform(ns, svc string) {
 	lockKey := fmt.Sprintf("%s.%s", svc, ns)
@@ -48,7 +43,7 @@ func (i *informerSVC) Inform(ns, svc string) {
 	i.logger.Debug("controller informer lock acquired", zap.String("key", lockKey))
 
 	// Create the request body
-	requestBody := RequestCount{
+	requestBody := messages.RequestCount{
 		Count:     1,
 		Svc:       svc,
 		Namespace: ns,

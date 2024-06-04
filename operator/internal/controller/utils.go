@@ -2,9 +2,8 @@ package controller
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 
+	"github.com/truefoundry/elasti/pkg/utils"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -147,7 +146,7 @@ func (r *ElastiServiceReconciler) CreateOrupdateEndpointsliceToResolver(ctx cont
 }
 
 func (r *ElastiServiceReconciler) CheckAndCreatePrivateService(ctx context.Context, publicSVC *v1.Service, es *v1alpha1.ElastiService) (PVTName string, err error) {
-	PVTName = r.getPrivateSerivceName(publicSVC.Name)
+	PVTName = utils.GetPrivateSerivceName(publicSVC.Name)
 
 	// See if private service already exist
 	privateSVC := &v1.Service{}
@@ -194,7 +193,7 @@ func (r *ElastiServiceReconciler) CheckAndCreatePrivateService(ctx context.Conte
 }
 
 func (r *ElastiServiceReconciler) DeletePrivateService(ctx context.Context, namespacedName types.NamespacedName) (err error) {
-	namespacedName.Name = r.getPrivateSerivceName(namespacedName.Name)
+	namespacedName.Name = utils.GetPrivateSerivceName(namespacedName.Name)
 	privateSVC := &v1.Service{}
 	if err := r.Get(ctx, namespacedName, privateSVC); err != nil {
 		if errors.IsNotFound(err) {
@@ -230,11 +229,4 @@ func (r *ElastiServiceReconciler) UpdateESStatus(ctx context.Context, namespaced
 		return
 	}
 	r.Logger.Info("CRD Status updated successfully")
-}
-
-func (r *ElastiServiceReconciler) getPrivateSerivceName(publicSVCName string) string {
-	hash := sha256.New()
-	hash.Write([]byte(publicSVCName))
-	hashed := hex.EncodeToString(hash.Sum(nil))
-	return publicSVCName + "-" + string(hashed)[:8] + "-pvt"
 }
