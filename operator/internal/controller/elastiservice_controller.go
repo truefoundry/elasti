@@ -65,6 +65,12 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		r.Logger.Error("Failed to get ElastiService in Reconcile", zap.Error(esErr))
 		return res, esErr
 	}
+
+	ServiceDirectory.AddService(es.Spec.Service, &CRDDetails{
+		CRDName:        es.Name,
+		DeploymentName: es.Spec.DeploymentName,
+	})
+
 	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
 			r.Logger.Info("ElastiService is being deleted", zap.String("name", es.Name), zap.Any("deletionTimestamp", es.ObjectMeta.DeletionTimestamp))

@@ -5,8 +5,8 @@ resources:
 # runtime. Be sure to update RoleBinding and ClusterRoleBinding
 # subjects if changing service account names.
 - service_account.yaml
-- role_EDS.yaml
-- role_EDS_binding.yaml
+- role_additional.yaml
+- role_additional_binding.yaml
 - role_apiserver.yaml
 - role_apiserver_binding.yaml
 - role.yaml

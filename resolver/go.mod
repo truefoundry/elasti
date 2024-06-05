@@ -9,7 +9,10 @@ require (
 	golang.org/x/net v0.24.0
 	k8s.io/apimachinery v0.30.0
 	k8s.io/client-go v0.30.0
+	github.com/truefoundry/elasti/pkg v0.0.0
 )
+
+replace github.com/truefoundry/elasti/pkg v0.0.0 => ../pkg
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

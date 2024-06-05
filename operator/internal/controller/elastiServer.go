@@ -59,9 +59,12 @@ func (r *ElastiServiceReconciler) resolverReqHandler(w http.ResponseWriter, req 
 		return
 	}
 	w.Write(jsonResponse)
-	// TODOs: The deployment name should be dynamic
+	depl, found := ServiceDirectory.GetService(body.Svc)
+	if !found {
+		r.Logger.Error("Failed to get CRD details from directory", zap.String("component", "elastiServer"))
+	}
 	namespace := types.NamespacedName{
-		Name:      "target",
+		Name:      depl.DeploymentName,
 		Namespace: body.Namespace,
 	}
 	r.compareAndScaleDeployment(ctx, namespace)

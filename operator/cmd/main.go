@@ -133,6 +133,9 @@ func main() {
 	consoleEncoder := zapcore.NewConsoleEncoder(encoderConfig)
 	core := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel)
 	zapLogger := uberZap.New(core)
+
+	controller.INITDirectory(zapLogger)
+
 	if err = (&controller.ElastiServiceReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/truefoundry/elasti/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -50,7 +51,7 @@ func (hm *hostManager) GetHost(req *http.Request) (*Host, error) {
 	}
 	host, ok := hm.hosts.Load(sourceService)
 	if !ok {
-		targetService = sourceService + "-pvt"
+		targetService = utils.GetPrivateSerivceName(sourceService)
 		sourceHost = hm.removeTrailingWildcardIfNeeded(sourceHost)
 		sourceHost = hm.addHTTPIfNeeded(sourceHost)
 		targetHost = hm.replaceServiceName(sourceHost, targetService)

@@ -4,11 +4,11 @@ metadata:
   labels:
     app.kubernetes.io/name: elasti-operator
     app.kubernetes.io/managed-by: kustomize
-  name: EDS-access-binding
+  name: additional-access-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: EDS-access
+  name: additional-access
 subjects:
 - kind: ServiceAccount
   name: elasti-operator-controller-manager
