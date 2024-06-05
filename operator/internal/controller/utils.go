@@ -81,7 +81,7 @@ func (r *ElastiServiceReconciler) GetIPsForResolver(ctx context.Context) ([]stri
 	return resolverPodIPs, nil
 }
 
-func (r *ElastiServiceReconciler) CreateOrupdateEndpointsliceToResolver(ctx context.Context, service *v1.Service) error {
+func (r *ElastiServiceReconciler) CreateOrUpdateEndpointsliceToResolver(ctx context.Context, service *v1.Service) error {
 	resolverPodIPs, err := r.GetIPsForResolver(ctx)
 	if err != nil {
 		r.Logger.Error("Failed to get IPs for Resolver", zap.Error(err))

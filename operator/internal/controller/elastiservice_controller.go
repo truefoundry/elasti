@@ -168,7 +168,7 @@ func (r *ElastiServiceReconciler) EnableProxyMode(ctx context.Context, es *v1alp
 	if err != nil {
 		return err
 	}
-	if err = r.CreateOrupdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
+	if err = r.CreateOrUpdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
 		return err
 	}
 	return nil

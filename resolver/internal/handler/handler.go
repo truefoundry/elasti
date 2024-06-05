@@ -61,6 +61,7 @@ func NewHandler(ctx context.Context, logger *zap.Logger, hc *HandlerConfig) *Han
 		bufferPool:  NewBufferPool(),
 		timeout:     10 * time.Second,
 		operatorRPC: hc.OperatorRPC,
+		hostManager: hc.HostManager,
 	}
 }
 
@@ -69,6 +70,7 @@ type Response struct {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	h.logger.Debug("Request received")
 	ctx, cancel := context.WithTimeout(context.Background(), h.timeout)
 	defer cancel()
 	host, err := h.hostManager.GetHost(req)

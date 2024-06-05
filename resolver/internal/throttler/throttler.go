@@ -10,9 +10,10 @@ import (
 )
 
 type Throttler struct {
-	logger  *zap.Logger
-	breaker *Breaker
-	k8sUtil *utils.K8sHelper
+	logger        *zap.Logger
+	breaker       *Breaker
+	k8sUtil       *utils.K8sHelper
+	retryDuration time.Duration
 }
 
 func NewThrottler(ctx context.Context, logger *zap.Logger, k8sUtil *utils.K8sHelper) *Throttler {
@@ -25,7 +26,8 @@ func NewThrottler(ctx context.Context, logger *zap.Logger, k8sUtil *utils.K8sHel
 			InitialCapacity: 200,
 			Logger:          logger,
 		}),
-		k8sUtil: k8sUtil,
+		k8sUtil:       k8sUtil,
+		retryDuration: 5 * time.Second,
 	}
 }
 
@@ -34,25 +36,29 @@ func (t *Throttler) Try(ctx context.Context, host *messages.Host, resolve func(i
 	retryCount := 1
 	for reenqueue {
 		reenqueue = false
-		if err := t.breaker.Maybe(ctx, func() {
+		var tryErr error
+		if tryErr = t.breaker.Maybe(ctx, func() {
 			if isPodActive, err := t.k8sUtil.CheckIfPodsActive(host.Namespace, host.TargetService); err != nil {
 				t.logger.Info("Unable to get target active pod", zap.Error(err), zap.Int("retryCount", retryCount))
 				reenqueue = true
 			} else if !isPodActive {
 				t.logger.Info("No active pods", zap.Any("host", host), zap.Int("retryCount", retryCount))
 				reenqueue = true
-			} else {
-				if res := resolve(retryCount); res != nil {
-					t.logger.Error("Error resolving proxy request", zap.Error(res), zap.Int("retryCount", retryCount))
-					reenqueue = true
-				}
 			}
+
+			if res := resolve(retryCount); res != nil {
+				t.logger.Error("Error resolving proxy request", zap.Error(res), zap.Int("retryCount", retryCount))
+				reenqueue = false
+				tryErr = res
+				return
+			}
+
 			if reenqueue {
 				retryCount++
-				time.Sleep(3 * time.Second)
+				time.Sleep(t.retryDuration)
 			}
-		}); err != nil {
-			t.logger.Info("Error resolving request", zap.Error(err), zap.Int("retryCount", retryCount))
+		}); tryErr != nil {
+			t.logger.Error("Error resolving request", zap.Error(tryErr), zap.Int("retryCount", retryCount))
 		}
 	}
 	return nil
