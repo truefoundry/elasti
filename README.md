@@ -1,4 +1,6 @@
-# Elasti-scale-to-zero
+![Elasti Icon](./assets/logo/logo_512.png)
+
+# Elasti
 
 Elasti is a tool for auto-scaling Kubernetes services based on incoming requests. It pulls the number of requests received on the istio-gateway, scales services up when the requests increase and scales services down when they decrease. If there are no requests, it scales them down to 0. 
 
@@ -290,6 +292,10 @@ docker run -d -p 1090:1090 --name fake-api reachfive/fake-api-server:latest
 ```
 k create clusterrolebinding default-admin --clusterrole=cluster-admin --serviceaccount=elasti:default
 ```
+
+# Icon 
+
+The icon is <a href="https://www.flaticon.com/free-icons/full-screen" title="full-screen icons">Full-screen icon created by Uniconlabs - Flaticon</a>. 
 
 
 

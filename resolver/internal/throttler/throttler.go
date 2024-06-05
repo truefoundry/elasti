@@ -44,13 +44,13 @@ func (t *Throttler) Try(ctx context.Context, host *messages.Host, resolve func(i
 			} else if !isPodActive {
 				t.logger.Info("No active pods", zap.Any("host", host), zap.Int("retryCount", retryCount))
 				reenqueue = true
-			}
-
-			if res := resolve(retryCount); res != nil {
-				t.logger.Error("Error resolving proxy request", zap.Error(res), zap.Int("retryCount", retryCount))
-				reenqueue = false
-				tryErr = res
-				return
+			} else {
+				if res := resolve(retryCount); res != nil {
+					t.logger.Error("Error resolving proxy request", zap.Error(res), zap.Int("retryCount", retryCount))
+					reenqueue = false
+					tryErr = res
+					return
+				}
 			}
 
 			if reenqueue {
