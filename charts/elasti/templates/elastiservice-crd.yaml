@@ -1,13 +1,13 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: elastiservices.elasti.truefoundry.io
+  name: elastiservices.elasti.truefoundry.com
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
   labels:
   {{- include "elasti.labels" . | nindent 4 }}
 spec:
-  group: elasti.truefoundry.io
+  group: elasti.truefoundry.com
   names:
     kind: ElastiService
     listKind: ElastiServiceList

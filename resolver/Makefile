@@ -14,11 +14,11 @@ help:
 
 .PHONY: run-resolver
 run-resolver: ## Run resolver locally
-	go run ./cmd/resolver
+	go run ./cmd/
 
 .PHONY: docker-build-resolver
 docker-build-resolver: ## Build docker image for the resolver
-	docker build -t ${IMG} -f ./build/resolver/Dockerfile ../
+	docker build -t ${IMG} -f ./Dockerfile ../
 
 .PHONY: docker-publish-resolver
 docker-publish-resolver: ## Publish docker image for the resolver

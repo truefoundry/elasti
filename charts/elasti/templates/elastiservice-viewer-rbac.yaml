@@ -6,7 +6,7 @@ metadata:
   {{- include "elasti.labels" . | nindent 4 }}
 rules:
 - apiGroups:
-  - elasti.truefoundry.io
+  - elasti.truefoundry.com
   resources:
   - elastiservices
   verbs:
@@ -14,7 +14,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - elasti.truefoundry.io
+  - elasti.truefoundry.com
   resources:
   - elastiservices/status
   verbs:

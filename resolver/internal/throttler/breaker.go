@@ -1,11 +1,10 @@
-package main
+package throttler
 
 import (
 	"context"
 	"errors"
-	"sync/atomic"
-
 	"go.uber.org/zap"
+	"sync/atomic"
 )
 
 type BreakerParams struct {

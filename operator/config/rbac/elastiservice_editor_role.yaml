@@ -8,7 +8,7 @@ metadata:
   name: elastiservice-editor-role
 rules:
 - apiGroups:
-  - elasti.truefoundry.io
+  - elasti.truefoundry.com
   resources:
   - elastiservices
   verbs:
@@ -20,7 +20,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - elasti.truefoundry.io
+  - elasti.truefoundry.com
   resources:
   - elastiservices/status
   verbs:

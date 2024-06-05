@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -10,25 +10,57 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"truefoundry/resolver/internal/throttler"
+	"truefoundry/resolver/internal/utils"
 
+	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
 )
 
-type Handler struct {
-	logger     *zap.Logger
-	throttler  Throttler
-	transport  http.RoundTripper
-	bufferPool httputil.BufferPool
-	timeout    time.Duration
-}
+type (
+	// Handler is the reverse proxy handler
+	Handler struct {
+		logger      *zap.Logger
+		throttler   *throttler.Throttler
+		transport   http.RoundTripper
+		bufferPool  httputil.BufferPool
+		timeout     time.Duration
+		operatorRPC Operator
+		hostManager HostManager
+	}
 
-func NewHandler(ctx context.Context, logger *zap.Logger, transport http.RoundTripper, throttle Throttler) *Handler {
+	// HandlerConfig is the configuration for the handler
+	HandlerConfig struct {
+		MaxIdleProxyConns        int
+		MaxIdleProxyConnsPerHost int
+		OperatorRPC              Operator
+		HostManager              HostManager
+		K8sUtil                  *utils.K8sHelper
+	}
+
+	// OperatorRPC is to communicate with the operator
+	Operator interface {
+		SendIncomingRequestInfo(ns, svc string)
+	}
+
+	// HostManager is to manage the hosts, and their traffic
+	HostManager interface {
+		GetHost(req *http.Request) (*messages.Host, error)
+		DisableTrafficForHost(service string)
+	}
+)
+
+// NewHandler returns a new Handler
+func NewHandler(ctx context.Context, logger *zap.Logger, hc *HandlerConfig) *Handler {
+	transport := throttler.NewProxyAutoTransport(logger, hc.MaxIdleProxyConns, hc.MaxIdleProxyConnsPerHost)
+	throttler := throttler.NewThrottler(ctx, logger, hc.K8sUtil)
 	return &Handler{
-		throttler:  throttle,
-		logger:     logger.With(zap.String("component", "handler")),
-		transport:  transport,
-		bufferPool: NewBufferPool(),
-		timeout:    10 * time.Second,
+		throttler:   throttler,
+		logger:      logger.With(zap.String("component", "handler")),
+		transport:   transport,
+		bufferPool:  NewBufferPool(),
+		timeout:     10 * time.Second,
+		operatorRPC: hc.OperatorRPC,
 	}
 }
 
@@ -39,7 +71,7 @@ type Response struct {
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), h.timeout)
 	defer cancel()
-	host, err := HostManager.GetHost(req)
+	host, err := h.hostManager.GetHost(req)
 	if err != nil {
 		h.logger.Error("Error getting host", zap.Error(err))
 		http.Error(w, "Error getting host", http.StatusInternalServerError)
@@ -54,7 +86,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(`{"error": "traffic is switched"}`))
 		return
 	}
-	go Informer.Inform(host.Namespace, host.SourceService)
+	go h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
 	targetURL, err := url.Parse(host.TargetHost + req.RequestURI)
 	if err != nil {
 		h.logger.Error("Error parsing target URL", zap.Error(err))
@@ -67,7 +99,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	default:
 		if tryErr := h.throttler.Try(ctx, host, func(count int) error {
-			return h.ProxyRequest(w, req, targetURL, count)
+			err := h.ProxyRequest(w, req, targetURL, count)
+			if err != nil {
+				return err
+			}
+			h.hostManager.DisableTrafficForHost(host.SourceService)
+			return nil
 		}); tryErr != nil {
 			h.logger.Error("throttler try error: ", zap.Error(tryErr))
 			if errors.Is(tryErr, context.DeadlineExceeded) {

@@ -8,7 +8,7 @@ metadata:
   name: elastiservice-viewer-role
 rules:
 - apiGroups:
-  - elasti.truefoundry.io
+  - elasti.truefoundry.com
   resources:
   - elastiservices
   verbs:
@@ -16,7 +16,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - elasti.truefoundry.io
+  - elasti.truefoundry.com
   resources:
   - elastiservices/status
   verbs:

@@ -1,19 +1,21 @@
-package main
+package throttler
 
 import (
 	"context"
 	"time"
+	"truefoundry/resolver/internal/utils"
 
+	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
 )
 
 type Throttler struct {
 	logger  *zap.Logger
 	breaker *Breaker
-	k8sUtil *k8sHelper
+	k8sUtil *utils.K8sHelper
 }
 
-func NewThrottler(ctx context.Context, logger *zap.Logger, k8sUtil *k8sHelper) *Throttler {
+func NewThrottler(ctx context.Context, logger *zap.Logger, k8sUtil *utils.K8sHelper) *Throttler {
 	return &Throttler{
 		logger: logger.With(zap.String("component", "throttler")),
 		// TODOs: We will make this parameter dynamic
@@ -27,13 +29,13 @@ func NewThrottler(ctx context.Context, logger *zap.Logger, k8sUtil *k8sHelper) *
 	}
 }
 
-func (t *Throttler) Try(ctx context.Context, host *Host, resolve func(int) error) error {
+func (t *Throttler) Try(ctx context.Context, host *messages.Host, resolve func(int) error) error {
 	reenqueue := true
 	retryCount := 1
 	for reenqueue {
 		reenqueue = false
 		if err := t.breaker.Maybe(ctx, func() {
-			if isPodActive, err := t.k8sUtil.CheckIfPodsActiveV2(host.Namespace, host.TargetService); err != nil {
+			if isPodActive, err := t.k8sUtil.CheckIfPodsActive(host.Namespace, host.TargetService); err != nil {
 				t.logger.Info("Unable to get target active pod", zap.Error(err), zap.Int("retryCount", retryCount))
 				reenqueue = true
 			} else if !isPodActive {
@@ -43,8 +45,6 @@ func (t *Throttler) Try(ctx context.Context, host *Host, resolve func(int) error
 				if res := resolve(retryCount); res != nil {
 					t.logger.Error("Error resolving proxy request", zap.Error(res), zap.Int("retryCount", retryCount))
 					reenqueue = true
-				} else {
-					HostManager.DisableTrafficForHost(host.SourceService)
 				}
 			}
 			if reenqueue {

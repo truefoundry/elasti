@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	ElastiServiceFinalizer = "elasti.truefoundry.io/finalizer"
+	ElastiServiceFinalizer = "elasti.truefoundry.com/finalizer"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
