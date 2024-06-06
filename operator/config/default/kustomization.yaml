@@ -27,7 +27,7 @@ resources:
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
 #- ../prometheus
 
-patches:
+patches: []
 # [METRICS] The following patch will enable the metrics endpoint. Ensure that you also protect this endpoint.
 # More info: https://book.kubebuilder.io/reference/metrics
 # If you want to expose the metric endpoint of your controller-manager uncomment the following line.

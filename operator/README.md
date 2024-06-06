@@ -112,3 +112,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
+## Troubleshoot
+
+#### When namespace in terminating state forever
+- Get namespace json
+```
+kubectl get namespace elasti-operator-system -o json > tmp.json    
+```
+- Remove finalizer from it
+- Force apply the raw file
+```
+ k replace --raw "/api/v1/namespaces/elasti-operator-system/finalize" -f tmp.json  
+```
+
