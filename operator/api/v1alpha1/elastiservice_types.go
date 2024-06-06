@@ -31,13 +31,18 @@ const (
 type ElastiServiceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	ScaleTargetRef     ScaleTargetRef `json:"scaleTargetRef,omitempty"`
+	Service            string         `json:"service,omitempty"`
+	DeploymentName     string         `json:"deploymentName,omitempty"`
+	QTimout            int32          `json:"queueTimeout,omitempty"`
+	IdlePeriod         int32          `json:"idlePeriod,omitempty"`
+	ServeReplicasCount int32          `json:"minReplicas,omitempty"`
+}
 
-	Service        string `json:"service,omitempty"`
-	DeploymentName string `json:"deploymentName,omitempty"`
-	// How long do playground hold the request for, before dumping the queue. Default is 60s.
-	QTimout int32 `json:"queueTimeout,omitempty"`
-	// Idle Period is how long should the target VirtualService be Idle(without requests), before we scale it down to 0.
-	IdlePeriod int32 `json:"idlePeriod,omitempty"`
+type ScaleTargetRef struct {
+	APIVersion string `json:"apiVersion,omitempty"`
+	Kind       string `json:"kind,omitempty"`
+	Name       string `json:"name,omitempty"`
 }
 
 // ElastiServiceStatus defines the observed state of ElastiService
@@ -45,7 +50,6 @@ type ElastiServiceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	LastReconciledTime metav1.Time `json:"lastReconciledTime,omitempty"`
-	State              string      `json:"state,omitempty"`
 	Mode               string      `json:"mode,omitempty"`
 }
 

@@ -81,7 +81,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	h.logger.Debug("host received", zap.Any("host", host))
 	if !host.TrafficAllowed {
-		h.logger.Error("Traffic not allowed", zap.Any("host", host))
+		h.logger.Info("Traffic not allowed", zap.Any("host", host))
 		w.Header().Set("Connection", "close")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)

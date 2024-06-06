@@ -75,7 +75,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
 			r.Logger.Info("ElastiService is being deleted", zap.String("name", es.Name), zap.Any("deletionTimestamp", es.ObjectMeta.DeletionTimestamp))
 			go r.Watcher.StopInformer(es.Spec.DeploymentName, req.Namespace)
-			if err = r.EnableServeMode(ctx, es); err != nil {
+			if err = r.cleanUp(ctx, es); err != nil {
 				r.Logger.Error("Failed to server mode", zap.Error(err))
 				return res, err
 			}
@@ -103,18 +103,18 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			condition := newDeployment.Status.Conditions
 			if newDeployment.Status.Replicas == 0 {
 				r.Logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", es.Spec.DeploymentName))
-				r.RunReconcile(context.Background(), req, ProxyMode)
+				r.runReconcile(context.Background(), req, ProxyMode)
 			} else if newDeployment.Status.Replicas > 0 && condition[1].Status == "True" {
 				r.Logger.Debug("Deployment has replicas", zap.String("deployment_name", es.Spec.DeploymentName))
-				r.RunReconcile(context.Background(), req, ServeMode)
+				r.runReconcile(context.Background(), req, ServeMode)
 			}
 		},
 	})
 
-	return r.RunReconcile(ctx, req, NullMode)
+	return r.runReconcile(ctx, req, NullMode)
 }
 
-func (r *ElastiServiceReconciler) RunReconcile(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error) {
+func (r *ElastiServiceReconciler) runReconcile(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error) {
 	r.Logger.Debug("- In RunReconcile", zap.String("key", req.NamespacedName.String()))
 	// Only 1 reconcile should run at a time for a given ElastiService. This prevents conflicts when updating different objects.
 	mutex := getMutexForRequest(req.NamespacedName.String())
@@ -138,13 +138,13 @@ func (r *ElastiServiceReconciler) RunReconcile(ctx context.Context, req ctrl.Req
 
 	switch mode {
 	case ServeMode:
-		if err = r.EnableServeMode(ctx, es); err != nil {
+		if err = r.enableServeMode(ctx, es); err != nil {
 			r.Logger.Error("Failed to enable serve mode", zap.Error(err))
 			return res, err
 		}
 		r.Logger.Info("Serve mode enabled")
 	case ProxyMode:
-		if err = r.EnableProxyMode(ctx, es); err != nil {
+		if err = r.enableProxyMode(ctx, es); err != nil {
 			r.Logger.Error("Failed to enable proxy mode", zap.Error(err))
 			return res, err
 		}
@@ -154,7 +154,7 @@ func (r *ElastiServiceReconciler) RunReconcile(ctx context.Context, req ctrl.Req
 	return res, nil
 }
 
-func (r *ElastiServiceReconciler) EnableProxyMode(ctx context.Context, es *v1alpha1.ElastiService) error {
+func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, es *v1alpha1.ElastiService) error {
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
@@ -174,7 +174,18 @@ func (r *ElastiServiceReconciler) EnableProxyMode(ctx context.Context, es *v1alp
 	return nil
 }
 
-func (r *ElastiServiceReconciler) EnableServeMode(ctx context.Context, es *v1alpha1.ElastiService) error {
+func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, es *v1alpha1.ElastiService) error {
+	targetNamespacedName := types.NamespacedName{
+		Name:      es.Spec.Service,
+		Namespace: es.Namespace,
+	}
+	if err := r.DeleteEndpointsliceToResolver(ctx, targetNamespacedName); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *ElastiServiceReconciler) cleanUp(ctx context.Context, es *v1alpha1.ElastiService) error {
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
