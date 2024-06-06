@@ -5,7 +5,7 @@ metadata:
   namespace: elasti
 spec:
   selector:
-    app: resolver
+    app: elasti-resolver
   ports:
   - name: http-playground
     protocol: TCP

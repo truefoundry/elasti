@@ -77,13 +77,10 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
-			r.Logger.Info("ElastiService is being deleted", zap.String("name", es.Name), zap.Any("deletionTimestamp", es.ObjectMeta.DeletionTimestamp))
-			go r.Watcher.StopInformer(es.Spec.DeploymentName, req.Namespace)
-			if err = r.cleanUp(ctx, es); err != nil {
+			if err = r.finalizeElastiService(ctx, es); err != nil {
 				r.Logger.Error("Failed to server mode", zap.Error(err))
 				return res, err
 			}
-			r.Logger.Info("Serve mode enabled")
 			controllerutil.RemoveFinalizer(es, v1alpha1.ElastiServiceFinalizer)
 			if err := r.Update(ctx, es); err != nil {
 				return res, err
@@ -225,7 +222,12 @@ func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, es *v1alp
 	return nil
 }
 
-func (r *ElastiServiceReconciler) cleanUp(ctx context.Context, es *v1alpha1.ElastiService) error {
+func (r *ElastiServiceReconciler) finalizeElastiService(ctx context.Context, es *v1alpha1.ElastiService) error {
+	r.Logger.Info("ElastiService is being deleted", zap.String("name", es.Name), zap.Any("deletionTimestamp", es.ObjectMeta.DeletionTimestamp))
+	// Stop target service informer
+	go r.Watcher.StopInformer(es.Spec.DeploymentName, es.Namespace)
+	// Stop resolver informer
+	go r.Watcher.StopInformer(resolverDeploymentName, resolverNamespace)
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
@@ -236,6 +238,7 @@ func (r *ElastiServiceReconciler) cleanUp(ctx context.Context, es *v1alpha1.Elas
 	if err := r.DeletePrivateService(ctx, targetNamespacedName); err != nil {
 		return err
 	}
+	r.Logger.Info("Serve mode enabled")
 	return nil
 }
 

@@ -135,11 +135,13 @@ func (r *ElastiServiceReconciler) CreateOrUpdateEndpointsliceToResolver(ctx cont
 			r.Logger.Error("failed to update sliceToResolver", zap.Any("namespacedName", EndpointsliceNamespacedName), zap.Error(err))
 			return err
 		}
+		r.Logger.Info("EndpointSlice updated successfully", zap.Any("namespacedName", EndpointsliceNamespacedName))
 	} else {
 		if err := r.Create(ctx, newEndpointSlice); err != nil {
 			r.Logger.Error("failed to create sliceToResolver", zap.Any("namespacedName", EndpointsliceNamespacedName), zap.Error(err))
 			return err
 		}
+		r.Logger.Info("EndpointSlice created successfully", zap.Any("namespacedName", EndpointsliceNamespacedName))
 	}
 
 	return nil
