@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: resolver
+  name: elasti-resolver
   namespace: elasti
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: resolver 
+      app: elasti-resolver 
   template:
     metadata:
       labels:
-        app: resolver 
+        app: elasti-resolver 
     spec:
       containers:
       - name: playground

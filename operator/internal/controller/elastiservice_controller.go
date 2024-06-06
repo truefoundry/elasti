@@ -30,17 +30,21 @@ type (
 )
 
 const (
-	ServeMode = "serve"
-	ProxyMode = "proxy"
-	NullMode  = ""
+	ServeMode              = "serve"
+	ProxyMode              = "proxy"
+	NullMode               = ""
+	resolverNamespace      = "elasti"
+	resolverDeploymentName = "elasti-resolver"
 )
 
 var locks sync.Map
 
-func getMutexForRequest(key string) *sync.Mutex {
+func getMutexForRunReconcile(key string) *sync.Mutex {
 	l, _ := locks.LoadOrStore(key, &sync.Mutex{})
 	return l.(*sync.Mutex)
 }
+
+var watcherStartLock sync.Once
 
 //+kubebuilder:rbac:groups=elasti.truefoundry.com,resources=elastiservices,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=elasti.truefoundry.com,resources=elastiservices/status,verbs=get;update;patch
@@ -97,27 +101,63 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}
 
-	go r.Watcher.Add(es.Spec.DeploymentName, req.Namespace, cache.ResourceEventHandlerFuncs{
-		UpdateFunc: func(old, new interface{}) {
-			newDeployment := new.(*appsv1.Deployment)
-			condition := newDeployment.Status.Conditions
-			if newDeployment.Status.Replicas == 0 {
-				r.Logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", es.Spec.DeploymentName))
-				r.runReconcile(context.Background(), req, ProxyMode)
-			} else if newDeployment.Status.Replicas > 0 && condition[1].Status == "True" {
-				r.Logger.Debug("Deployment has replicas", zap.String("deployment_name", es.Spec.DeploymentName))
-				r.runReconcile(context.Background(), req, ServeMode)
-			}
-		},
+	// These steps happen once once, when the ElastiService is created.
+	watcherStartLock.Do(func() {
+		go r.Watcher.AddDeploymentWatch(es.Spec.DeploymentName, req.Namespace, cache.ResourceEventHandlerFuncs{
+			UpdateFunc: func(old, new interface{}) {
+				newDeployment := new.(*appsv1.Deployment)
+				condition := newDeployment.Status.Conditions
+				if newDeployment.Status.Replicas == 0 {
+					r.Logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", es.Spec.DeploymentName))
+					r.runReconcile(context.Background(), req, ProxyMode)
+				} else if newDeployment.Status.Replicas > 0 && condition[1].Status == "True" {
+					r.Logger.Debug("Deployment has replicas", zap.String("deployment_name", es.Spec.DeploymentName))
+					r.runReconcile(context.Background(), req, ServeMode)
+				}
+			},
+		})
+
+		// Watch for changes in activator deployment, we must update the service endpointslice to resolver
+		go r.Watcher.AddDeploymentWatch(resolverDeploymentName, resolverNamespace, cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				r.handleResolverChanges(ctx, obj, es.Spec.Service, req.Namespace)
+			},
+			UpdateFunc: func(old, new interface{}) {
+				r.handleResolverChanges(ctx, new, es.Spec.Service, req.Namespace)
+			},
+			DeleteFunc: func(obj interface{}) {
+				// TODO: Handle deletion of resolver deployment
+				r.Logger.Debug("Resolver deployment deleted", zap.String("deployment_name", resolverDeploymentName))
+			},
+		})
 	})
 
 	return r.runReconcile(ctx, req, NullMode)
 }
 
+func (r *ElastiServiceReconciler) handleResolverChanges(ctx context.Context, obj interface{}, serviceName, namespace string) {
+	resolverDeployment := obj.(*appsv1.Deployment)
+	if resolverDeployment.Name == resolverDeploymentName {
+		targetNamespacedName := types.NamespacedName{
+			Name:      serviceName,
+			Namespace: namespace,
+		}
+		targetSVC := &v1.Service{}
+		if err := r.Get(ctx, targetNamespacedName, targetSVC); err != nil {
+			r.Logger.Error("Failed to get target service", zap.Error(err))
+			return
+		}
+		if err := r.CreateOrUpdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
+			r.Logger.Error("Failed to create or update endpointslice to resolver", zap.Error(err))
+			return
+		}
+	}
+}
+
 func (r *ElastiServiceReconciler) runReconcile(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error) {
 	r.Logger.Debug("- In RunReconcile", zap.String("key", req.NamespacedName.String()))
 	// Only 1 reconcile should run at a time for a given ElastiService. This prevents conflicts when updating different objects.
-	mutex := getMutexForRequest(req.NamespacedName.String())
+	mutex := getMutexForRunReconcile(req.NamespacedName.String())
 	mutex.Lock()
 	defer r.Logger.Debug("- Out of RunReconcile", zap.String("key", req.NamespacedName.String()))
 	defer mutex.Unlock()

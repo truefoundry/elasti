@@ -65,13 +65,18 @@ func (m *InformerManager) monitorInformers() {
 	})
 }
 
-func (m *InformerManager) Add(deploymentName, namespace string, handlers cache.ResourceEventHandlerFuncs) {
+func (m *InformerManager) AddDeploymentWatch(deploymentName, namespace string, handlers cache.ResourceEventHandlerFuncs) {
 	m.logger.Info("Adding Deployment informer", zap.String("deployment_name", deploymentName))
 	m.enableInformer(deploymentName, namespace, handlers)
 }
 
 func (m *InformerManager) enableInformer(deploymentName, namespace string, handlers cache.ResourceEventHandlerFuncs) {
 	key := getKey(namespace, deploymentName)
+	if i, ok := m.informers.Load(key); ok && i.(InformerInfo).Active {
+		m.logger.Info("Informer already running", zap.String("key", key))
+		return
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			m.logger.Error("Recovered from panic", zap.Any("error", r))
@@ -79,10 +84,6 @@ func (m *InformerManager) enableInformer(deploymentName, namespace string, handl
 			m.enableInformer(deploymentName, namespace, handlers)
 		}
 	}()
-	if i, ok := m.informers.Load(key); ok && i.(InformerInfo).Active {
-		m.logger.Info("Informer already running", zap.String("key", key))
-		return
-	}
 	informer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
