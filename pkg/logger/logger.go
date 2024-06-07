@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func GetLogger(env string) (logger *zap.Logger, err error) {
+func NewLogger(env string) (logger *zap.Logger, err error) {
 	if env == "prod" {
 		logger, err = zap.NewProduction()
 		if err != nil {

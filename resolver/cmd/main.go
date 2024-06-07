@@ -28,7 +28,7 @@ const (
 
 func main() {
 	ctx := context.Background()
-	logger, err := logger.GetLogger("dev")
+	logger, err := logger.NewLogger("dev")
 	if err != nil {
 		log.Fatal("Failed to get logger: ", err)
 	}

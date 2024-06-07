@@ -1,4 +1,4 @@
-package controller
+package crdDirectory
 
 import (
 	"sync"
@@ -16,23 +16,27 @@ type CRDDetails struct {
 	DeploymentName string
 }
 
-var ServiceDirectory *Directory
+var CRDDirectory *Directory
 
-var serviceDirectoryOnce sync.Once
+var directoryMutexOnce sync.Once
 
 func INITDirectory(logger *zap.Logger) {
-	serviceDirectoryOnce.Do(func() {
-		ServiceDirectory = &Directory{
-			Logger: logger,
+	directoryMutexOnce.Do(func() {
+		CRDDirectory = &Directory{
+			Logger: logger.Named("CRDDirectory"),
 		}
 	})
 }
 
-func (d *Directory) AddService(serviceName string, crdDetails *CRDDetails) {
+func (d *Directory) AddCRD(serviceName string, crdDetails *CRDDetails) {
 	d.Services.Store(serviceName, crdDetails)
 }
 
-func (d *Directory) GetService(serviceName string) (*CRDDetails, bool) {
+func (d *Directory) RemoveCRD(serviceName string) {
+	d.Services.Delete(serviceName)
+}
+
+func (d *Directory) GetCRD(serviceName string) (*CRDDetails, bool) {
 	value, ok := d.Services.Load(serviceName)
 	if !ok {
 		d.Logger.Error("Service not found in directory", zap.String("service", serviceName))

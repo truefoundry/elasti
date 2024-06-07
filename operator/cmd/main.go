@@ -21,6 +21,11 @@ import (
 	"flag"
 	"os"
 
+	tfLogger "github.com/truefoundry/elasti/pkg/logger"
+	"truefoundry.io/elasti/internal/crdDirectory"
+	"truefoundry.io/elasti/internal/elastiServer"
+	"truefoundry.io/elasti/internal/informer"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -36,11 +41,7 @@ import (
 
 	elastiv1alpha1 "truefoundry.io/elasti/api/v1alpha1"
 	"truefoundry.io/elasti/internal/controller"
-
 	//+kubebuilder:scaffold:imports
-
-	uberZap "go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -126,20 +127,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	encoderConfig := uberZap.NewDevelopmentEncoderConfig()
-	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	encoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
-	encoderConfig.EncodeDuration = zapcore.StringDurationEncoder
-	consoleEncoder := zapcore.NewConsoleEncoder(encoderConfig)
-	core := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel)
-	zapLogger := uberZap.New(core)
+	zapLogger, err := tfLogger.NewLogger("dev")
+	if err != nil {
+		setupLog.Error(err, "unable to create logger")
+	}
 
-	controller.INITDirectory(zapLogger)
+	// Start the shared CRD Directory
+	crdDirectory.INITDirectory(zapLogger)
+	// Initiate and start the shared Informer Manager
+	Informer := informer.NewInformerManager(zapLogger, mgr.GetConfig())
+	Informer.Start()
+	// Start the elasti server
+	elastiServer := elastiServer.NewServer(zapLogger, mgr.GetConfig())
+	elastiServer.Start()
 
+	// Setup the ElastiService controller
 	if err = (&controller.ElastiServiceReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Logger: zapLogger,
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Logger:   zapLogger,
+		Informer: Informer,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
 		os.Exit(1)

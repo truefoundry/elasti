@@ -4,16 +4,14 @@ import (
 	"context"
 	"sync"
 
-	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	"truefoundry.io/elasti/internal/crdDirectory"
+	"truefoundry.io/elasti/internal/informer"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"k8s.io/client-go/tools/cache"
 	"truefoundry.io/elasti/api/v1alpha1"
 
 	"go.uber.org/zap"
@@ -23,28 +21,27 @@ type (
 	RunReconcileFunc        func(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error)
 	ElastiServiceReconciler struct {
 		client.Client
-		Scheme  *runtime.Scheme
-		Logger  *zap.Logger
-		Watcher *InformerManager
+		Scheme            *runtime.Scheme
+		Logger            *zap.Logger
+		Informer          *informer.Manager
+		RunReconcileLocks sync.Map
+		WatcherStartLock  sync.Map
 	}
 )
 
 const (
-	ServeMode              = "serve"
-	ProxyMode              = "proxy"
-	NullMode               = ""
+	ServeMode = "serve"
+	ProxyMode = "proxy"
+	NullMode  = ""
+
+	// These are resoler details, ideally in future we can move this to a configmap, or find a better way to serve this
 	resolverNamespace      = "elasti"
 	resolverDeploymentName = "elasti-resolver"
+	resolverServiceName    = "resolver-service"
+	resolverPort           = 8012
+
+	endpointSlicePostfix = "-to-resolver"
 )
-
-var locks sync.Map
-
-func getMutexForRunReconcile(key string) *sync.Mutex {
-	l, _ := locks.LoadOrStore(key, &sync.Mutex{})
-	return l.(*sync.Mutex)
-}
-
-var watcherStartLock sync.Once
 
 //+kubebuilder:rbac:groups=elasti.truefoundry.com,resources=elastiservices,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=elasti.truefoundry.com,resources=elastiservices/status,verbs=get;update;patch
@@ -60,194 +57,46 @@ var watcherStartLock sync.Once
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
 func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, err error) {
-	es, esErr := r.GetES(ctx, req.NamespacedName)
+	// First we get the ElastiService object
+	// No mutex is taken for this, as we are not modifying the object, but if we face issues in future, we can add a mutex
+	es, esErr := r.getCRD(ctx, req.NamespacedName)
 	if esErr != nil {
 		if errors.IsNotFound(esErr) {
-			r.Logger.Info("ElastiService not found", zap.String("name", req.Name))
+			r.Logger.Info("ElastiService not found", zap.String("es", req.String()))
 			return res, nil
 		}
-		r.Logger.Error("Failed to get ElastiService in Reconcile", zap.Error(esErr))
+		r.Logger.Error("Failed to get ElastiService in Reconcile", zap.String("es", req.String()), zap.Error(esErr))
 		return res, esErr
 	}
-
-	ServiceDirectory.AddService(es.Spec.Service, &CRDDetails{
+	// We add the CRD details to service directory, so when elasti server received a request,
+	// we can find the right resource to scale up
+	crdDirectory.CRDDirectory.AddCRD(es.Spec.Service, &crdDirectory.CRDDetails{
 		CRDName:        es.Name,
 		DeploymentName: es.Spec.DeploymentName,
 	})
 
-	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
-		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
-			if err = r.finalizeElastiService(ctx, es); err != nil {
-				r.Logger.Error("Failed to server mode", zap.Error(err))
-				return res, err
-			}
-			controllerutil.RemoveFinalizer(es, v1alpha1.ElastiServiceFinalizer)
-			if err := r.Update(ctx, es); err != nil {
-				return res, err
-			}
-		}
-		return res, nil
-	}
-	if !controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
-		controllerutil.AddFinalizer(es, v1alpha1.ElastiServiceFinalizer)
-		if err = r.Update(ctx, es); err != nil {
-			r.Logger.Error("Failed to add finalizer", zap.Error(err))
-			return res, err
-		} else {
-			r.Logger.Info("Finalizer added")
-		}
+	// We check if the CRD is being deleted, and if it is, we clean up the resources
+	// We also check if the CRD has finalizer, and if not, we add the finalizer
+	if err := r.checkFinalizerfinalizeCRD(ctx, es, req); err != nil {
+		r.Logger.Error("Failed to finalize CRD", zap.String("es", req.String()), zap.Error(err))
+		return res, err
 	}
 
-	// These steps happen once once, when the ElastiService is created.
-	watcherStartLock.Do(func() {
-		go r.Watcher.AddDeploymentWatch(es.Spec.DeploymentName, req.Namespace, cache.ResourceEventHandlerFuncs{
-			UpdateFunc: func(old, new interface{}) {
-				newDeployment := new.(*appsv1.Deployment)
-				condition := newDeployment.Status.Conditions
-				if newDeployment.Status.Replicas == 0 {
-					r.Logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", es.Spec.DeploymentName))
-					r.runReconcile(context.Background(), req, ProxyMode)
-				} else if newDeployment.Status.Replicas > 0 && condition[1].Status == "True" {
-					r.Logger.Debug("Deployment has replicas", zap.String("deployment_name", es.Spec.DeploymentName))
-					r.runReconcile(context.Background(), req, ServeMode)
-				}
-			},
-		})
-
-		// Watch for changes in activator deployment, we must update the service endpointslice to resolver
-		go r.Watcher.AddDeploymentWatch(resolverDeploymentName, resolverNamespace, cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
-				r.handleResolverChanges(ctx, obj, es.Spec.Service, req.Namespace)
-			},
-			UpdateFunc: func(old, new interface{}) {
-				r.handleResolverChanges(ctx, new, es.Spec.Service, req.Namespace)
-			},
-			DeleteFunc: func(obj interface{}) {
-				// TODO: Handle deletion of resolver deployment
-				r.Logger.Debug("Resolver deployment deleted", zap.String("deployment_name", resolverDeploymentName))
-			},
-		})
+	// We need to start the informer only once per CRD. This is to avoid multiple informers for the same CRD
+	// We reset mutex if crd is deleted, so it can be used again if the same CRD is reapplied
+	r.getMutexForInformerStart(req.NamespacedName.String()).Do(func() {
+		// Watch for changes in target deployment
+		go r.Informer.AddDeploymentWatch(es.Name, es.Spec.DeploymentName,
+			req.Namespace, r.getTargetDeploymentChangeHandler(ctx, es, req))
+		// Watch for changes in activator deployment
+		go r.Informer.AddDeploymentWatch(es.Name, resolverDeploymentName,
+			resolverNamespace, r.getResolverChangeHandler(ctx, es, req))
 	})
-
+	// Run the reconcile function for any change in CRD
 	return r.runReconcile(ctx, req, NullMode)
 }
 
-func (r *ElastiServiceReconciler) handleResolverChanges(ctx context.Context, obj interface{}, serviceName, namespace string) {
-	resolverDeployment := obj.(*appsv1.Deployment)
-	if resolverDeployment.Name == resolverDeploymentName {
-		targetNamespacedName := types.NamespacedName{
-			Name:      serviceName,
-			Namespace: namespace,
-		}
-		targetSVC := &v1.Service{}
-		if err := r.Get(ctx, targetNamespacedName, targetSVC); err != nil {
-			r.Logger.Error("Failed to get target service", zap.Error(err))
-			return
-		}
-		if err := r.CreateOrUpdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
-			r.Logger.Error("Failed to create or update endpointslice to resolver", zap.Error(err))
-			return
-		}
-	}
-}
-
-func (r *ElastiServiceReconciler) runReconcile(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error) {
-	r.Logger.Debug("- In RunReconcile", zap.String("key", req.NamespacedName.String()))
-	// Only 1 reconcile should run at a time for a given ElastiService. This prevents conflicts when updating different objects.
-	mutex := getMutexForRunReconcile(req.NamespacedName.String())
-	mutex.Lock()
-	defer r.Logger.Debug("- Out of RunReconcile", zap.String("key", req.NamespacedName.String()))
-	defer mutex.Unlock()
-
-	es, err := r.GetES(ctx, req.NamespacedName)
-	if mode != ProxyMode && mode != ServeMode {
-		nam := types.NamespacedName{
-			Name:      es.Spec.DeploymentName,
-			Namespace: req.Namespace,
-		}
-		mode, err = r.GetModeFromDeployment(ctx, nam)
-		if err != nil {
-			r.Logger.Error("Failed to get mode from deployment", zap.Error(err))
-			return res, err
-		}
-	}
-	defer r.UpdateESStatus(ctx, req.NamespacedName, mode)
-
-	switch mode {
-	case ServeMode:
-		if err = r.enableServeMode(ctx, es); err != nil {
-			r.Logger.Error("Failed to enable serve mode", zap.Error(err))
-			return res, err
-		}
-		r.Logger.Info("Serve mode enabled")
-	case ProxyMode:
-		if err = r.enableProxyMode(ctx, es); err != nil {
-			r.Logger.Error("Failed to enable proxy mode", zap.Error(err))
-			return res, err
-		}
-		r.Logger.Debug("Proxy mode enabled")
-	}
-
-	return res, nil
-}
-
-func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, es *v1alpha1.ElastiService) error {
-	targetNamespacedName := types.NamespacedName{
-		Name:      es.Spec.Service,
-		Namespace: es.Namespace,
-	}
-	targetSVC := &v1.Service{}
-	if err := r.Get(ctx, targetNamespacedName, targetSVC); err != nil {
-		r.Logger.Error("Failed to get target service", zap.Error(err))
-		return err
-	}
-	_, err := r.CheckAndCreatePrivateService(ctx, targetSVC, es)
-	if err != nil {
-		return err
-	}
-	if err = r.CreateOrUpdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, es *v1alpha1.ElastiService) error {
-	targetNamespacedName := types.NamespacedName{
-		Name:      es.Spec.Service,
-		Namespace: es.Namespace,
-	}
-	if err := r.DeleteEndpointsliceToResolver(ctx, targetNamespacedName); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (r *ElastiServiceReconciler) finalizeElastiService(ctx context.Context, es *v1alpha1.ElastiService) error {
-	r.Logger.Info("ElastiService is being deleted", zap.String("name", es.Name), zap.Any("deletionTimestamp", es.ObjectMeta.DeletionTimestamp))
-	// Stop target service informer
-	go r.Watcher.StopInformer(es.Spec.DeploymentName, es.Namespace)
-	// Stop resolver informer
-	go r.Watcher.StopInformer(resolverDeploymentName, resolverNamespace)
-	targetNamespacedName := types.NamespacedName{
-		Name:      es.Spec.Service,
-		Namespace: es.Namespace,
-	}
-	if err := r.DeleteEndpointsliceToResolver(ctx, targetNamespacedName); err != nil {
-		return err
-	}
-	if err := r.DeletePrivateService(ctx, targetNamespacedName); err != nil {
-		return err
-	}
-	r.Logger.Info("Serve mode enabled")
-	return nil
-}
-
 func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	go r.StartElastiServer()
-
-	r.Watcher = NewInformerManager(r.Logger, mgr.GetConfig())
-	r.Watcher.Start()
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.ElastiService{}).
 		Complete(r)
