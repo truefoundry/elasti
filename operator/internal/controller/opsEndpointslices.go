@@ -63,9 +63,9 @@ func (r *ElastiServiceReconciler) createOrUpdateEndpointsliceToResolver(ctx cont
 
 	// TODO: Suggestion is to give it a random name in end, to avoid any conflicts, which is rare, but possible.
 	// In case of random name, we need to store the name in CRD.
-	newEndpointsliceName := r.getEndpointSliceName(service.Name)
+	newEndpointsliceToResolverName := r.getEndpointSliceName(service.Name)
 	EndpointsliceNamespacedName := types.NamespacedName{
-		Name:      newEndpointsliceName,
+		Name:      newEndpointsliceToResolverName,
 		Namespace: service.Namespace,
 	}
 
@@ -87,7 +87,7 @@ func (r *ElastiServiceReconciler) createOrUpdateEndpointsliceToResolver(ctx cont
 
 	newEndpointSlice := &networkingv1.EndpointSlice{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      newEndpointsliceName,
+			Name:      newEndpointsliceToResolverName,
 			Namespace: service.Namespace,
 			Labels: map[string]string{
 				"kubernetes.io/service-name": service.Name,
@@ -102,6 +102,9 @@ func (r *ElastiServiceReconciler) createOrUpdateEndpointsliceToResolver(ctx cont
 			},
 		},
 	}
+
+	sliceToResolver.DeepCopy()
+
 	for _, ip := range resolverPodIPs {
 		newEndpointSlice.Endpoints = append(newEndpointSlice.Endpoints, networkingv1.Endpoint{
 			Addresses: []string{ip},

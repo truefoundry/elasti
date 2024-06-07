@@ -36,7 +36,7 @@ func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamesp
 	r.Logger.Info("CRD Status updated successfully")
 }
 
-func (r *ElastiServiceReconciler) checkFinalizerfinalizeCRD(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
+func (r *ElastiServiceReconciler) checkFinalizerCRD(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
 	// If the ElastiService is being deleted, we need to clean up the resources
 	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
@@ -67,7 +67,7 @@ func (r *ElastiServiceReconciler) checkFinalizerfinalizeCRD(ctx context.Context,
 
 func (r *ElastiServiceReconciler) finalizeCRD(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
 	r.Logger.Info("ElastiService is being deleted", zap.String("name", es.Name), zap.Any("deletionTimestamp", es.ObjectMeta.DeletionTimestamp))
-	// Reset the informer start mutex, so if the ElastiService is recreated, we will need to reset the informe
+	// Reset the informer start mutex, so if the ElastiService is recreated, we will need to reset the informer
 	r.resetMutexForInformer(req.NamespacedName.String())
 	// Stop target service informer
 	go r.Informer.StopInformer(es.Name, es.Spec.DeploymentName, es.Namespace)

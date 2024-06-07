@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"truefoundry.io/elasti/api/v1alpha1"
@@ -44,28 +43,39 @@ func (r *ElastiServiceReconciler) checkAndCreatePrivateService(ctx context.Conte
 		return PVTName, nil
 	}
 
-	ports := []v1.ServicePort{}
-
-	for _, port := range publicSVC.Spec.Ports {
-		ports = append(ports, v1.ServicePort{
-			Name:       port.Name,
-			Protocol:   port.Protocol,
-			Port:       port.Port,
-			TargetPort: port.TargetPort,
-		})
+	privateSVC = publicSVC.DeepCopy()
+	r.Logger.Info("Creating private service", zap.String("private-service", privateServiceNamespacedName.String()), zap.Any("private-service", privateSVC))
+	privateSVC.SetName(PVTName)
+	// We must remove the cluster IP and node port, as it already exists for the public service
+	privateSVC.Spec.ClusterIP = ""
+	privateSVC.Spec.ClusterIPs = nil
+	for port := range privateSVC.Spec.Ports {
+		privateSVC.Spec.Ports[port].NodePort = 0
 	}
+	// We also need to remove the resourceVersion
+	privateSVC.ResourceVersion = ""
 
-	privateSVC = &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      PVTName,
-			Namespace: publicSVC.Namespace,
-		},
-		Spec: v1.ServiceSpec{
-			Selector: publicSVC.Spec.Selector,
-			Ports:    ports,
-			Type:     v1.ServiceTypeClusterIP,
-		},
-	}
+	// var ports []v1.ServicePort
+	//for _, port := range publicSVC.Spec.Ports {
+	//	ports = append(ports, v1.ServicePort{
+	//		Name:       port.Name,
+	//		Protocol:   port.Protocol,
+	//		Port:       port.Port,
+	//		TargetPort: port.TargetPort,
+	//	})
+	//}
+	//
+	//privateSVC = &v1.Service{
+	//	ObjectMeta: metav1.ObjectMeta{
+	//		Name:      PVTName,
+	//		Namespace: publicSVC.Namespace,
+	//	},
+	//	Spec: v1.ServiceSpec{
+	//		Selector: publicSVC.Spec.Selector,
+	//		Ports:    ports,
+	//		Type:     v1.ServiceTypeClusterIP,
+	//	},
+	//}
 
 	if err := controllerutil.SetControllerReference(es, privateSVC, r.Scheme); err != nil {
 		return PVTName, err

@@ -77,7 +77,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// We check if the CRD is being deleted, and if it is, we clean up the resources
 	// We also check if the CRD has finalizer, and if not, we add the finalizer
-	if err := r.checkFinalizerfinalizeCRD(ctx, es, req); err != nil {
+	if err := r.checkFinalizerCRD(ctx, es, req); err != nil {
 		r.Logger.Error("Failed to finalize CRD", zap.String("es", req.String()), zap.Error(err))
 		return res, err
 	}

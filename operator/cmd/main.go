@@ -138,8 +138,8 @@ func main() {
 	Informer := informer.NewInformerManager(zapLogger, mgr.GetConfig())
 	Informer.Start()
 	// Start the elasti server
-	elastiServer := elastiServer.NewServer(zapLogger, mgr.GetConfig())
-	elastiServer.Start()
+	eServer := elastiServer.NewServer(zapLogger, mgr.GetConfig())
+	go eServer.Start()
 
 	// Setup the ElastiService controller
 	if err = (&controller.ElastiServiceReconciler{

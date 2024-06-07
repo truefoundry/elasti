@@ -30,10 +30,18 @@ func (r *ElastiServiceReconciler) getTargetDeploymentChangeHandler(_ context.Con
 			condition := newDeployment.Status.Conditions
 			if newDeployment.Status.Replicas == 0 {
 				r.Logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
-				r.runReconcile(context.Background(), req, ProxyMode)
+				_, err := r.runReconcile(context.Background(), req, ProxyMode)
+				if err != nil {
+					r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
+					return
+				}
 			} else if newDeployment.Status.Replicas > 0 && condition[1].Status == "True" {
 				r.Logger.Debug("Deployment has replicas", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
-				r.runReconcile(context.Background(), req, ServeMode)
+				_, err := r.runReconcile(context.Background(), req, ServeMode)
+				if err != nil {
+					r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
+					return
+				}
 			}
 		},
 	}
@@ -54,12 +62,10 @@ func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, 
 			// 1. We can move to the serve mode
 			// 2. We can add a finalizer to the deployent to avoid deletion
 			//
-			// In case the resolver deployment is not deleted, but just scaled to 0
-			// - We can bring it back to 1
-			// Though, this can be avoided if the owner is the operator.
 			//
 			// Another situation is, if the resolver has some issues, and is restarting.
 			// In that case, we can wait for the resolver to come back up, and in the meanwhile, we can move to the serve mode
+			// Or don't do anything
 			r.Logger.Debug("Resolver deployment deleted", zap.String("deployment_name", resolverDeploymentName), zap.String("es", req.String()))
 		},
 	}

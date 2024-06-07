@@ -24,6 +24,7 @@ type Manager struct {
 	informers           sync.Map
 	resyncPeriod        time.Duration
 	healthCheckDuration time.Duration
+	healthCheckStopChan chan struct{}
 }
 
 type Info struct {
@@ -40,18 +41,33 @@ func NewInformerManager(logger *zap.Logger, kConfig *rest.Config) *Manager {
 	return &Manager{
 		client: clientSet,
 		logger: logger.Named("InformerManager"),
-		// Resync period is the time after which the informer will resync the resources
-		// When set to 0, it is imidiate.
+		// ResyncPeriod is the pro-actice resync we do, even when no events are received by the informer.
 		resyncPeriod:        0,
 		healthCheckDuration: 5 * time.Second,
+		healthCheckStopChan: make(chan struct{}),
 	}
 }
 
 // Start is to initiate a health check on all the running informers
-// It uses HasSynced if a informer is not synced, if not, it restars it
+// It uses HasSynced if a informer is not synced, if not, it restarts it
 func (m *Manager) Start() {
 	m.logger.Info("Starting InformerManager")
-	go wait.Until(m.monitorInformers, m.healthCheckDuration, make(<-chan struct{}))
+	go wait.Until(m.monitorInformers, m.healthCheckDuration, m.healthCheckStopChan)
+}
+
+func (m *Manager) Stop() {
+	m.logger.Info("Stopping InformerManager")
+	// Loop through all the informers and stop them
+	m.informers.Range(func(key, value interface{}) bool {
+		_, ok := value.(Info)
+		if ok {
+			m.StopInformer(parseInformerKey(key.(string)))
+		}
+		return true
+	})
+	// Stop the health watch
+	close(m.healthCheckStopChan)
+	m.logger.Info("InformerManager stopped")
 }
 
 func (m *Manager) monitorInformers() {

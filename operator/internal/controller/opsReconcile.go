@@ -25,6 +25,7 @@ func (r *ElastiServiceReconciler) runReconcile(ctx context.Context, req ctrl.Req
 	defer mutex.Unlock()
 
 	es, err := r.getCRD(ctx, req.NamespacedName)
+
 	if mode != ProxyMode && mode != ServeMode {
 		nam := types.NamespacedName{
 			Name:      es.Spec.DeploymentName,
