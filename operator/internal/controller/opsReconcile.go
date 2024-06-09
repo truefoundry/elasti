@@ -23,22 +23,8 @@ func (r *ElastiServiceReconciler) runReconcile(ctx context.Context, req ctrl.Req
 	mutex.Lock()
 	defer r.Logger.Debug("- Out of RunReconcile", zap.String("es", req.NamespacedName.String()))
 	defer mutex.Unlock()
-
 	es, err := r.getCRD(ctx, req.NamespacedName)
-
-	if mode != ProxyMode && mode != ServeMode {
-		nam := types.NamespacedName{
-			Name:      es.Spec.DeploymentName,
-			Namespace: req.Namespace,
-		}
-		mode, err = r.getModeFromDeployment(ctx, nam)
-		if err != nil {
-			r.Logger.Error("Failed to get mode from deployment", zap.String("es", req.NamespacedName.String()), zap.Error(err))
-			return res, err
-		}
-	}
 	defer r.updateCRDStatus(ctx, req.NamespacedName, mode)
-
 	switch mode {
 	case ServeMode:
 		if err = r.enableServeMode(ctx, es); err != nil {
@@ -52,8 +38,9 @@ func (r *ElastiServiceReconciler) runReconcile(ctx context.Context, req ctrl.Req
 			return res, err
 		}
 		r.Logger.Debug("Proxy mode enabled", zap.String("es", req.NamespacedName.String()))
+	default:
+		r.Logger.Error("Invalid mode", zap.String("mode", mode), zap.String("es", req.NamespacedName.String()))
 	}
-
 	return res, nil
 }
 

@@ -20,15 +20,15 @@ import (
 type HostManager struct {
 	logger                  *zap.Logger
 	hosts                   sync.Map
-	trafficReenableDuration time.Duration
+	trafficReEnableDuration time.Duration
 }
 
 // NewHostManager returns a new HostManager
-func NewHostManager(logger *zap.Logger, trafficReenableDuration time.Duration) *HostManager {
+func NewHostManager(logger *zap.Logger, trafficReEnableDuration time.Duration) *HostManager {
 	return &HostManager{
 		logger:                  logger.With(zap.String("component", "hostManager")),
 		hosts:                   sync.Map{},
-		trafficReenableDuration: trafficReenableDuration,
+		trafficReEnableDuration: trafficReEnableDuration,
 	}
 }
 
@@ -52,14 +52,13 @@ func (hm *HostManager) GetHost(req *http.Request) (*messages.Host, error) {
 		sourceHost = hm.addHTTPIfNeeded(sourceHost)
 		targetHost = hm.replaceServiceName(sourceHost, targetService)
 		targetHost = hm.addHTTPIfNeeded(targetHost)
-		trafficAllowed := true
 		host = &messages.Host{
 			Namespace:      namespace,
 			SourceService:  sourceService,
 			TargetService:  targetService,
 			SourceHost:     sourceHost,
 			TargetHost:     targetHost,
-			TrafficAllowed: trafficAllowed,
+			TrafficAllowed: true,
 		}
 		hm.hosts.Store(sourceService, host)
 	}
@@ -73,8 +72,8 @@ func (hm *HostManager) DisableTrafficForHost(hostName string) {
 		hm.hosts.Store(hostName, host)
 		hm.logger.Debug("Disabled traffic for host",
 			zap.Any("hostName", hostName),
-			zap.Any("trafficReenableDuration", hm.trafficReenableDuration))
-		go time.AfterFunc(hm.trafficReenableDuration, func() {
+			zap.Any("trafficReEnableDuration", hm.trafficReEnableDuration))
+		go time.AfterFunc(hm.trafficReEnableDuration, func() {
 			hm.enableTrafficForHost(hostName)
 		})
 	}

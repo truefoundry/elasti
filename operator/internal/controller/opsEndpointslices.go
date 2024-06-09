@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 
+	"github.com/truefoundry/elasti/pkg/utils"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/discovery/v1"
@@ -12,10 +13,6 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-func (r *ElastiServiceReconciler) getEndpointSliceName(serviceName string) string {
-	return serviceName + endpointSlicePostfix
-}
 
 func (r *ElastiServiceReconciler) getIPsForResolver(ctx context.Context) ([]string, error) {
 	resolverSlices := &networkingv1.EndpointSliceList{}
@@ -39,7 +36,7 @@ func (r *ElastiServiceReconciler) getIPsForResolver(ctx context.Context) ([]stri
 
 func (r *ElastiServiceReconciler) deleteEndpointsliceToResolver(ctx context.Context, serviceNamespacedName types.NamespacedName) error {
 	endpointSlice := &networkingv1.EndpointSlice{}
-	serviceNamespacedName.Name = r.getEndpointSliceName(serviceNamespacedName.Name)
+	serviceNamespacedName.Name = utils.GetEndpointSliceToResolverName(serviceNamespacedName.Name)
 	if err := r.Get(ctx, serviceNamespacedName, endpointSlice); err != nil {
 		if errors.IsNotFound(err) {
 			r.Logger.Info("EndpointSlice already deleted or not found", zap.String("service", serviceNamespacedName.String()))
@@ -63,7 +60,7 @@ func (r *ElastiServiceReconciler) createOrUpdateEndpointsliceToResolver(ctx cont
 
 	// TODO: Suggestion is to give it a random name in end, to avoid any conflicts, which is rare, but possible.
 	// In case of random name, we need to store the name in CRD.
-	newEndpointsliceToResolverName := r.getEndpointSliceName(service.Name)
+	newEndpointsliceToResolverName := utils.GetEndpointSliceToResolverName(service.Name)
 	EndpointsliceNamespacedName := types.NamespacedName{
 		Name:      newEndpointsliceToResolverName,
 		Namespace: service.Namespace,
@@ -103,7 +100,7 @@ func (r *ElastiServiceReconciler) createOrUpdateEndpointsliceToResolver(ctx cont
 		},
 	}
 
-	sliceToResolver.DeepCopy()
+	//sliceToResolver.DeepCopy()
 
 	for _, ip := range resolverPodIPs {
 		newEndpointSlice.Endpoints = append(newEndpointSlice.Endpoints, networkingv1.Endpoint{
@@ -118,6 +115,7 @@ func (r *ElastiServiceReconciler) createOrUpdateEndpointsliceToResolver(ctx cont
 		}
 		r.Logger.Info("EndpointSlice updated successfully", zap.String("endpointslice", EndpointsliceNamespacedName.String()))
 	} else {
+		// TODO: Make sure the private service is owned by the ElastiService
 		if err := r.Create(ctx, newEndpointSlice); err != nil {
 			r.Logger.Error("failed to create sliceToResolver", zap.String("endpointslice", EndpointsliceNamespacedName.String()), zap.Error(err))
 			return err

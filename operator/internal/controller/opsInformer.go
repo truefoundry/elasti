@@ -45,7 +45,6 @@ func (r *ElastiServiceReconciler) getTargetDeploymentChangeHandler(_ context.Con
 			}
 		},
 	}
-
 }
 
 func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) cache.ResourceEventHandlerFuncs {

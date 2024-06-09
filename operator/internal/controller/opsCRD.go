@@ -37,21 +37,6 @@ func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamesp
 }
 
 func (r *ElastiServiceReconciler) checkFinalizerCRD(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
-	// If the ElastiService is being deleted, we need to clean up the resources
-	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
-		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
-			// If CRD contains finalizer, we call the finaizer function and remove the finalizer post that
-			if err := r.finalizeCRD(ctx, es, req); err != nil {
-				r.Logger.Error("Failed to enable serve mode", zap.String("es", req.String()), zap.Error(err))
-				return err
-			}
-			controllerutil.RemoveFinalizer(es, v1alpha1.ElastiServiceFinalizer)
-			if err := r.Update(ctx, es); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
 	// If the CRD does not contain the finalizer, we add the finalizer
 	if !controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
 		controllerutil.AddFinalizer(es, v1alpha1.ElastiServiceFinalizer)

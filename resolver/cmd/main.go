@@ -2,17 +2,18 @@ package main
 
 import (
 	"context"
+	"github.com/kelseyhightower/envconfig"
+	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/logger"
+	"go.uber.org/zap"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"log"
 	"net/http"
 	"time"
 	"truefoundry/resolver/internal/handler"
 	"truefoundry/resolver/internal/hostManager"
 	"truefoundry/resolver/internal/operator"
-	"truefoundry/resolver/internal/utils"
-
-	"github.com/kelseyhightower/envconfig"
-	"github.com/truefoundry/elasti/pkg/logger"
-	"go.uber.org/zap"
 )
 
 type config struct {
@@ -22,7 +23,7 @@ type config struct {
 
 const (
 	port                    = ":8012"
-	trafficReenableDuration = 30 * time.Second
+	trafficReEnableDuration = 30 * time.Second
 	operatorRetryDuration   = 30 * time.Second
 )
 
@@ -32,22 +33,37 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to get logger: ", err)
 	}
+
+	// Read env values
 	var env config
 	if err := envconfig.Process("", &env); err != nil {
 		log.Fatal("Failed to process env: ", err)
 	}
 	logger.Info("config", zap.Int("MaxIdleProxyConns", env.MaxIdleProxyConns), zap.Int("MaxIdleProxyConnsPerHost", env.MaxIdleProxyConnsPerHost))
+
+	// Get kubernetes client
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		logger.Fatal("Error fetching cluster config", zap.Error(err))
+	}
+	kClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
+	}
+
+	k8sUtil := k8sHelper.NewOps(logger, kClient)
 	operatorRPC := operator.NewOperatorClient(logger, operatorRetryDuration)
-	hostManager := hostManager.NewHostManager(logger, trafficReenableDuration)
-	k8sUtil := utils.NewK8sUtil(logger)
-	handler := handler.NewHandler(ctx, logger, &handler.HandlerConfig{
+	reqHostManager := hostManager.NewHostManager(logger, trafficReEnableDuration)
+	requestHandler := handler.NewHandler(ctx, logger, &handler.HandlerConfig{
 		MaxIdleProxyConns:        env.MaxIdleProxyConns,
 		MaxIdleProxyConnsPerHost: env.MaxIdleProxyConnsPerHost,
 		OperatorRPC:              operatorRPC,
-		HostManager:              hostManager,
+		HostManager:              reqHostManager,
 		K8sUtil:                  k8sUtil,
 	})
-	http.HandleFunc("/", handler.ServeHTTP)
+
+	// Handle all the incoming requests
+	http.HandleFunc("/", requestHandler.ServeHTTP)
 	logger.Info("Reverse Proxy Server starting at ", zap.String("port", port))
 	if err := http.ListenAndServe(port, nil); err != nil {
 		logger.Fatal("ListenAndServe Failed: ", zap.Error(err))

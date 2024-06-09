@@ -6,11 +6,12 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/truefoundry/elasti/pkg/messages"
-	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/messages"
+	"go.uber.org/zap"
 	"truefoundry.io/elasti/internal/crdDirectory"
 )
 
@@ -19,37 +20,42 @@ type (
 		Message string `json:"message"`
 	}
 
+	// Server is used to receive communication from Resolver, or any future components
+	// It is used by components about certain events, like when resolver receive the request
+	// for a service, that service is scaled up if it's at 0 replicas
 	Server struct {
-		logger  *zap.Logger
-		kClient *kubernetes.Clientset
+		logger      *zap.Logger
+		k8sHelper   *k8sHelper.Ops
+		minReplicas int32
 	}
 )
 
-const (
-	Port = ":8013"
-)
-
-func NewServer(logger *zap.Logger, kConfig *rest.Config) *Server {
-	kClient, err := kubernetes.NewForConfig(kConfig)
+func NewServer(logger *zap.Logger, config *rest.Config) *Server {
+	// Get kubernetes client
+	kClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
 	}
+	// Get Ops client
+	k8sUtil := k8sHelper.NewOps(logger, kClient)
 	return &Server{
-		logger:  logger.Named("elastiServer"),
-		kClient: kClient,
+		logger:      logger.Named("elastiServer"),
+		k8sHelper:   k8sUtil,
+		minReplicas: 1,
 	}
 }
 
-func (s *Server) Start() {
+// Start starts the ElastiServer and declares the endpoint and handlers for it
+func (s *Server) Start(port string) {
 	defer func() {
 		if rec := recover(); s != nil {
 			s.logger.Error("ElastiServer is recovering from panic", zap.Any("error", rec))
-			go s.Start()
+			go s.Start(port)
 		}
 	}()
 	http.HandleFunc("/informer/incoming-request", s.resolverReqHandler)
-	s.logger.Info("Starting ElastiServer", zap.String("port", Port))
-	if err := http.ListenAndServe(Port, nil); err != nil {
+	s.logger.Info("Starting ElastiServer", zap.String("port", port))
+	if err := http.ListenAndServe(port, nil); err != nil {
 		s.logger.Fatal("Failed to start StartElastiServer", zap.Error(err))
 	}
 }
@@ -92,15 +98,7 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 		s.logger.Error("Failed to write response", zap.Error(err))
 		return
 	}
-	deployment, found := crdDirectory.CRDDirectory.GetCRD(body.Svc)
-	if !found {
-		s.logger.Error("Failed to get CRD details from directory", zap.Error(err))
-	}
-	namespace := types.NamespacedName{
-		Name:      deployment.DeploymentName,
-		Namespace: body.Namespace,
-	}
-	err = s.compareAndScaleDeployment(ctx, namespace)
+	err = s.scaleDeploymentForService(ctx, body.Svc, body.Namespace)
 	if err != nil {
 		s.logger.Error("Failed to compare and scale deployment", zap.Error(err))
 		return
@@ -108,28 +106,15 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 	s.logger.Info("Received fulfilled from Resolver", zap.Any("body", body))
 }
 
-func (s *Server) compareAndScaleDeployment(_ context.Context, _ types.NamespacedName) error {
-	// deployment := &appsv1.Deployment{}
-	// if err := s.Get(ctx, target, deployment); err != nil {
-	// 	if errors.IsNotFound(err) {
-	// 		s.logger.Info("Deployment not found", zap.Any("Deployment", target))
-	// 		return nil
-	// 	}
-	// 	s.logger.Error("Failed to get Deployment", zap.Error(err))
-	// 	return err
-	// }
-	// s.logger.Debug("Deployment found", zap.Any("Deployment", target))
-
-	// // TODOs: This scaling might fail if some other process updates the deployment object
-	// if *deployment.Spec.Replicas == 0 {
-	// 	*deployment.Spec.Replicas = 1
-	// 	if err := s.Update(ctx, deployment); err != nil {
-	// 		s.logger.Error("Failed to scale up the Deployment", zap.Error(err))
-	// 		return err
-	// 	}
-	// 	s.logger.Info("Deployment is scaled up", zap.Any("Deployment", target))
-	// } else {
-	// 	s.logger.Info("Deployment is already scaled up, nothing required from our end", zap.Any("Deployment", target))
-	// }
+func (s *Server) scaleDeploymentForService(_ context.Context, serviceName, namespace string) error {
+	crd, found := crdDirectory.CRDDirectory.GetCRD(serviceName)
+	if !found {
+		s.logger.Error("Failed to get CRD details from directory")
+	}
+	if err := s.k8sHelper.ScaleDeploymentWhenAtZero(namespace, crd.DeploymentName, s.minReplicas); err != nil {
+		s.logger.Error("Failed to scale deployment", zap.Error(err))
+		return err
+	}
+	s.logger.Info("Deployment is scaled up", zap.Any("Deployment", crd.DeploymentName))
 	return nil
 }

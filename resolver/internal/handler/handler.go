@@ -3,6 +3,9 @@ package handler
 import (
 	"context"
 	"errors"
+	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/messages"
+	"go.uber.org/zap"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -11,10 +14,6 @@ import (
 	"sync"
 	"time"
 	"truefoundry/resolver/internal/throttler"
-	"truefoundry/resolver/internal/utils"
-
-	"github.com/truefoundry/elasti/pkg/messages"
-	"go.uber.org/zap"
 )
 
 type (
@@ -35,10 +34,10 @@ type (
 		MaxIdleProxyConnsPerHost int
 		OperatorRPC              Operator
 		HostManager              HostManager
-		K8sUtil                  *utils.K8sHelper
+		K8sUtil                  *k8sHelper.Ops
 	}
 
-	// OperatorRPC is to communicate with the operator
+	// Operator is to communicate with the operator
 	Operator interface {
 		SendIncomingRequestInfo(ns, svc string)
 	}
@@ -53,9 +52,9 @@ type (
 // NewHandler returns a new Handler
 func NewHandler(ctx context.Context, logger *zap.Logger, hc *HandlerConfig) *Handler {
 	transport := throttler.NewProxyAutoTransport(logger, hc.MaxIdleProxyConns, hc.MaxIdleProxyConnsPerHost)
-	throttler := throttler.NewThrottler(ctx, logger, hc.K8sUtil)
+	newThrottler := throttler.NewThrottler(ctx, logger, hc.K8sUtil)
 	return &Handler{
-		throttler:   throttler,
+		throttler:   newThrottler,
 		logger:      logger.With(zap.String("component", "handler")),
 		transport:   transport,
 		bufferPool:  NewBufferPool(),
@@ -85,7 +84,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Connection", "close")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte(`{"error": "traffic is switched"}`))
+		_, err := w.Write([]byte(`{"error": "traffic is switched"}`))
+		if err != nil {
+			h.logger.Error("Error writing response", zap.Error(err))
+			return
+		}
 		return
 	}
 	go h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)

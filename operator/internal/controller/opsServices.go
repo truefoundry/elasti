@@ -44,7 +44,6 @@ func (r *ElastiServiceReconciler) checkAndCreatePrivateService(ctx context.Conte
 	}
 
 	privateSVC = publicSVC.DeepCopy()
-	r.Logger.Info("Creating private service", zap.String("private-service", privateServiceNamespacedName.String()), zap.Any("private-service", privateSVC))
 	privateSVC.SetName(PVTName)
 	// We must remove the cluster IP and node port, as it already exists for the public service
 	privateSVC.Spec.ClusterIP = ""
@@ -55,28 +54,7 @@ func (r *ElastiServiceReconciler) checkAndCreatePrivateService(ctx context.Conte
 	// We also need to remove the resourceVersion
 	privateSVC.ResourceVersion = ""
 
-	// var ports []v1.ServicePort
-	//for _, port := range publicSVC.Spec.Ports {
-	//	ports = append(ports, v1.ServicePort{
-	//		Name:       port.Name,
-	//		Protocol:   port.Protocol,
-	//		Port:       port.Port,
-	//		TargetPort: port.TargetPort,
-	//	})
-	//}
-	//
-	//privateSVC = &v1.Service{
-	//	ObjectMeta: metav1.ObjectMeta{
-	//		Name:      PVTName,
-	//		Namespace: publicSVC.Namespace,
-	//	},
-	//	Spec: v1.ServiceSpec{
-	//		Selector: publicSVC.Spec.Selector,
-	//		Ports:    ports,
-	//		Type:     v1.ServiceTypeClusterIP,
-	//	},
-	//}
-
+	// Make sure the private service is owned by the ElastiService
 	if err := controllerutil.SetControllerReference(es, privateSVC, r.Scheme); err != nil {
 		return PVTName, err
 	}

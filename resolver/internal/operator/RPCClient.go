@@ -3,6 +3,7 @@ package operator
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"time"
 
@@ -12,13 +13,13 @@ import (
 	"sync"
 )
 
-// OperatorClient is to communicate with the operator
-type OperatorClient struct {
+// Client is to communicate with the operator
+type Client struct {
 	logger *zap.Logger
 	// retryDuration is the duration to wait before retrying the operator
 	retryDuration time.Duration
-	// rpcs is to keep track of the locks for different services
-	rpcs sync.Map
+	// rpcMap is to keep track of the locks for different services
+	rpcMap sync.Map
 	// operatorURL is the URL of the operator
 	operatorURL string
 	// incomingRequestEndpoint is the endpoint to send information about the incoming request
@@ -28,8 +29,8 @@ type OperatorClient struct {
 }
 
 // NewOperatorClient returns a new OperatorClient
-func NewOperatorClient(logger *zap.Logger, retryDuration time.Duration) *OperatorClient {
-	return &OperatorClient{
+func NewOperatorClient(logger *zap.Logger, retryDuration time.Duration) *Client {
+	return &Client{
 		logger:                  logger.With(zap.String("component", "operatorRPC")),
 		retryDuration:           retryDuration,
 		operatorURL:             "http://elasti-operator-controller-service.elasti-operator-system.svc.cluster.local:8013",
@@ -39,8 +40,8 @@ func NewOperatorClient(logger *zap.Logger, retryDuration time.Duration) *Operato
 }
 
 // SendIncomingRequestInfo send request details like service name to the operator
-func (o *OperatorClient) SendIncomingRequestInfo(ns, svc string) {
-	if _, ok := o.rpcs.Load(svc); ok {
+func (o *Client) SendIncomingRequestInfo(ns, svc string) {
+	if _, ok := o.rpcMap.Load(svc); ok {
 		o.logger.Debug("Operator already informed about incoming requests", zap.String("service", svc))
 		return
 	}
@@ -65,20 +66,25 @@ func (o *OperatorClient) SendIncomingRequestInfo(ns, svc string) {
 			o.logger.Error("Error sending request", zap.Error(err))
 			return
 		}
-		defer resp.Body.Close()
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				o.logger.Error("Error closing body", zap.Error(err))
+			}
+		}(resp.Body)
 		if resp.StatusCode != http.StatusOK {
 			o.logger.Error("Request failed with status code", zap.Int("status_code", resp.StatusCode))
 			return
 		}
 		o.logger.Info("Request sent to controller", zap.Int("statusCode", resp.StatusCode), zap.Any("body", resp.Body))
-		o.rpcs.Store(svc, true)
+		o.rpcMap.Store(svc, true)
 		go time.AfterFunc(o.retryDuration, o.getLockReleaseFunc(svc))
 	}
 }
 
 // getLockReleaseFunc returns a function to release the lock, taken by the operatorRPC to rate limit the requests
-func (o *OperatorClient) getLockReleaseFunc(svc string) func() {
+func (o *Client) getLockReleaseFunc(svc string) func() {
 	return func() {
-		o.rpcs.Delete(svc)
+		o.rpcMap.Delete(svc)
 	}
 }

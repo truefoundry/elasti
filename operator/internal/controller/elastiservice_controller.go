@@ -8,11 +8,15 @@ import (
 	"truefoundry.io/elasti/internal/informer"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	kRuntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"truefoundry.io/elasti/api/v1alpha1"
+
+	"runtime"
 
 	"go.uber.org/zap"
 )
@@ -21,7 +25,7 @@ type (
 	RunReconcileFunc        func(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error)
 	ElastiServiceReconciler struct {
 		client.Client
-		Scheme            *runtime.Scheme
+		Scheme            *kRuntime.Scheme
 		Logger            *zap.Logger
 		Informer          *informer.Manager
 		RunReconcileLocks sync.Map
@@ -34,13 +38,11 @@ const (
 	ProxyMode = "proxy"
 	NullMode  = ""
 
-	// These are resoler details, ideally in future we can move this to a configmap, or find a better way to serve this
+	// These are resolver details, ideally in future we can move this to a configmap, or find a better way to serve this
 	resolverNamespace      = "elasti"
 	resolverDeploymentName = "elasti-resolver"
 	resolverServiceName    = "resolver-service"
 	resolverPort           = 8012
-
-	endpointSlicePostfix = "-to-resolver"
 )
 
 //+kubebuilder:rbac:groups=elasti.truefoundry.com,resources=elastiservices,verbs=get;list;watch;create;update;patch;delete
@@ -57,6 +59,14 @@ const (
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
 func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, err error) {
+	defer func() {
+		if rErr := recover(); rErr != nil {
+			r.Logger.Error("Recovered from panic", zap.Any("recovered", rErr))
+			buf := make([]byte, 4096)
+			n := runtime.Stack(buf, false)
+			r.Logger.Error("Panic stack trace", zap.ByteString("stacktrace", buf[:n]))
+		}
+	}()
 	// First we get the ElastiService object
 	// No mutex is taken for this, as we are not modifying the object, but if we face issues in future, we can add a mutex
 	es, esErr := r.getCRD(ctx, req.NamespacedName)
@@ -75,6 +85,22 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		DeploymentName: es.Spec.DeploymentName,
 	})
 
+	// If the ElastiService is being deleted, we need to clean up the resources
+	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
+		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
+			// If CRD contains finalizer, we call the finaizer function and remove the finalizer post that
+			if err := r.finalizeCRD(ctx, es, req); err != nil {
+				r.Logger.Error("Failed to enable serve mode", zap.String("es", req.String()), zap.Error(err))
+				return res, err
+			}
+			controllerutil.RemoveFinalizer(es, v1alpha1.ElastiServiceFinalizer)
+			if err := r.Update(ctx, es); err != nil {
+				return res, err
+			}
+		}
+		return res, nil
+	}
+
 	// We check if the CRD is being deleted, and if it is, we clean up the resources
 	// We also check if the CRD has finalizer, and if not, we add the finalizer
 	if err := r.checkFinalizerCRD(ctx, es, req); err != nil {
@@ -92,8 +118,18 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		go r.Informer.AddDeploymentWatch(es.Name, resolverDeploymentName,
 			resolverNamespace, r.getResolverChangeHandler(ctx, es, req))
 	})
+
+	deploymentNamespacedName := types.NamespacedName{
+		Name:      es.Spec.DeploymentName,
+		Namespace: req.Namespace,
+	}
+	mode, err := r.getModeFromDeployment(ctx, deploymentNamespacedName)
+	if err != nil {
+		r.Logger.Error("Failed to get mode from deployment", zap.String("es", req.NamespacedName.String()), zap.Error(err))
+		return res, err
+	}
 	// Run the reconcile function for any change in CRD
-	return r.runReconcile(ctx, req, NullMode)
+	return r.runReconcile(ctx, req, mode)
 }
 
 func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {

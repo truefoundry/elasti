@@ -21,9 +21,10 @@ import (
 	"flag"
 	"os"
 
+	"truefoundry.io/elasti/internal/elastiServer"
+
 	tfLogger "github.com/truefoundry/elasti/pkg/logger"
 	"truefoundry.io/elasti/internal/crdDirectory"
-	"truefoundry.io/elasti/internal/elastiServer"
 	"truefoundry.io/elasti/internal/informer"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -55,6 +56,11 @@ func init() {
 	utilruntime.Must(elastiv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
+
+const (
+	// TODO: This can be configured to be sent via config or env
+	elastiServerPort = ":8013"
+)
 
 func main() {
 	var metricsAddr string
@@ -90,7 +96,7 @@ func main() {
 		c.NextProtos = []string{"http/1.1"}
 	}
 
-	tlsOpts := []func(*tls.Config){}
+	var tlsOpts []func(*tls.Config)
 	if !enableHTTP2 {
 		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
@@ -111,8 +117,8 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "acf50383.truefoundry.io",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-		// when the Manager ends. This requires the binary to immediately end when the
-		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
+		// when the manager ends. This requires the binary to immediately end when the
+		// manager is stopped, otherwise, this setting is unsafe. Setting this significantly
 		// speeds up voluntary leader transitions as the new leader don't have to wait
 		// LeaseDuration time first.
 		//
@@ -134,14 +140,11 @@ func main() {
 
 	// Start the shared CRD Directory
 	crdDirectory.INITDirectory(zapLogger)
-	// Initiate and start the shared Informer Manager
+	// Initiate and start the shared Informer manager
 	Informer := informer.NewInformerManager(zapLogger, mgr.GetConfig())
 	Informer.Start()
-	// Start the elasti server
-	eServer := elastiServer.NewServer(zapLogger, mgr.GetConfig())
-	go eServer.Start()
 
-	// Setup the ElastiService controller
+	// Set up the ElastiService controller
 	if err = (&controller.ElastiServiceReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
@@ -151,6 +154,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
 		os.Exit(1)
 	}
+
+	// Start the elasti server
+	eServer := elastiServer.NewServer(zapLogger, mgr.GetConfig())
+	go eServer.Start(elastiServerPort)
+
 	//+kubebuilder:scaffold:builder
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

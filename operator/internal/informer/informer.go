@@ -1,3 +1,5 @@
+// Package informer helps you manage your informers/watches and gracefully start and stop them
+// It checks health for them, and restrict only 1 informer is running for 1 resource for each crd
 package informer
 
 import (
@@ -18,6 +20,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+// Manager helps manage lifecycle of informer
 type Manager struct {
 	client              *kubernetes.Clientset
 	logger              *zap.Logger
@@ -27,12 +30,13 @@ type Manager struct {
 	healthCheckStopChan chan struct{}
 }
 
-type Info struct {
+type info struct {
 	Informer cache.SharedIndexInformer
 	StopCh   chan struct{}
 	Handlers cache.ResourceEventHandlerFuncs
 }
 
+// NewInformerManager creates a new instance of the Informer Manager
 func NewInformerManager(logger *zap.Logger, kConfig *rest.Config) *Manager {
 	clientSet, err := kubernetes.NewForConfig(kConfig)
 	if err != nil {
@@ -41,7 +45,7 @@ func NewInformerManager(logger *zap.Logger, kConfig *rest.Config) *Manager {
 	return &Manager{
 		client: clientSet,
 		logger: logger.Named("InformerManager"),
-		// ResyncPeriod is the pro-actice resync we do, even when no events are received by the informer.
+		// ResyncPeriod is the proactive resync we do, even when no events are received by the informer.
 		resyncPeriod:        0,
 		healthCheckDuration: 5 * time.Second,
 		healthCheckStopChan: make(chan struct{}),
@@ -55,11 +59,12 @@ func (m *Manager) Start() {
 	go wait.Until(m.monitorInformers, m.healthCheckDuration, m.healthCheckStopChan)
 }
 
+// Stop is to close all the active informers and close the health monitor
 func (m *Manager) Stop() {
 	m.logger.Info("Stopping InformerManager")
 	// Loop through all the informers and stop them
 	m.informers.Range(func(key, value interface{}) bool {
-		_, ok := value.(Info)
+		_, ok := value.(info)
 		if ok {
 			m.StopInformer(parseInformerKey(key.(string)))
 		}
@@ -72,7 +77,7 @@ func (m *Manager) Stop() {
 
 func (m *Manager) monitorInformers() {
 	m.informers.Range(func(key, value interface{}) bool {
-		informerInfo, ok := value.(Info)
+		informerInfo, ok := value.(info)
 		if ok {
 			if !informerInfo.Informer.HasSynced() {
 				m.logger.Info("Informer not synced", zap.String("deployment_name", key.(string)))
@@ -93,7 +98,7 @@ func (m *Manager) AddDeploymentWatch(crdName, deploymentName, namespace string, 
 
 // enableInformer is to enable the informer for a deployment
 func (m *Manager) enableInformer(crdName, deploymentName, namespace string, handlers cache.ResourceEventHandlerFuncs) {
-	key := getInformerKey(crdName, namespace, deploymentName)
+	key := getInformerKey(crdName, deploymentName, namespace)
 	// Proceed only if the informer is not already running, we verify by checking the map
 	if _, ok := m.informers.Load(key); ok {
 		m.logger.Info("Informer already running", zap.String("key", key))
@@ -131,7 +136,7 @@ func (m *Manager) enableInformer(crdName, deploymentName, namespace string, hand
 	// This is used to manage the lifecycle of the informer
 	// Recover it in case it's not syncing, this is why we also store the handlers
 	// Stop it when the CRD or the operator is deleted
-	m.informers.Store(key, Info{
+	m.informers.Store(key, info{
 		StopCh:   informerStop,
 		Handlers: handlers,
 		Informer: informer,
@@ -139,7 +144,7 @@ func (m *Manager) enableInformer(crdName, deploymentName, namespace string, hand
 	m.logger.Info("Informer started", zap.String("key", key))
 }
 
-// StopInformer is to stop the informer for a deployment
+// StopInformer is to stop a informer for a resource
 // It closes the shared informer for it and deletes it from the map
 func (m *Manager) StopInformer(crdName, deploymentName, namespace string) {
 	key := getInformerKey(crdName, deploymentName, namespace)
@@ -151,7 +156,7 @@ func (m *Manager) StopInformer(crdName, deploymentName, namespace string) {
 	}
 
 	// We need to verify if the informer exists in the map
-	informerInfo, ok := value.(Info)
+	informerInfo, ok := value.(info)
 	if !ok {
 		m.logger.Error("Failed to cast WatchInfo", zap.String("key", key))
 		return
@@ -160,6 +165,7 @@ func (m *Manager) StopInformer(crdName, deploymentName, namespace string) {
 	// Close the informer, delete it from the map
 	close(informerInfo.StopCh)
 	m.informers.Delete(key)
+	m.logger.Info("Informer stopped", zap.String("key", key))
 }
 
 // parseInformerKey is to parse the key to get the namespace and resource name
