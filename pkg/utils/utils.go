@@ -19,7 +19,7 @@ func GetPrivateSerivceName(publicSVCName string) string {
 	hash := sha256.New()
 	hash.Write([]byte(publicSVCName))
 	hashed := hex.EncodeToString(hash.Sum(nil))
-	pvtName := prefix + publicSVCName + privateServicePostfix + "-" + string(hashed)[:10] + "-" + string(hashed)[11:16]
+	pvtName := prefix + publicSVCName + privateServicePostfix + "-" + string(hashed)[:10]
 	return pvtName
 }
 
@@ -28,5 +28,5 @@ func GetEndpointSliceToResolverName(serviceName string) string {
 	hash := sha256.New()
 	hash.Write([]byte(serviceName))
 	hashed := hex.EncodeToString(hash.Sum(nil))
-	return prefix + serviceName + endpointSlicePostfix + "-" + string(hashed)[:10] + "-" + string(hashed)[11:16]
+	return prefix + serviceName + endpointSlicePostfix + "-" + string(hashed)[:10]
 }

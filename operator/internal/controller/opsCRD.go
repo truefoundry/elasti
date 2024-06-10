@@ -54,10 +54,10 @@ func (r *ElastiServiceReconciler) finalizeCRD(ctx context.Context, es *v1alpha1.
 	r.Logger.Info("ElastiService is being deleted", zap.String("name", es.Name), zap.Any("deletionTimestamp", es.ObjectMeta.DeletionTimestamp))
 	// Reset the informer start mutex, so if the ElastiService is recreated, we will need to reset the informer
 	r.resetMutexForInformer(req.NamespacedName.String())
-	// Stop target service informer
-	go r.Informer.StopInformer(es.Name, es.Spec.DeploymentName, es.Namespace)
-	// Stop resolver informer
-	go r.Informer.StopInformer(es.Name, resolverDeploymentName, resolverNamespace)
+	// Stop all active informers
+	// NOTE: If the informerManager is shared across multiple controllers, this will stop all informers
+	// In that case, we must call the
+	go r.Informer.StopForCRD(req.Name)
 	// Remove CRD details from service directory
 	crdDirectory.CRDDirectory.RemoveCRD(es.Spec.Service)
 

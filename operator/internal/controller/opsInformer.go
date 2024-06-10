@@ -7,6 +7,8 @@ import (
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -23,26 +25,10 @@ func (r *ElastiServiceReconciler) resetMutexForInformer(key string) {
 	r.WatcherStartLock.Delete(key)
 }
 
-func (r *ElastiServiceReconciler) getTargetDeploymentChangeHandler(_ context.Context, es *v1alpha1.ElastiService, req ctrl.Request) cache.ResourceEventHandlerFuncs {
+func (r *ElastiServiceReconciler) getTargetDeploymentChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) cache.ResourceEventHandlerFuncs {
 	return cache.ResourceEventHandlerFuncs{
 		UpdateFunc: func(old, new interface{}) {
-			newDeployment := new.(*appsv1.Deployment)
-			condition := newDeployment.Status.Conditions
-			if newDeployment.Status.Replicas == 0 {
-				r.Logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
-				_, err := r.runReconcile(context.Background(), req, ProxyMode)
-				if err != nil {
-					r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
-					return
-				}
-			} else if newDeployment.Status.Replicas > 0 && condition[1].Status == "True" {
-				r.Logger.Debug("Deployment has replicas", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
-				_, err := r.runReconcile(context.Background(), req, ServeMode)
-				if err != nil {
-					r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
-					return
-				}
-			}
+			r.handleTargetChanges(ctx, new, es, req)
 		},
 	}
 }
@@ -71,7 +57,11 @@ func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, 
 }
 
 func (r *ElastiServiceReconciler) handleResolverChanges(ctx context.Context, obj interface{}, serviceName, namespace string) {
-	resolverDeployment := obj.(*appsv1.Deployment)
+	resolverDeployment, err := r.unstructuredToDeployment(obj)
+	if err != nil {
+		r.Logger.Error("Failed to convert unstructured to deployment", zap.Error(err))
+		return
+	}
 	if resolverDeployment.Name == resolverDeploymentName {
 		targetNamespacedName := types.NamespacedName{
 			Name:      serviceName,
@@ -87,4 +77,39 @@ func (r *ElastiServiceReconciler) handleResolverChanges(ctx context.Context, obj
 			return
 		}
 	}
+}
+
+func (r *ElastiServiceReconciler) handleTargetChanges(ctx context.Context, obj interface{}, es *v1alpha1.ElastiService, req ctrl.Request) {
+	newDeployment, err := r.unstructuredToDeployment(obj)
+	if err != nil {
+		r.Logger.Error("Failed to convert unstructured to deployment", zap.Error(err))
+		return
+	}
+	condition := newDeployment.Status.Conditions
+	if newDeployment.Status.Replicas == 0 {
+		r.Logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
+		_, err := r.runReconcile(ctx, req, ProxyMode)
+		if err != nil {
+			r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
+			return
+		}
+	} else if newDeployment.Status.Replicas > 0 && condition[1].Status == "True" {
+		r.Logger.Debug("Deployment has replicas", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
+		_, err := r.runReconcile(ctx, req, ServeMode)
+		if err != nil {
+			r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
+			return
+		}
+	}
+}
+
+func (r *ElastiServiceReconciler) unstructuredToDeployment(obj interface{}) (*appsv1.Deployment, error) {
+	unstructuredObj := obj.(*unstructured.Unstructured)
+	newDeployment := &appsv1.Deployment{}
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredObj.UnstructuredContent(), newDeployment)
+	if err != nil {
+		r.Logger.Error("Failed to convert unstructured to deployment", zap.Error(err))
+		return nil, err
+	}
+	return newDeployment, nil
 }

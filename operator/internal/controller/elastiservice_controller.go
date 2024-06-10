@@ -112,11 +112,9 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// We reset mutex if crd is deleted, so it can be used again if the same CRD is reapplied
 	r.getMutexForInformerStart(req.NamespacedName.String()).Do(func() {
 		// Watch for changes in target deployment
-		go r.Informer.AddDeploymentWatch(es.Name, es.Spec.DeploymentName,
-			req.Namespace, r.getTargetDeploymentChangeHandler(ctx, es, req))
+		go r.Informer.AddDeploymentWatch(req, es.Spec.DeploymentName, req.Namespace, r.getTargetDeploymentChangeHandler(ctx, es, req))
 		// Watch for changes in activator deployment
-		go r.Informer.AddDeploymentWatch(es.Name, resolverDeploymentName,
-			resolverNamespace, r.getResolverChangeHandler(ctx, es, req))
+		go r.Informer.AddDeploymentWatch(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req))
 	})
 
 	deploymentNamespacedName := types.NamespacedName{
