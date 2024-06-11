@@ -201,4 +201,8 @@ endef
 helm-chart: ## Create Helm chart for the operator
 	 $(KUSTOMIZE) build config/default | helmify ../charts/elasti
 
+.PHONY: generate-manifest
+generate-manifest: ## Generate deploy manifest
+	$(KUSTOMIZE) build config/default > operator.yaml
+
 

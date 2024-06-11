@@ -10,8 +10,8 @@ controllerManager:
         drop:
         - ALL
     image:
-      repository: controller
-      tag: latest
+      repository: localhost:5001/elasti-operator
+      tag: v1alpha1
     resources:
       limits:
         cpu: 500m
@@ -37,25 +37,3 @@ metricsService:
     protocol: TCP
     targetPort: 8080
   type: ClusterIP
-resolver:
-  playground:
-    env:
-      systemNamespace: elasti
-    image:
-      repository: localhost:5001/resolver
-      tag: latest
-    resources:
-      limits:
-        cpu: 750m
-        memory: 1Gi
-      requests:
-        cpu: 250m
-        memory: 500Mi
-  replicas: 1
-resolverService:
-  ports:
-  - name: http-playground
-    port: 8012
-    protocol: TCP
-    targetPort: 0
-  type: LoadBalancer

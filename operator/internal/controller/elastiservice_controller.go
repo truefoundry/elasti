@@ -2,14 +2,16 @@ package controller
 
 import (
 	"context"
+	"strings"
 	"sync"
 
+	"github.com/truefoundry/elasti/pkg/utils"
 	"truefoundry.io/elasti/internal/crdDirectory"
 	"truefoundry.io/elasti/internal/informer"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	kRuntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -112,22 +114,41 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// We reset mutex if crd is deleted, so it can be used again if the same CRD is reapplied
 	r.getMutexForInformerStart(req.NamespacedName.String()).Do(func() {
 		// Watch for changes in target deployment
-		go r.Informer.AddDeploymentWatch(req, es.Spec.DeploymentName, req.Namespace, r.getTargetDeploymentChangeHandler(ctx, es, req))
+		//go r.Informer.AddDeploymentWatch(req, es.Spec.DeploymentName, req.Namespace, r.getTargetDeploymentChangeHandler(ctx, es, req))
+		// Watch for changes in ScaleTargetRef
+		targetGroup, targetVersion, err := utils.ParseAPIVersion(es.Spec.ScaleTargetRef.APIVersion)
+		if err != nil {
+			r.Logger.Error("Failed to parse API version", zap.String("APIVersion", es.Spec.ScaleTargetRef.APIVersion), zap.Error(err))
+			return
+		}
+		go r.Informer.Add(&informer.RequestWatch{
+			Req:               req,
+			ResourceName:      es.Spec.ScaleTargetRef.Name,
+			ResourceNamespace: req.Namespace,
+			GroupVersionResource: &schema.GroupVersionResource{
+				Group:    targetGroup,
+				Version:  targetVersion,
+				Resource: strings.ToLower(es.Spec.ScaleTargetRef.Kind),
+			},
+			Handlers: r.getScaleTargetRefChangeHandler(ctx, es, req),
+		})
 		// Watch for changes in activator deployment
 		go r.Informer.AddDeploymentWatch(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req))
+		// Watch for changes in public service
+		go r.Informer.Add(&informer.RequestWatch{
+			Req:               req,
+			ResourceName:      es.Spec.Service,
+			ResourceNamespace: es.Namespace,
+			GroupVersionResource: &schema.GroupVersionResource{
+				Group:    "",
+				Version:  "v1",
+				Resource: "services",
+			},
+			Handlers: r.getPublicServiceChangeHandler(ctx, es, req),
+		})
 	})
 
-	deploymentNamespacedName := types.NamespacedName{
-		Name:      es.Spec.DeploymentName,
-		Namespace: req.Namespace,
-	}
-	mode, err := r.getModeFromDeployment(ctx, deploymentNamespacedName)
-	if err != nil {
-		r.Logger.Error("Failed to get mode from deployment", zap.String("es", req.NamespacedName.String()), zap.Error(err))
-		return res, err
-	}
-	// Run the reconcile function for any change in CRD
-	return r.runReconcile(ctx, req, mode)
+	return res, nil
 }
 
 func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {

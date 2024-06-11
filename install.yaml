@@ -1,0 +1,502 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+    control-plane: controller-manager
+  name: elasti-operator-system
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: elastiservices.elasti.truefoundry.com
+spec:
+  group: elasti.truefoundry.com
+  names:
+    kind: ElastiService
+    listKind: ElastiServiceList
+    plural: elastiservices
+    singular: elastiservice
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ElastiService is the Schema for the elastiservices API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ElastiServiceSpec defines the desired state of ElastiService
+            properties:
+              deploymentName:
+                type: string
+              idlePeriod:
+                format: int32
+                type: integer
+              minReplicas:
+                format: int32
+                type: integer
+              queueTimeout:
+                format: int32
+                type: integer
+              scaleTargetRef:
+                description: |-
+                  INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                type: object
+              service:
+                type: string
+            type: object
+          status:
+            description: ElastiServiceStatus defines the observed state of ElastiService
+            properties:
+              lastReconciledTime:
+                description: |-
+                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+                  Important: Run "make" to regenerate code after modifying this file
+                format: date-time
+                type: string
+              mode:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+  name: elasti-operator-controller-manager
+  namespace: elasti-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+  name: elasti-operator-leader-election-role
+  namespace: elasti-operator-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: elasti-operator-additional-access
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: elasti-operator-apiserver-node-access
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes/proxy
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+  name: elasti-operator-elastiservice-editor-role
+rules:
+- apiGroups:
+  - elasti.truefoundry.com
+  resources:
+  - elastiservices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - elasti.truefoundry.com
+  resources:
+  - elastiservices/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+  name: elasti-operator-elastiservice-viewer-role
+rules:
+- apiGroups:
+  - elasti.truefoundry.com
+  resources:
+  - elastiservices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - elasti.truefoundry.com
+  resources:
+  - elastiservices/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: elasti-operator-manager-role
+rules:
+- apiGroups:
+  - elasti.truefoundry.com
+  resources:
+  - elastiservices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - elasti.truefoundry.com
+  resources:
+  - elastiservices/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - elasti.truefoundry.com
+  resources:
+  - elastiservices/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+  name: elasti-operator-leader-election-rolebinding
+  namespace: elasti-operator-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: elasti-operator-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: elasti-operator-controller-manager
+  namespace: elasti-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+  name: elasti-operator-additional-access-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: elasti-operator-additional-access
+subjects:
+- kind: ServiceAccount
+  name: elasti-operator-controller-manager
+  namespace: elasti-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+  name: elasti-operator-apiserver-node-access-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: elasti-operator-apiserver-node-access
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: kube-apiserver-kubelet-client
+  namespace: system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+  name: elasti-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: elasti-operator-manager-role
+subjects:
+- kind: ServiceAccount
+  name: elasti-operator-controller-manager
+  namespace: elasti-operator-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+    control-plane: controller-manager
+  name: elasti-operator-controller-manager-metrics-service
+  namespace: elasti-operator-system
+spec:
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+    control-plane: controller-manager
+  name: elasti-operator-controller-service
+  namespace: elasti-operator-system
+spec:
+  ports:
+  - name: custom-port
+    port: 8013
+    protocol: TCP
+    targetPort: 8013
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+    control-plane: controller-manager
+  name: elasti-operator-controller-manager
+  namespace: elasti-operator-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --leader-elect
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=0
+        command:
+        - /manager
+        image: ramantehlan/elasti-operator:v1alpha1
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports:
+        - containerPort: 8013
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: elasti-operator-controller-manager
+      terminationGracePeriodSeconds: 10
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: elasti
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: resolver-service
+  namespace: elasti
+spec:
+  selector:
+    app: elasti-resolver
+  ports:
+  - name: http-playground
+    protocol: TCP
+    port: 8012
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasti-resolver
+  namespace: elasti
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasti-resolver 
+  template:
+    metadata:
+      labels:
+        app: elasti-resolver 
+    spec:
+      containers:
+      - name: playground
+        image: ramantehlan/elasti-resolver:latest
+        env:
+        - name: SYSTEM_NAMESPACE
+          value: elasti
+        ports:
+        - containerPort: 8012
+        resources:
+          requests:
+            memory: "500Mi"
+            cpu: "250m"  
+          limits:
+            memory: "1Gi"
+            cpu: "750m"  
+
+
+

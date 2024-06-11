@@ -43,15 +43,26 @@ spec:
               deploymentName:
                 type: string
               idlePeriod:
-                description: Idle Period is how long should the target VirtualService
-                  be Idle(without requests), before we scale it down to 0.
+                format: int32
+                type: integer
+              minReplicas:
                 format: int32
                 type: integer
               queueTimeout:
-                description: How long do playground hold the request for, before dumping
-                  the queue. Default is 60s.
                 format: int32
                 type: integer
+              scaleTargetRef:
+                description: |-
+                  INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                type: object
               service:
                 type: string
             type: object
@@ -65,8 +76,6 @@ spec:
                 format: date-time
                 type: string
               mode:
-                type: string
-              state:
                 type: string
             type: object
         type: object

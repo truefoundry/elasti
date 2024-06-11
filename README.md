@@ -32,7 +32,52 @@ Elasti is a cloud-native tool to facilitate serverless capabilities within Kuber
 TBA
 
 # Installation
-TBA
+
+You will be able to install the Elasti Tool by applying the `install.yaml` manifest.
+
+After this, you can start creating elastiService, you can find a sample at `./playground/config/watch-crd.yaml`.
+Please use the exact format.
+
+
+# Development
+
+Here are the steps to deploy Elasti in your kubernetes cluster. 
+For now, we will need to deploy the Elasti-Operator and Elasti-Resolver separately.
+
+### Setup Docker
+
+This is required to publish our docker images, and pull them inside our manifest files. 
+
+1. Login to the docker hub via CLI.
+```bash
+docker login -u ramantehlan
+# When asked for password, paste below text.
+dckr_pat_WgMJEsO0nMNp10Bf7rLQ_FcVzLU
+``` 
+
+> That's it, now you will be able to push changes to images. Since the images are public, pulling it doesn't require any changes.
+
+### Build Resolver
+
+We will build and publish our resolver changes.
+
+1. Go into resolver directory. 
+2. Run build and publish command.
+```bash
+make docker-build-resolver docker-publish-resolver IMG=ramantehlan/elasti-resolver:latest  
+```
+
+### Build Operator
+
+We will build and publish our Operator changes.
+
+1. Go into operator directory.
+2. Run build and publish command.
+```bash
+make docker-build-resolver docker-publish-resolver IMG=ramantehlan/elasti-resolver:latest
+```
+
+> Once your changes are published, you can re-deploy in your cluster.
 
 # Configuration
 TBA

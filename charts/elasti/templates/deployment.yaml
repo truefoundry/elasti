@@ -53,34 +53,3 @@ spec:
         runAsNonRoot: true
       serviceAccountName: {{ include "elasti.fullname" . }}-controller-manager
       terminationGracePeriodSeconds: 10
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ include "elasti.fullname" . }}-resolver
-  labels:
-  {{- include "elasti.labels" . | nindent 4 }}
-spec:
-  replicas: {{ .Values.resolver.replicas }}
-  selector:
-    matchLabels:
-      app: resolver
-    {{- include "elasti.selectorLabels" . | nindent 6 }}
-  template:
-    metadata:
-      labels:
-        app: resolver
-      {{- include "elasti.selectorLabels" . | nindent 8 }}
-    spec:
-      containers:
-      - env:
-        - name: SYSTEM_NAMESPACE
-          value: {{ quote .Values.resolver.playground.env.systemNamespace }}
-        - name: KUBERNETES_CLUSTER_DOMAIN
-          value: {{ quote .Values.kubernetesClusterDomain }}
-        image: {{ .Values.resolver.playground.image.repository }}:{{ .Values.resolver.playground.image.tag
-          | default .Chart.AppVersion }}
-        name: playground
-        ports:
-        - containerPort: 8012
-        resources: {{- toYaml .Values.resolver.playground.resources | nindent 10 }}

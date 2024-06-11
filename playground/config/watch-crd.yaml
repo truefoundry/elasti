@@ -10,8 +10,8 @@ spec:
   idlePeriod: 20
   service: target-service
   deploymentName: target
-  #  scaleTargetRef:
-  #  apiVersion: apps/v1
-  #  kind: Deployment
-  #  name: target
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployments
+    name: target
 
