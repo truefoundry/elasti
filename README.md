@@ -31,13 +31,23 @@ Elasti is a cloud-native tool to facilitate serverless capabilities within Kuber
 # Problem Statement
 TBA
 
-# Installation
+# Installation / Deployment on K8s
 
 You will be able to install the Elasti Tool by applying the `install.yaml` manifest.
+```bash
+kubectl install -f install.yaml
+```
 
 After this, you can start creating elastiService, you can find a sample at `./playground/config/watch-crd.yaml`.
 Please use the exact format.
 
+# Uninstallation 
+
+For this, you will need to remove all the CRDs first. 
+Post that, just delete the install file. 
+```bash
+kubectl delete -f install.yaml
+```
 
 # Development
 
