@@ -132,8 +132,6 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			},
 			Handlers: r.getScaleTargetRefChangeHandler(ctx, es, req),
 		})
-		// Watch for changes in activator deployment
-		go r.Informer.AddDeploymentWatch(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req))
 		// Watch for changes in public service
 		go r.Informer.Add(&informer.RequestWatch{
 			Req:               req,

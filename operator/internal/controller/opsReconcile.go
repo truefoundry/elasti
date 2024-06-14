@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"go.uber.org/zap"
@@ -27,13 +28,13 @@ func (r *ElastiServiceReconciler) runReconcile(ctx context.Context, req ctrl.Req
 	defer r.updateCRDStatus(ctx, req.NamespacedName, mode)
 	switch mode {
 	case ServeMode:
-		if err = r.enableServeMode(ctx, es); err != nil {
+		if err = r.enableServeMode(ctx, req, es); err != nil {
 			r.Logger.Error("Failed to enable serve mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
 			return res, err
 		}
 		r.Logger.Info("Serve mode enabled", zap.String("es", req.NamespacedName.String()))
 	case ProxyMode:
-		if err = r.enableProxyMode(ctx, es); err != nil {
+		if err = r.enableProxyMode(ctx, req, es); err != nil {
 			r.Logger.Error("Failed to enable proxy mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
 			return res, err
 		}
@@ -44,7 +45,10 @@ func (r *ElastiServiceReconciler) runReconcile(ctx context.Context, req ctrl.Req
 	return res, nil
 }
 
-func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, es *v1alpha1.ElastiService) error {
+func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService) error {
+	// Watch for changes in activator deployment, and update the endpointslice since we are in proxy mode
+	go r.Informer.AddDeploymentWatch(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req))
+
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
@@ -64,7 +68,11 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, es *v1alp
 	return nil
 }
 
-func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, es *v1alpha1.ElastiService) error {
+func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService) error {
+	// Stop the watch on resolver deployment, since we are in serve mode
+	resolverInformerKey := fmt.Sprintf("%s/%s/%s", req.Name, resolverDeploymentName, resolverNamespace)
+	r.Informer.StopInformer(resolverInformerKey)
+
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,

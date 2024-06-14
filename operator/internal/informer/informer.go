@@ -88,7 +88,7 @@ func (m *Manager) Stop() {
 	m.informers.Range(func(key, value interface{}) bool {
 		info, ok := value.(info)
 		if ok {
-			m.stopInformer(m.getInformerKeyFromReq(info.Req))
+			m.StopInformer(m.getKeyFromRequestWatch(info.Req))
 		}
 		return true
 	})
@@ -106,7 +106,7 @@ func (m *Manager) StopForCRD(crdName string) {
 		if key.(string)[:len(crdName)] == crdName {
 			info, ok := value.(info)
 			if ok {
-				m.stopInformer(m.getInformerKeyFromReq(info.Req))
+				m.StopInformer(m.getKeyFromRequestWatch(info.Req))
 			}
 		}
 		return true
@@ -114,9 +114,9 @@ func (m *Manager) StopForCRD(crdName string) {
 	m.logger.Info("Informer stopped for CRD", zap.String("crd", crdName))
 }
 
-// stopInformer is to stop a informer for a resource
+// StopInformer is to stop a informer for a resource
 // It closes the shared informer for it and deletes it from the map
-func (m *Manager) stopInformer(key string) {
+func (m *Manager) StopInformer(key string) {
 	m.logger.Info("Stopping informer", zap.String("key", key))
 	value, ok := m.informers.Load(key)
 	if !ok {
@@ -143,7 +143,7 @@ func (m *Manager) monitorInformers() {
 		if ok {
 			if !info.Informer.HasSynced() {
 				m.logger.Info("Informer not synced", zap.String("key", key.(string)))
-				m.stopInformer(m.getInformerKeyFromReq(info.Req))
+				m.StopInformer(m.getKeyFromRequestWatch(info.Req))
 				m.enableInformer(info.Req)
 			}
 		}
@@ -188,7 +188,7 @@ func (m *Manager) enableInformer(req *RequestWatch) {
 			m.logger.Error("Panic stack trace", zap.ByteString("stacktrace", buf[:n]))
 		}
 	}()
-	key := m.getInformerKeyFromReq(req)
+	key := m.getKeyFromRequestWatch(req)
 	// Proceed only if the informer is not already running, we verify by checking the map
 	if _, ok := m.informers.Load(key); ok {
 		m.logger.Info("Informer already running", zap.String("key", key))
@@ -233,7 +233,7 @@ func (m *Manager) enableInformer(req *RequestWatch) {
 		Req:      req,
 	})
 
-	// Wait for the cache to sync
+	// Wait for the cache to syncß
 	if !cache.WaitForCacheSync(ctx.Done(), informer.HasSynced) {
 		m.logger.Error("Failed to sync informer", zap.String("key", key))
 		return
@@ -241,7 +241,8 @@ func (m *Manager) enableInformer(req *RequestWatch) {
 	m.logger.Info("Informer started", zap.String("key", key))
 }
 
-// getInformerKeyFromReq is to get the key for the informer map using namespace and resource name from the request
-func (m *Manager) getInformerKeyFromReq(req *RequestWatch) string {
+// getKeyFromRequestWatch is to get the key for the informer map using namespace and resource name from the request
+// CRDname.resourcerName.Namespace
+func (m *Manager) getKeyFromRequestWatch(req *RequestWatch) string {
 	return fmt.Sprintf("%s/%s/%s", req.Req.Name, req.ResourceName, req.ResourceNamespace)
 }
