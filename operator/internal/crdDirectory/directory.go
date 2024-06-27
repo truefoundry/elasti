@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"go.uber.org/zap"
+	"truefoundry.io/elasti/api/v1alpha1"
 )
 
 type Directory struct {
@@ -12,8 +13,8 @@ type Directory struct {
 }
 
 type CRDDetails struct {
-	CRDName        string
-	DeploymentName string
+	CRDName string
+	Spec    v1alpha1.ElastiServiceSpec
 }
 
 var CRDDirectory *Directory

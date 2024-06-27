@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -70,20 +71,45 @@ func (k *Ops) getServiceSelectorStr(ns, svc string) (string, error) {
 	return selectorString, nil
 }
 
-// ScaleDeploymentWhenAtZero scales the deployment to the provided replicas when it's at 0
-func (k *Ops) ScaleDeploymentWhenAtZero(ns, deployment string, replicas int32) error {
-	k.logger.Debug("Scaling deployment", zap.String("deployment", deployment), zap.Int32("replicas", replicas))
+// ScaleTargetWhenAtZero scales the TargetRef to the provided replicas when it's at 0
+func (k *Ops) ScaleTargetWhenAtZero(ns, targetName, targetKind string, replicas int32) error {
+	switch targetKind {
+	case values.KindDeployments:
+		k.logger.Info("ScaleTargetRef kind is deployment", zap.String("kind", targetKind))
+		err := k.ScaleDeployment(ns, targetName, replicas)
+		if err != nil {
+			return err
+		}
+	case values.KindRollout:
+		k.logger.Info("ScaleTargetRef kind is rollout", zap.String("kind", targetKind))
+		err := k.ScaleArgoRollout(ns, targetName, replicas)
+		if err != nil {
+			return err
+		}
+	default:
+		k.logger.Error("Unsupported target kind", zap.String("kind", targetKind))
+	}
+	return nil
+}
+
+func (k *Ops) ScaleDeployment(ns, targetName string, replicas int32) error {
+	k.logger.Debug("Scaling deployment", zap.String("deployment", targetName), zap.Int32("replicas", replicas))
 	deploymentClient := k.kClient.AppsV1().Deployments(ns)
-	deploy, err := deploymentClient.Get(context.TODO(), deployment, metav1.GetOptions{})
+	deploy, err := deploymentClient.Get(context.TODO(), targetName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
-	k.logger.Debug("Deployment found", zap.String("deployment", deployment), zap.Int32("current replicas", *deploy.Spec.Replicas), zap.Int32("desired replicas", replicas))
+	k.logger.Debug("Deployment found", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas), zap.Int32("desired replicas", replicas))
 	if *deploy.Spec.Replicas == 0 {
 		deploy.Spec.Replicas = &replicas
 		_, err = deploymentClient.Update(context.TODO(), deploy, metav1.UpdateOptions{})
 		return err
 	}
-	return err
+	return nil
+}
+
+func (k *Ops) ScaleArgoRollout(ns, targetName string, replicas int32) error {
+	k.logger.Debug("Scaling Rollout yet to be implimented", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
+	return nil
 }

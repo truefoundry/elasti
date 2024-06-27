@@ -4,34 +4,21 @@ import (
 	"context"
 	"sync"
 
-	argo "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
+	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
-	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"truefoundry.io/elasti/api/v1alpha1"
 )
 
-const (
-	ArgoPhaseHealthy              = "Healthy"
-	DeploymentConditionStatusTrue = "True"
-
-	KindDeployments = "Deployments"
-	KindRollout     = "Rollout"
-)
-
 func (r *ElastiServiceReconciler) getMutexForInformerStart(key string) *sync.Once {
-	l, _ := r.WatcherStartLock.LoadOrStore(key, &sync.Once{})
+	l, _ := r.InformerStartLocks.LoadOrStore(key, &sync.Once{})
 	return l.(*sync.Once)
 }
 
 func (r *ElastiServiceReconciler) resetMutexForInformer(key string) {
-	r.WatcherStartLock.Delete(key)
+	r.InformerStartLocks.Delete(key)
 }
 
 func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) cache.ResourceEventHandlerFuncs {
@@ -83,127 +70,13 @@ func (r *ElastiServiceReconciler) getScaleTargetRefChangeHandler(ctx context.Con
 
 func (r *ElastiServiceReconciler) handleScaleTargetRefChanges(ctx context.Context, obj interface{}, es *v1alpha1.ElastiService, req ctrl.Request) {
 	switch es.Spec.ScaleTargetRef.Kind {
-	case KindDeployments:
+	case values.KindDeployments:
 		r.Logger.Info("ScaleTargetRef kind is deployment", zap.String("kind", es.Spec.ScaleTargetRef.Kind))
 		r.handleTargetDeploymentChanges(ctx, obj, es, req)
-	case KindRollout:
+	case values.KindRollout:
 		r.Logger.Info("ScaleTargetRef kind is rollout", zap.String("kind", es.Spec.ScaleTargetRef.Kind))
 		r.handleTargetRolloutChanges(ctx, obj, es, req)
 	default:
 		r.Logger.Error("Unsupported target kind", zap.String("kind", es.Spec.ScaleTargetRef.Kind))
 	}
-}
-
-func (r *ElastiServiceReconciler) handleTargetRolloutChanges(ctx context.Context, obj interface{}, es *v1alpha1.ElastiService, req ctrl.Request) {
-	newRollout := &argo.Rollout{}
-	err := r.unstructuredToResource(obj, newRollout)
-	if err != nil {
-		r.Logger.Error("Failed to convert unstructured to rollout", zap.Error(err))
-		return
-	}
-	replicas := newRollout.Status.ReadyReplicas
-	condition := newRollout.Status.Phase
-	if replicas == 0 {
-		r.Logger.Debug("Rollout has 0 replicas", zap.String("rollout_name", es.Spec.ScaleTargetRef.Name), zap.String("es", req.String()))
-		_, err := r.runReconcile(ctx, req, ProxyMode)
-		if err != nil {
-			r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
-			return
-		}
-	} else if replicas > 0 && condition == ArgoPhaseHealthy {
-		r.Logger.Debug("Rollout has replicas", zap.String("rollout_name", es.Spec.ScaleTargetRef.Name), zap.String("es", req.String()))
-		_, err := r.runReconcile(ctx, req, ServeMode)
-		if err != nil {
-			r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
-			return
-		}
-	}
-	r.Logger.Info("Rollout changes handled", zap.String("rollout_name", es.Spec.ScaleTargetRef.Name), zap.String("es", req.String()))
-}
-
-func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Context, obj interface{}, es *v1alpha1.ElastiService, req ctrl.Request) {
-	newDeployment := &appsv1.Deployment{}
-	err := r.unstructuredToResource(obj, newDeployment)
-	if err != nil {
-		r.Logger.Error("Failed to convert unstructured to deployment", zap.Error(err))
-		return
-	}
-	condition := newDeployment.Status.Conditions
-	if newDeployment.Status.Replicas == 0 {
-		r.Logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
-		_, err := r.runReconcile(ctx, req, ProxyMode)
-		if err != nil {
-			r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
-			return
-		}
-	} else if newDeployment.Status.Replicas > 0 && condition[1].Status == DeploymentConditionStatusTrue {
-		r.Logger.Debug("Deployment has replicas", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
-		_, err := r.runReconcile(ctx, req, ServeMode)
-		if err != nil {
-			r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
-			return
-		}
-	}
-	r.Logger.Info("Deployment changes handled", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
-}
-
-func (r *ElastiServiceReconciler) handlePublicServiceChanges(_ context.Context, obj interface{}, _, _ string) {
-	publicService := &v1.Service{}
-	err := r.unstructuredToResource(obj, publicService)
-	if err != nil {
-		r.Logger.Error("Failed to convert unstructured to service", zap.Error(err))
-		return
-	}
-
-	// if publicService.Name == serviceName {
-	// 	targetNamespacedName := types.NamespacedName{
-	// 		Name:      serviceName,
-	// 		Namespace: namespace,
-	// 	}
-	// 	targetSVC := &v1.Service{}
-	// 	if err := r.Get(ctx, targetNamespacedName, targetSVC); err != nil {
-	// 		r.Logger.Error("Failed to get service to update endpointslice", zap.String("service", targetNamespacedName.String()), zap.Error(err))
-	// 		return
-	// 	}
-	// 	if err := r.createOrUpdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
-	// 		r.Logger.Error("Failed to create or update endpointslice to resolver", zap.String("service", targetNamespacedName.String()), zap.Error(err))
-	// 		return
-	// 	}
-	// }
-	r.Logger.Info("Public service changed", zap.String("service", publicService.Name))
-}
-
-func (r *ElastiServiceReconciler) handleResolverChanges(ctx context.Context, obj interface{}, serviceName, namespace string) {
-	resolverDeployment := &appsv1.Deployment{}
-	err := r.unstructuredToResource(obj, resolverDeployment)
-	if err != nil {
-		r.Logger.Error("Failed to convert unstructured to deployment", zap.Error(err))
-		return
-	}
-	if resolverDeployment.Name == resolverDeploymentName {
-		targetNamespacedName := types.NamespacedName{
-			Name:      serviceName,
-			Namespace: namespace,
-		}
-		targetSVC := &v1.Service{}
-		if err := r.Get(ctx, targetNamespacedName, targetSVC); err != nil {
-			r.Logger.Error("Failed to get service to update endpointslice", zap.String("service", targetNamespacedName.String()), zap.Error(err))
-			return
-		}
-		if err := r.createOrUpdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
-			r.Logger.Error("Failed to create or update endpointslice to resolver", zap.String("service", targetNamespacedName.String()), zap.Error(err))
-			return
-		}
-	}
-	r.Logger.Info("Resolver changes handled", zap.String("deployment_name", resolverDeploymentName))
-}
-
-func (r *ElastiServiceReconciler) unstructuredToResource(obj interface{}, resource interface{}) error {
-	unstructuredObj := obj.(*unstructured.Unstructured)
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredObj.UnstructuredContent(), resource)
-	if err != nil {
-		r.Logger.Error("Failed to convert unstructured to interface", zap.Error(err))
-		return err
-	}
-	return nil
 }

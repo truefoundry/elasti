@@ -24,9 +24,8 @@ type (
 	// It is used by components about certain events, like when resolver receive the request
 	// for a service, that service is scaled up if it's at 0 replicas
 	Server struct {
-		logger      *zap.Logger
-		k8sHelper   *k8sHelper.Ops
-		minReplicas int32
+		logger    *zap.Logger
+		k8sHelper *k8sHelper.Ops
 	}
 )
 
@@ -39,9 +38,8 @@ func NewServer(logger *zap.Logger, config *rest.Config) *Server {
 	// Get Ops client
 	k8sUtil := k8sHelper.NewOps(logger, kClient)
 	return &Server{
-		logger:      logger.Named("elastiServer"),
-		k8sHelper:   k8sUtil,
-		minReplicas: 1,
+		logger:    logger.Named("elastiServer"),
+		k8sHelper: k8sUtil,
 	}
 }
 
@@ -98,7 +96,7 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 		s.logger.Error("Failed to write response", zap.Error(err))
 		return
 	}
-	err = s.scaleDeploymentForService(ctx, body.Svc, body.Namespace)
+	err = s.scaleTargetForService(ctx, body.Svc, body.Namespace)
 	if err != nil {
 		s.logger.Error("Failed to compare and scale deployment", zap.Error(err))
 		return
@@ -106,15 +104,15 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 	s.logger.Info("Received fulfilled from Resolver", zap.Any("body", body))
 }
 
-func (s *Server) scaleDeploymentForService(_ context.Context, serviceName, namespace string) error {
+func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace string) error {
 	crd, found := crdDirectory.CRDDirectory.GetCRD(serviceName)
 	if !found {
 		s.logger.Error("Failed to get CRD details from directory")
 	}
-	if err := s.k8sHelper.ScaleDeploymentWhenAtZero(namespace, crd.DeploymentName, s.minReplicas); err != nil {
-		s.logger.Error("Failed to scale deployment", zap.Error(err))
+	if err := s.k8sHelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
+		s.logger.Error("Failed to scale TargetRef", zap.Any("TargetRef", crd.Spec.ScaleTargetRef), zap.Error(err))
 		return err
 	}
-	s.logger.Info("Deployment is scaled up", zap.Any("Deployment", crd.DeploymentName))
+	s.logger.Info("TargetRef is scaled up", zap.Any("TargetRef", crd.Spec.ScaleTargetRef))
 	return nil
 }

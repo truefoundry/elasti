@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -12,28 +13,28 @@ import (
 	"truefoundry.io/elasti/api/v1alpha1"
 )
 
-func (r *ElastiServiceReconciler) getMutexForRunReconcile(key string) *sync.Mutex {
-	l, _ := r.RunReconcileLocks.LoadOrStore(key, &sync.Mutex{})
+func (r *ElastiServiceReconciler) getMutexForSwitchMode(key string) *sync.Mutex {
+	l, _ := r.SwitchModeLocks.LoadOrStore(key, &sync.Mutex{})
 	return l.(*sync.Mutex)
 }
 
-func (r *ElastiServiceReconciler) runReconcile(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error) {
-	r.Logger.Debug("- In RunReconcile", zap.String("es", req.NamespacedName.String()))
-	// Only 1 reconcile should run at a time for a given ElastiService. This prevents conflicts when updating different objects.
-	mutex := r.getMutexForRunReconcile(req.NamespacedName.String())
+func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error) {
+	r.Logger.Debug("- In SwitchMode", zap.String("es", req.NamespacedName.String()))
+	// Only 1 switchMode should run at a time for a given ElastiService. This prevents conflicts when updating different objects.
+	mutex := r.getMutexForSwitchMode(req.NamespacedName.String())
 	mutex.Lock()
-	defer r.Logger.Debug("- Out of RunReconcile", zap.String("es", req.NamespacedName.String()))
+	defer r.Logger.Debug("- Out of SwitchMode", zap.String("es", req.NamespacedName.String()))
 	defer mutex.Unlock()
 	es, err := r.getCRD(ctx, req.NamespacedName)
 	defer r.updateCRDStatus(ctx, req.NamespacedName, mode)
 	switch mode {
-	case ServeMode:
+	case values.ServeMode:
 		if err = r.enableServeMode(ctx, req, es); err != nil {
 			r.Logger.Error("Failed to enable serve mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
 			return res, err
 		}
 		r.Logger.Info("Serve mode enabled", zap.String("es", req.NamespacedName.String()))
-	case ProxyMode:
+	case values.ProxyMode:
 		if err = r.enableProxyMode(ctx, req, es); err != nil {
 			r.Logger.Error("Failed to enable proxy mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
 			return res, err
@@ -46,9 +47,6 @@ func (r *ElastiServiceReconciler) runReconcile(ctx context.Context, req ctrl.Req
 }
 
 func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService) error {
-	// Watch for changes in activator deployment, and update the endpointslice since we are in proxy mode
-	go r.Informer.AddDeploymentWatch(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req))
-
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
@@ -65,6 +63,10 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.
 	if err = r.createOrUpdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
 		return err
 	}
+
+	// Watch for changes in activator deployment, and update the endpointslice since we are in proxy mode
+	r.Informer.AddDeploymentWatch(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req))
+
 	return nil
 }
 

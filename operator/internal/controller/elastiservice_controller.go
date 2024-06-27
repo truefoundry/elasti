@@ -24,21 +24,19 @@ import (
 )
 
 type (
-	RunReconcileFunc        func(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error)
+	SwitchModeFunc          func(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error)
 	ElastiServiceReconciler struct {
 		client.Client
-		Scheme            *kRuntime.Scheme
-		Logger            *zap.Logger
-		Informer          *informer.Manager
-		RunReconcileLocks sync.Map
-		WatcherStartLock  sync.Map
+		Scheme             *kRuntime.Scheme
+		Logger             *zap.Logger
+		Informer           *informer.Manager
+		SwitchModeLocks    sync.Map
+		InformerStartLocks sync.Map
+		ReconcileLocks     sync.Map
 	}
 )
 
 const (
-	ServeMode = "serve"
-	ProxyMode = "proxy"
-	NullMode  = ""
 
 	// These are resolver details, ideally in future we can move this to a configmap, or find a better way to serve this
 	resolverNamespace      = "elasti"
@@ -69,6 +67,13 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			r.Logger.Error("Panic stack trace", zap.ByteString("stacktrace", buf[:n]))
 		}
 	}()
+
+	r.Logger.Debug("- In Reconcile", zap.String("es", req.NamespacedName.String()))
+	mutex := r.getMutexForReconcile(req.NamespacedName.String())
+	mutex.Lock()
+	defer r.Logger.Debug("- Out of Reconcile", zap.String("es", req.NamespacedName.String()))
+	defer mutex.Unlock()
+
 	// First we get the ElastiService object
 	// No mutex is taken for this, as we are not modifying the object, but if we face issues in future, we can add a mutex
 	es, esErr := r.getCRD(ctx, req.NamespacedName)
@@ -80,12 +85,6 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		r.Logger.Error("Failed to get ElastiService in Reconcile", zap.String("es", req.String()), zap.Error(esErr))
 		return res, esErr
 	}
-	// We add the CRD details to service directory, so when elasti server received a request,
-	// we can find the right resource to scale up
-	crdDirectory.CRDDirectory.AddCRD(es.Spec.Service, &crdDirectory.CRDDetails{
-		CRDName:        es.Name,
-		DeploymentName: es.Spec.DeploymentName,
-	})
 
 	// If the ElastiService is being deleted, we need to clean up the resources
 	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -103,25 +102,30 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return res, nil
 	}
 
-	// We check if the CRD is being deleted, and if it is, we clean up the resources
 	// We also check if the CRD has finalizer, and if not, we add the finalizer
 	if err := r.checkFinalizerCRD(ctx, es, req); err != nil {
 		r.Logger.Error("Failed to finalize CRD", zap.String("es", req.String()), zap.Error(err))
 		return res, err
 	}
 
+	// We add the CRD details to service directory, so when elasti server received a request,
+	// we can find the right resource to scale up
+	crdDirectory.CRDDirectory.AddCRD(es.Spec.Service, &crdDirectory.CRDDetails{
+		CRDName: es.Name,
+		Spec:    es.Spec,
+	})
+
 	// We need to start the informer only once per CRD. This is to avoid multiple informers for the same CRD
 	// We reset mutex if crd is deleted, so it can be used again if the same CRD is reapplied
 	r.getMutexForInformerStart(req.NamespacedName.String()).Do(func() {
-		// Watch for changes in target deployment
-		//go r.Informer.AddDeploymentWatch(req, es.Spec.DeploymentName, req.Namespace, r.getTargetDeploymentChangeHandler(ctx, es, req))
-		// Watch for changes in ScaleTargetRef
 		targetGroup, targetVersion, err := utils.ParseAPIVersion(es.Spec.ScaleTargetRef.APIVersion)
 		if err != nil {
 			r.Logger.Error("Failed to parse API version", zap.String("APIVersion", es.Spec.ScaleTargetRef.APIVersion), zap.Error(err))
 			return
 		}
-		go r.Informer.Add(&informer.RequestWatch{
+
+		// Watch for changes in ScaleTargetRef
+		r.Informer.Add(&informer.RequestWatch{
 			Req:               req,
 			ResourceName:      es.Spec.ScaleTargetRef.Name,
 			ResourceNamespace: req.Namespace,
@@ -132,8 +136,9 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			},
 			Handlers: r.getScaleTargetRefChangeHandler(ctx, es, req),
 		})
+
 		// Watch for changes in public service
-		go r.Informer.Add(&informer.RequestWatch{
+		r.Informer.Add(&informer.RequestWatch{
 			Req:               req,
 			ResourceName:      es.Spec.Service,
 			ResourceNamespace: es.Namespace,
@@ -144,6 +149,11 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			},
 			Handlers: r.getPublicServiceChangeHandler(ctx, es, req),
 		})
+
+		r.Logger.Info("ScaleTargetRef and Public Service added to informer", zap.String("es", req.String()),
+			zap.String("scaleTargetRef", es.Spec.ScaleTargetRef.Name),
+			zap.String("public service", es.Spec.Service),
+		)
 	})
 
 	return res, nil
@@ -153,4 +163,9 @@ func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.ElastiService{}).
 		Complete(r)
+}
+
+func (r *ElastiServiceReconciler) getMutexForReconcile(key string) *sync.Mutex {
+	l, _ := r.ReconcileLocks.LoadOrStore(key, &sync.Mutex{})
+	return l.(*sync.Mutex)
 }

@@ -44,7 +44,7 @@ spec:
               idlePeriod:
                 format: int32
                 type: integer
-              minReplicas:
+              minTargetReplicas:
                 format: int32
                 type: integer
               queueTimeout:

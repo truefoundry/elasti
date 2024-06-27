@@ -74,7 +74,7 @@ We will build and publish our resolver changes.
 1. Go into resolver directory. 
 2. Run build and publish command.
 ```bash
-make docker-build-resolver docker-publish-resolver IMG=ramantehlan/elasti-resolver:latest  
+make docker-buildx-resolver IMG=ramantehlan/elasti-resolver:v1alpha1
 ```
 
 ### Build Operator
@@ -84,13 +84,20 @@ We will build and publish our Operator changes.
 1. Go into operator directory.
 2. Run build and publish command.
 ```bash
-make docker-build-resolver docker-publish-resolver IMG=ramantehlan/elasti-resolver:latest
+make docker-buildx IMG=ramantehlan/elasti-operator:v1alpha1
 ```
 
 > Once your changes are published, you can re-deploy in your cluster.
 
 # Configuration
 TBA
+
+# Playground 
+
+```
+ make docker-build docker-publish IMG=localhost:5001/elasti-operator:v1alpha1
+ make docker-build docker-publish IMG=localhost:5001/elasti-resolver:v1alpha1
+```
 
 # Icon 
 

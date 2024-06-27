@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: playground
-        image: localhost:5001/elasti-resolver:latest
+        image: localhost:5001/elasti-resolver:v1alpha1
         env:
         - name: SYSTEM_NAMESPACE
           value: elasti

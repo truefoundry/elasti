@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 
+	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/utils"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
@@ -64,4 +65,30 @@ func (r *ElastiServiceReconciler) checkAndCreatePrivateService(ctx context.Conte
 		return PVTName, err
 	}
 	return PVTName, nil
+}
+
+func (r *ElastiServiceReconciler) handlePublicServiceChanges(ctx context.Context, obj interface{}, serviceName, namespace string) {
+	publicService := &v1.Service{}
+	err := k8sHelper.UnstructuredToResource(obj, publicService)
+	if err != nil {
+		r.Logger.Error("Failed to convert unstructured to service", zap.Error(err))
+		return
+	}
+
+	if publicService.Name == serviceName {
+		targetNamespacedName := types.NamespacedName{
+			Name:      serviceName,
+			Namespace: namespace,
+		}
+		targetSVC := &v1.Service{}
+		if err := r.Get(ctx, targetNamespacedName, targetSVC); err != nil {
+			r.Logger.Error("Failed to get service to update endpointslice", zap.String("service", targetNamespacedName.String()), zap.Error(err))
+			return
+		}
+		if err := r.createOrUpdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
+			r.Logger.Error("Failed to create or update endpointslice to resolver", zap.String("service", targetNamespacedName.String()), zap.Error(err))
+			return
+		}
+	}
+	r.Logger.Info("Public service changed", zap.String("service", publicService.Name))
 }

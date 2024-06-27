@@ -100,6 +100,15 @@ metadata:
   name: elasti-operator-controller-manager
   namespace: elasti-operator-system
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-resolver
+  name: elasti-resolver
+  namespace: elasti
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -150,6 +159,16 @@ rules:
   - apps
   resources:
   - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - rollouts
   verbs:
   - get
   - list
@@ -297,7 +316,7 @@ roleRef:
   name: elasti-operator-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: elasti-operator-controller-manager
+  name: elasti-resolver
   namespace: elasti-operator-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -315,6 +334,22 @@ subjects:
 - kind: ServiceAccount
   name: elasti-operator-controller-manager
   namespace: elasti-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+  name: elasti-resolver-additional-access-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: elasti-operator-additional-access
+subjects:
+- kind: ServiceAccount
+  name: elasti-operator-controller-manager
+  namespace: elasti
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -484,7 +519,7 @@ spec:
     spec:
       containers:
       - name: playground
-        image: ramantehlan/elasti-resolver:latest
+        image: ramantehlan/elasti-resolver:v1alpha1
         env:
         - name: SYSTEM_NAMESPACE
           value: elasti
