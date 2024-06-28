@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -170,7 +171,9 @@ func (m *Manager) AddDeploymentWatch(req ctrl.Request, deploymentName, namespace
 // Add is to add a watch on a resource
 func (m *Manager) Add(req *RequestWatch) {
 	m.logger.Info("Adding informer",
-		zap.String("gvr", req.GroupVersionResource.String()),
+		zap.String("group", req.GroupVersionResource.Group),
+		zap.String("version", req.GroupVersionResource.Version),
+		zap.String("resource", req.GroupVersionResource.Resource),
 		zap.String("resourceName", req.ResourceName),
 		zap.String("resourceNamespace", req.ResourceNamespace),
 		zap.String("crd", req.Req.String()),
@@ -244,5 +247,9 @@ func (m *Manager) enableInformer(req *RequestWatch) {
 // getKeyFromRequestWatch is to get the key for the informer map using namespace and resource name from the request
 // CRDname.resourcerName.Namespace
 func (m *Manager) getKeyFromRequestWatch(req *RequestWatch) string {
-	return fmt.Sprintf("%s/%s/%s", req.Req.Name, req.ResourceName, req.ResourceNamespace)
+	return fmt.Sprintf("%s/%s/%s/%s",
+		strings.ToLower(req.ResourceNamespace),
+		strings.ToLower(req.Req.Name),
+		strings.ToLower(req.GroupVersionResource.Resource),
+		strings.ToLower(req.ResourceName))
 }

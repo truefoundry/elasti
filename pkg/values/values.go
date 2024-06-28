@@ -4,8 +4,9 @@ const (
 	ArgoPhaseHealthy              = "Healthy"
 	DeploymentConditionStatusTrue = "True"
 
-	KindDeployments = "Deployments"
-	KindRollout     = "Rollout"
+	KindDeployments = "deployments"
+	KindRollout     = "rollouts"
+	KindService     = "services"
 
 	ServeMode = "serve"
 	ProxyMode = "proxy"

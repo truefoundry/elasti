@@ -13,7 +13,7 @@ import (
 	"truefoundry.io/elasti/api/v1alpha1"
 )
 
-func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Context, obj interface{}, es *v1alpha1.ElastiService, req ctrl.Request) {
+func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Context, obj interface{}, _ *v1alpha1.ElastiService, req ctrl.Request) {
 	targetDeployment := &appsv1.Deployment{}
 	err := k8sHelper.UnstructuredToResource(obj, targetDeployment)
 	if err != nil {
@@ -22,21 +22,21 @@ func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Cont
 	}
 	condition := targetDeployment.Status.Conditions
 	if targetDeployment.Status.Replicas == 0 {
-		r.Logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
+		r.Logger.Debug("Deployment has 0 replicas", zap.String("deployment_name", targetDeployment.Name), zap.String("es", req.String()))
 		_, err := r.switchMode(ctx, req, values.ProxyMode)
 		if err != nil {
 			r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
 			return
 		}
 	} else if targetDeployment.Status.Replicas > 0 && condition[1].Status == values.DeploymentConditionStatusTrue {
-		r.Logger.Debug("Deployment has replicas", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
+		r.Logger.Debug("Deployment has replicas", zap.String("deployment_name", targetDeployment.Name), zap.String("es", req.String()))
 		_, err := r.switchMode(ctx, req, values.ServeMode)
 		if err != nil {
 			r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
 			return
 		}
 	}
-	r.Logger.Info("Deployment changes handled", zap.String("deployment_name", es.Spec.DeploymentName), zap.String("es", req.String()))
+	r.Logger.Info("Deployment changes handled", zap.String("deployment_name", targetDeployment.Name), zap.String("es", req.String()))
 }
 
 func (r *ElastiServiceReconciler) handleResolverChanges(ctx context.Context, obj interface{}, serviceName, namespace string) {

@@ -47,12 +47,10 @@ spec:
           spec:
             description: ElastiServiceSpec defines the desired state of ElastiService
             properties:
-              deploymentName:
-                type: string
               idlePeriod:
                 format: int32
                 type: integer
-              minReplicas:
+              minTargetReplicas:
                 format: int32
                 type: integer
               queueTimeout:
@@ -99,15 +97,6 @@ metadata:
     app.kubernetes.io/name: elasti-operator
   name: elasti-operator-controller-manager
   namespace: elasti-operator-system
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  labels:
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: elasti-resolver
-  name: elasti-resolver
-  namespace: elasti
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -166,16 +155,6 @@ rules:
   - update
   - patch
 - apiGroups:
-  - apps
-  resources:
-  - rollouts
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-  - patch
-- apiGroups:
   - discovery.k8s.io
   resources:
   - endpointslices
@@ -199,6 +178,16 @@ rules:
   - patch
   - delete
   - create
+- apiGroups:
+  - argoproj.io
+  resources:
+  - rollouts
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -316,40 +305,8 @@ roleRef:
   name: elasti-operator-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: elasti-resolver
-  namespace: elasti-operator-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: elasti-operator
-  name: elasti-operator-additional-access-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: elasti-operator-additional-access
-subjects:
-- kind: ServiceAccount
   name: elasti-operator-controller-manager
   namespace: elasti-operator-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: elasti-operator
-  name: elasti-resolver-additional-access-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: elasti-operator-additional-access
-subjects:
-- kind: ServiceAccount
-  name: elasti-operator-controller-manager
-  namespace: elasti
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -382,6 +339,38 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: elasti-operator-controller-manager
+  namespace: elasti-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+  name: elasti-operator-operator-additional-access-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: elasti-operator-additional-access
+subjects:
+- kind: ServiceAccount
+  name: elasti-operator-controller-manager
+  namespace: elasti-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+  name: elasti-operator-resolver-additional-access-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: elasti-operator-additional-access
+subjects:
+- kind: ServiceAccount
+  name: default
   namespace: elasti-operator-system
 ---
 apiVersion: v1
@@ -449,6 +438,7 @@ spec:
         command:
         - /manager
         image: ramantehlan/elasti-operator:v1alpha1
+        imagePullPolicy: Always
         livenessProbe:
           httpGet:
             path: /healthz
@@ -482,56 +472,3 @@ spec:
         runAsNonRoot: true
       serviceAccountName: elasti-operator-controller-manager
       terminationGracePeriodSeconds: 10
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: elasti
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: resolver-service
-  namespace: elasti
-spec:
-  selector:
-    app: elasti-resolver
-  ports:
-  - name: http-playground
-    protocol: TCP
-    port: 8012
-  type: LoadBalancer
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: elasti-resolver
-  namespace: elasti
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: elasti-resolver 
-  template:
-    metadata:
-      labels:
-        app: elasti-resolver 
-    spec:
-      containers:
-      - name: playground
-        image: ramantehlan/elasti-resolver:v1alpha1
-        env:
-        - name: SYSTEM_NAMESPACE
-          value: elasti
-        ports:
-        - containerPort: 8012
-        resources:
-          requests:
-            memory: "500Mi"
-            cpu: "250m"  
-          limits:
-            memory: "1Gi"
-            cpu: "750m"  
-
-
-

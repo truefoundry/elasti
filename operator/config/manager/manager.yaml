@@ -65,6 +65,7 @@ spec:
           - --health-probe-bind-address=:8081
           - --metrics-bind-address=0
         image: localhost:5001/elasti-operator:v1alpha1
+        imagePullPolicy: Always
         name: manager
         ports:
         - containerPort: 8013

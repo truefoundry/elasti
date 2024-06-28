@@ -3,6 +3,7 @@ package k8sHelper
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
@@ -73,7 +74,7 @@ func (k *Ops) getServiceSelectorStr(ns, svc string) (string, error) {
 
 // ScaleTargetWhenAtZero scales the TargetRef to the provided replicas when it's at 0
 func (k *Ops) ScaleTargetWhenAtZero(ns, targetName, targetKind string, replicas int32) error {
-	switch targetKind {
+	switch strings.ToLower(targetKind) {
 	case values.KindDeployments:
 		k.logger.Info("ScaleTargetRef kind is deployment", zap.String("kind", targetKind))
 		err := k.ScaleDeployment(ns, targetName, replicas)

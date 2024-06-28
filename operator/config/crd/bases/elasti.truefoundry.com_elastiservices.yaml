@@ -39,8 +39,6 @@ spec:
           spec:
             description: ElastiServiceSpec defines the desired state of ElastiService
             properties:
-              deploymentName:
-                type: string
               idlePeriod:
                 format: int32
                 type: integer

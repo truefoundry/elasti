@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"strings"
 	"sync"
 
 	"github.com/truefoundry/elasti/pkg/values"
@@ -69,7 +70,7 @@ func (r *ElastiServiceReconciler) getScaleTargetRefChangeHandler(ctx context.Con
 }
 
 func (r *ElastiServiceReconciler) handleScaleTargetRefChanges(ctx context.Context, obj interface{}, es *v1alpha1.ElastiService, req ctrl.Request) {
-	switch es.Spec.ScaleTargetRef.Kind {
+	switch strings.ToLower(es.Spec.ScaleTargetRef.Kind) {
 	case values.KindDeployments:
 		r.Logger.Info("ScaleTargetRef kind is deployment", zap.String("kind", es.Spec.ScaleTargetRef.Kind))
 		r.handleTargetDeploymentChanges(ctx, obj, es, req)

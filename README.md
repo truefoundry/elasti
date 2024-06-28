@@ -33,20 +33,20 @@ TBA
 
 # Installation / Deployment on K8s
 
-You will be able to install the Elasti Tool by applying the `install.yaml` manifest.
+You will be able to install the Elasti Tool by following command
 ```bash
-kubectl install -f install.yaml
+make deploy
 ```
 
-After this, you can start creating elastiService, you can find a sample at `./playground/config/watch-crd.yaml`.
+After this, you can start creating elastiService, you can find a sample at `demo-elastiService.yaml`
 Please use the exact format.
 
 # Uninstallation 
 
-For this, you will need to remove all the CRDs first. 
+For this, **you will need to remove all the CRDs first. **
 Post that, just delete the install file. 
 ```bash
-kubectl delete -f install.yaml
+make undeploy
 ```
 
 # Development
@@ -74,7 +74,7 @@ We will build and publish our resolver changes.
 1. Go into resolver directory. 
 2. Run build and publish command.
 ```bash
-make docker-buildx-resolver IMG=ramantehlan/elasti-resolver:v1alpha1
+make docker-buildx IMG=ramantehlan/elasti-resolver:v1alpha1
 ```
 
 ### Build Operator

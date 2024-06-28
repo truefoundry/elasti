@@ -4,20 +4,15 @@ metadata:
   labels:
     app.kubernetes.io/name: elasti-operator
     app.kubernetes.io/managed-by: kustomize
-  name: emotion-class
+  name: emotion-class-elasti-service
   namespace: raman-ws
 spec:
   queueTimeout: 4
   idlePeriod: 20
-  service: emotion-class-svc
-  deploymentName: emotion-class-svc
   minTargetReplicas: 1
-  # scaleTargetRef:
-  #   apiVersion: apps/v1
-  #   kind: Rollouts
-  #   name: emotion-class-svc
+  service: emotion-class-svc
   scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployments
+    apiVersion: argoproj.io/v1alpha1
+    kind: rollouts
     name: emotion-class-svc
 

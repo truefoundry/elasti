@@ -16,6 +16,7 @@ spec:
       containers:
       - name: playground
         image: localhost:5001/elasti-resolver:v1alpha1
+        imagePullPolicy: Always
         env:
         - name: SYSTEM_NAMESPACE
           value: elasti

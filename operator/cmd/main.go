@@ -63,6 +63,10 @@ const (
 )
 
 func main() {
+	zapLogger, err := tfLogger.NewLogger("dev")
+	if err != nil {
+		setupLog.Error(err, "unable to create logger")
+	}
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
@@ -131,11 +135,6 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
-	}
-
-	zapLogger, err := tfLogger.NewLogger("dev")
-	if err != nil {
-		setupLog.Error(err, "unable to create logger")
 	}
 
 	// Start the shared CRD Directory
