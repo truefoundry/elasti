@@ -13,6 +13,12 @@ import (
 	"truefoundry.io/elasti/api/v1alpha1"
 )
 
+const (
+	// Prefix is the name of the NamespacedName string for CRD
+	lockKeyPostfixForPublicSVC = "public-service"
+	lockKeyPostfixForTargetRef = "scale-target-ref"
+)
+
 func (r *ElastiServiceReconciler) getMutexForInformerStart(key string) *sync.Once {
 	l, _ := r.InformerStartLocks.LoadOrStore(key, &sync.Once{})
 	return l.(*sync.Once)
@@ -20,6 +26,14 @@ func (r *ElastiServiceReconciler) getMutexForInformerStart(key string) *sync.Onc
 
 func (r *ElastiServiceReconciler) resetMutexForInformer(key string) {
 	r.InformerStartLocks.Delete(key)
+}
+
+func (r *ElastiServiceReconciler) getMutexKeyForPublicSVC(req ctrl.Request) string {
+	return req.String() + lockKeyPostfixForPublicSVC
+}
+
+func (r *ElastiServiceReconciler) getMutexKeyForTargetRef(req ctrl.Request) string {
+	return req.String() + lockKeyPostfixForTargetRef
 }
 
 func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) cache.ResourceEventHandlerFuncs {

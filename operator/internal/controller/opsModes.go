@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/truefoundry/elasti/pkg/values"
@@ -64,7 +63,7 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.
 		return err
 	}
 
-	// Watch for changes in activator deployment, and update the endpointslice since we are in proxy mode
+	// Watch for changes in resolver deployment, and update the endpointslice since we are in proxy mode
 	r.Informer.AddDeploymentWatch(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req))
 
 	return nil
@@ -72,8 +71,8 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.
 
 func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService) error {
 	// Stop the watch on resolver deployment, since we are in serve mode
-	resolverInformerKey := fmt.Sprintf("%s/%s/%s", req.Name, resolverDeploymentName, resolverNamespace)
-	r.Informer.StopInformer(resolverInformerKey)
+	key := r.Informer.GetKey(resolverNamespace, req.Name, resolverDeploymentName, values.KindDeployments)
+	r.Informer.StopInformer(key)
 
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,

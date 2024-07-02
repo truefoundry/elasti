@@ -2,18 +2,18 @@ package main
 
 import (
 	"context"
-	"github.com/kelseyhightower/envconfig"
-	"github.com/truefoundry/elasti/pkg/k8sHelper"
-	"github.com/truefoundry/elasti/pkg/logger"
-	"go.uber.org/zap"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"log"
 	"net/http"
 	"time"
 	"truefoundry/resolver/internal/handler"
 	"truefoundry/resolver/internal/hostManager"
 	"truefoundry/resolver/internal/operator"
+
+	"github.com/kelseyhightower/envconfig"
+	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/logger"
+	"go.uber.org/zap"
+	"k8s.io/client-go/rest"
 )
 
 type config struct {
@@ -46,12 +46,8 @@ func main() {
 	if err != nil {
 		logger.Fatal("Error fetching cluster config", zap.Error(err))
 	}
-	kClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
-	}
 
-	k8sUtil := k8sHelper.NewOps(logger, kClient)
+	k8sUtil := k8sHelper.NewOps(logger, config)
 	operatorRPC := operator.NewOperatorClient(logger, operatorRetryDuration)
 	reqHostManager := hostManager.NewHostManager(logger, trafficReEnableDuration)
 	requestHandler := handler.NewHandler(ctx, logger, &handler.HandlerConfig{

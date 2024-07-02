@@ -248,8 +248,17 @@ func (m *Manager) enableInformer(req *RequestWatch) {
 // CRDname.resourcerName.Namespace
 func (m *Manager) getKeyFromRequestWatch(req *RequestWatch) string {
 	return fmt.Sprintf("%s/%s/%s/%s",
-		strings.ToLower(req.ResourceNamespace),
-		strings.ToLower(req.Req.Name),
-		strings.ToLower(req.GroupVersionResource.Resource),
-		strings.ToLower(req.ResourceName))
+		strings.ToLower(req.ResourceNamespace),             // Namespace
+		strings.ToLower(req.Req.Name),                      // CRD Name
+		strings.ToLower(req.GroupVersionResource.Resource), // Resource Type
+		strings.ToLower(req.ResourceName))                  // Resource Name
+}
+
+// GetKey is to get the key for the informer map using namespace and resource name
+func (m *Manager) GetKey(namespace, crdName, resource, resourceName string) string {
+	return fmt.Sprintf("%s/%s/%s/%s",
+		strings.ToLower(namespace),    // Namespace
+		strings.ToLower(crdName),      // CRD Name
+		strings.ToLower(resource),     // Resource Type
+		strings.ToLower(resourceName)) // Resource Name
 }

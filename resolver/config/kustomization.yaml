@@ -15,8 +15,13 @@ namespace: elasti
 #    someName: someValue
 
 resources:
+- namespace.yaml
+# - serviceAccount.yaml
+- clusterRole.yaml
+- clusterRoleBinding.yaml
 - deployment.yaml
 - service.yaml
+
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
 # crd/kustomization.yaml
 #- ../webhook

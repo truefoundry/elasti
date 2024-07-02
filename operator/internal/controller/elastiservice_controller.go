@@ -2,23 +2,17 @@ package controller
 
 import (
 	"context"
-	"strings"
 	"sync"
 
-	"github.com/truefoundry/elasti/pkg/utils"
 	"truefoundry.io/elasti/internal/crdDirectory"
 	"truefoundry.io/elasti/internal/informer"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	kRuntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"truefoundry.io/elasti/api/v1alpha1"
-
-	"runtime"
 
 	"go.uber.org/zap"
 )
@@ -59,23 +53,12 @@ const (
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
 func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, err error) {
-	defer func() {
-		if rErr := recover(); rErr != nil {
-			r.Logger.Error("Recovered from panic", zap.Any("recovered", rErr))
-			buf := make([]byte, 4096)
-			n := runtime.Stack(buf, false)
-			r.Logger.Error("Panic stack trace", zap.ByteString("stacktrace", buf[:n]))
-		}
-	}()
-
 	r.Logger.Debug("- In Reconcile", zap.String("es", req.NamespacedName.String()))
 	mutex := r.getMutexForReconcile(req.NamespacedName.String())
 	mutex.Lock()
 	defer r.Logger.Debug("- Out of Reconcile", zap.String("es", req.NamespacedName.String()))
 	defer mutex.Unlock()
 
-	// First we get the ElastiService object
-	// No mutex is taken for this, as we are not modifying the object, but if we face issues in future, we can add a mutex
 	es, esErr := r.getCRD(ctx, req.NamespacedName)
 	if esErr != nil {
 		if errors.IsNotFound(esErr) {
@@ -87,24 +70,26 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// If the ElastiService is being deleted, we need to clean up the resources
-	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
-		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
-			// If CRD contains finalizer, we call the finaizer function and remove the finalizer post that
-			if err := r.finalizeCRD(ctx, es, req); err != nil {
-				r.Logger.Error("Failed to enable serve mode", zap.String("es", req.String()), zap.Error(err))
-				return res, err
-			}
-			controllerutil.RemoveFinalizer(es, v1alpha1.ElastiServiceFinalizer)
-			if err := r.Update(ctx, es); err != nil {
-				return res, err
-			}
-		}
-		return res, nil
+	if err := r.checkIfCRDIsDeleted(ctx, es, req); err != nil {
+		r.Logger.Error("Failed to check if CRD is deleted", zap.String("es", req.String()), zap.Error(err))
+		return res, err
 	}
 
 	// We also check if the CRD has finalizer, and if not, we add the finalizer
-	if err := r.checkFinalizerCRD(ctx, es, req); err != nil {
+	if err := r.checkAndAddCRDFinalizer(ctx, es, req); err != nil {
 		r.Logger.Error("Failed to finalize CRD", zap.String("es", req.String()), zap.Error(err))
+		return res, err
+	}
+
+	// Check if ScaleTargetRef is present, and has not changed from the values in CRDDirectory
+	if err := r.checkChangesInScaleTargetRef(ctx, es, req); err != nil {
+		r.Logger.Error("Failed to check changes in ScaleTargetRef", zap.String("es", req.String()), zap.Error(err))
+		return res, err
+	}
+
+	// Check if Public Service is present, and has not changed from the values in CRDDirectory
+	if err := r.checkChangesInPublicService(ctx, es, req); err != nil {
+		r.Logger.Error("Failed to check changes in public service", zap.String("es", req.String()), zap.Error(err))
 		return res, err
 	}
 
@@ -114,48 +99,6 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		CRDName: es.Name,
 		Spec:    es.Spec,
 	})
-
-	// We need to start the informer only once per CRD. This is to avoid multiple informers for the same CRD
-	// We reset mutex if crd is deleted, so it can be used again if the same CRD is reapplied
-	r.getMutexForInformerStart(req.NamespacedName.String()).Do(func() {
-		targetGroup, targetVersion, err := utils.ParseAPIVersion(es.Spec.ScaleTargetRef.APIVersion)
-		if err != nil {
-			r.Logger.Error("Failed to parse API version", zap.String("APIVersion", es.Spec.ScaleTargetRef.APIVersion), zap.Error(err))
-			return
-		}
-
-		// Watch for changes in ScaleTargetRef
-		r.Informer.Add(&informer.RequestWatch{
-			Req:               req,
-			ResourceName:      es.Spec.ScaleTargetRef.Name,
-			ResourceNamespace: req.Namespace,
-			GroupVersionResource: &schema.GroupVersionResource{
-				Group:    targetGroup,
-				Version:  targetVersion,
-				Resource: strings.ToLower(es.Spec.ScaleTargetRef.Kind),
-			},
-			Handlers: r.getScaleTargetRefChangeHandler(ctx, es, req),
-		})
-
-		// Watch for changes in public service
-		r.Informer.Add(&informer.RequestWatch{
-			Req:               req,
-			ResourceName:      es.Spec.Service,
-			ResourceNamespace: es.Namespace,
-			GroupVersionResource: &schema.GroupVersionResource{
-				Group:    "",
-				Version:  "v1",
-				Resource: "services",
-			},
-			Handlers: r.getPublicServiceChangeHandler(ctx, es, req),
-		})
-
-		r.Logger.Info("ScaleTargetRef and Public Service added to informer", zap.String("es", req.String()),
-			zap.String("scaleTargetRef", es.Spec.ScaleTargetRef.Name),
-			zap.String("public service", es.Spec.Service),
-		)
-	})
-
 	return res, nil
 }
 

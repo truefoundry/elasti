@@ -1,5 +1,7 @@
 package values
 
+import "k8s.io/apimachinery/pkg/runtime/schema"
+
 const (
 	ArgoPhaseHealthy              = "Healthy"
 	DeploymentConditionStatusTrue = "True"
@@ -11,4 +13,18 @@ const (
 	ServeMode = "serve"
 	ProxyMode = "proxy"
 	NullMode  = ""
+)
+
+var (
+	RolloutGVR = schema.GroupVersionResource{
+		Group:    "argoproj.io",
+		Version:  "v1alpha1",
+		Resource: "rollouts",
+	}
+
+	ServiceGVR = schema.GroupVersionResource{
+		Group:    "",
+		Version:  "v1",
+		Resource: "services",
+	}
 )

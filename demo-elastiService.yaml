@@ -9,7 +9,7 @@ metadata:
 spec:
   queueTimeout: 4
   idlePeriod: 20
-  minTargetReplicas: 1
+  minTargetReplicas: 2
   service: emotion-class-svc
   scaleTargetRef:
     apiVersion: argoproj.io/v1alpha1

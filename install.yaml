@@ -1,6 +1,11 @@
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: elasti
+---
+apiVersion: v1
+kind: Namespace
+metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: elasti-operator
@@ -292,6 +297,35 @@ rules:
   - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: elasti-resolver-additional-access
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
@@ -363,15 +397,15 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: elasti-operator
-  name: elasti-operator-resolver-additional-access-binding
+  name: elasti-resolver-additional-access-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: elasti-operator-additional-access
+  name: elasti-resolver-additional-access
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: elasti-operator-system
+  namespace: elasti
 ---
 apiVersion: v1
 kind: Service
@@ -408,6 +442,20 @@ spec:
     targetPort: 8013
   selector:
     control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: resolver-service
+  namespace: elasti
+spec:
+  ports:
+  - name: http-playground
+    port: 8012
+    protocol: TCP
+  selector:
+    app: elasti-resolver
+  type: LoadBalancer
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -472,3 +520,35 @@ spec:
         runAsNonRoot: true
       serviceAccountName: elasti-operator-controller-manager
       terminationGracePeriodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasti-resolver
+  namespace: elasti
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasti-resolver
+  template:
+    metadata:
+      labels:
+        app: elasti-resolver
+    spec:
+      containers:
+      - env:
+        - name: SYSTEM_NAMESPACE
+          value: elasti
+        image: ramantehlan/elasti-resolver:v1alpha1
+        imagePullPolicy: Always
+        name: playground
+        ports:
+        - containerPort: 8012
+        resources:
+          limits:
+            cpu: 750m
+            memory: 1Gi
+          requests:
+            cpu: 250m
+            memory: 500Mi

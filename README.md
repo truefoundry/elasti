@@ -105,7 +105,13 @@ The icon is <a href="https://www.flaticon.com/free-icons/full-screen" title="ful
 
 
 
+---
 
+```
+Get argo rollout type locally
+kubectl apply -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+
+```
 
 
 

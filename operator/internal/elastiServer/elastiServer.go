@@ -6,9 +6,9 @@ import (
 	"io"
 	"net/http"
 
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/go-errors/errors"
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
@@ -30,13 +30,8 @@ type (
 )
 
 func NewServer(logger *zap.Logger, config *rest.Config) *Server {
-	// Get kubernetes client
-	kClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
-	}
 	// Get Ops client
-	k8sUtil := k8sHelper.NewOps(logger, kClient)
+	k8sUtil := k8sHelper.NewOps(logger, config)
 	return &Server{
 		logger:    logger.Named("elastiServer"),
 		k8sHelper: k8sUtil,
@@ -108,6 +103,7 @@ func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace
 	crd, found := crdDirectory.CRDDirectory.GetCRD(serviceName)
 	if !found {
 		s.logger.Error("Failed to get CRD details from directory")
+		return errors.New("Failed to get CRD details from directory")
 	}
 	if err := s.k8sHelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
 		s.logger.Error("Failed to scale TargetRef", zap.Any("TargetRef", crd.Spec.ScaleTargetRef), zap.Error(err))

@@ -16,16 +16,13 @@ helm-chart: ## Create Helm chart for the operator
 
 .PHONY: generate-manifest
 generate-manifest: ## Generate deploy manifest
-	kustomize build operator/config/default > ./operator/install.yaml
-	kustomize build resolver/config/ > ./resolver/install.yaml
+	kustomize build . > ./install.yaml
 
 .PHONY: deploy
 deploy: ## Deploy the operator and resolver
-	kubectl apply -f ./resolver/install.yaml
-	kubectl apply -f ./operator/install.yaml	
+	kubectl apply -f ./install.yaml
 
 .PHONY: undeploy
 undeploy: ## Undeploy the operator and resolver
-	kubectl delete -f ./resolver/install.yaml
-	kubectl delete -f ./operator/install.yaml	
+	kubectl delete -f ./install.yaml
 

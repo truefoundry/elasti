@@ -9,20 +9,32 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 // Ops help you do various operations in your kubernetes cluster
 type Ops struct {
-	kClient *kubernetes.Clientset
-	logger  *zap.Logger
+	kClient        *kubernetes.Clientset
+	kDynamicClient *dynamic.DynamicClient
+	logger         *zap.Logger
 }
 
 // NewOps create a new instance for the K9s Operations
-func NewOps(logger *zap.Logger, kClient *kubernetes.Clientset) *Ops {
+func NewOps(logger *zap.Logger, config *rest.Config) *Ops {
+	kClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
+	}
+	kDynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
+	}
 	return &Ops{
-		logger:  logger.Named("k8sOps"),
-		kClient: kClient,
+		logger:         logger.Named("k8sOps"),
+		kClient:        kClient,
+		kDynamicClient: kDynamicClient,
 	}
 }
 
@@ -112,5 +124,17 @@ func (k *Ops) ScaleDeployment(ns, targetName string, replicas int32) error {
 
 func (k *Ops) ScaleArgoRollout(ns, targetName string, replicas int32) error {
 	k.logger.Debug("Scaling Rollout yet to be implimented", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
+
+	rollout, err := k.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Get(context.TODO(), targetName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	currentReplicas := rollout.Object["spec"].(map[string]interface{})["replicas"]
+	if currentReplicas == 0 {
+		rollout.Object["spec"].(map[string]interface{})["replicas"] = replicas
+		_, err = k.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Update(context.TODO(), rollout, metav1.UpdateOptions{})
+		return err
+	}
 	return nil
 }
