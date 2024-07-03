@@ -3,12 +3,12 @@ package elastiServer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
 	"k8s.io/client-go/rest"
 
-	"github.com/go-errors/errors"
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
@@ -75,7 +75,7 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 			s.logger.Error("Failed to close Body", zap.Error(err))
 		}
 	}(req.Body)
-	s.logger.Info("Received request from Resolver", zap.Any("body", body))
+	s.logger.Info("-- Received request from Resolver", zap.Any("body", body))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	response := Response{
@@ -96,14 +96,14 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 		s.logger.Error("Failed to compare and scale deployment", zap.Error(err))
 		return
 	}
-	s.logger.Info("Received fulfilled from Resolver", zap.Any("body", body))
+	s.logger.Info("-- Received fulfilled from Resolver", zap.Any("body", body))
 }
 
 func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace string) error {
 	crd, found := crdDirectory.CRDDirectory.GetCRD(serviceName)
 	if !found {
 		s.logger.Error("Failed to get CRD details from directory")
-		return errors.New("Failed to get CRD details from directory")
+		return errors.New("failed to get CRD details from directory")
 	}
 	if err := s.k8sHelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
 		s.logger.Error("Failed to scale TargetRef", zap.Any("TargetRef", crd.Spec.ScaleTargetRef), zap.Error(err))

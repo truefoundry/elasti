@@ -3,9 +3,6 @@ package handler
 import (
 	"context"
 	"errors"
-	"github.com/truefoundry/elasti/pkg/k8sHelper"
-	"github.com/truefoundry/elasti/pkg/messages"
-	"go.uber.org/zap"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -14,6 +11,10 @@ import (
 	"sync"
 	"time"
 	"truefoundry/resolver/internal/throttler"
+
+	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/messages"
+	"go.uber.org/zap"
 )
 
 type (
@@ -92,19 +93,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	go h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
-	targetURL, err := url.Parse(host.TargetHost + req.RequestURI)
-	if err != nil {
-		h.logger.Error("Error parsing target URL", zap.Error(err))
-		http.Error(w, "Error parsing target URL", http.StatusInternalServerError)
-		return
-	}
 	select {
 	case <-ctx.Done():
 		h.logger.Error("Request timeout", zap.Error(ctx.Err()))
 		w.WriteHeader(http.StatusInternalServerError)
 	default:
 		if tryErr := h.throttler.Try(ctx, host, func(count int) error {
-			err := h.ProxyRequest(w, req, targetURL, count)
+			err := h.ProxyRequest(w, req, host.TargetHost, count)
 			if err != nil {
 				return err
 			}
@@ -121,7 +116,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetURL *url.URL, count int) (rErr error) {
+func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, host string, count int) (rErr error) {
 	defer func() {
 		if r := recover(); r != nil {
 			h.logger.Error("Recovered from panic", zap.Any("panic", r))
@@ -131,6 +126,12 @@ func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetU
 			rErr = r.(error)
 		}
 	}()
+	targetURL, err := url.Parse(host)
+	if err != nil {
+		h.logger.Error("Error parsing target URL", zap.Error(err))
+		http.Error(w, "Error parsing target URL", http.StatusInternalServerError)
+		return
+	}
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.BufferPool = h.bufferPool
 	proxy.Transport = h.transport

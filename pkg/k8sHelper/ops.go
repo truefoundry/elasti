@@ -2,12 +2,10 @@ package k8sHelper
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -38,50 +36,22 @@ func NewOps(logger *zap.Logger, config *rest.Config) *Ops {
 	}
 }
 
-// CheckIfServicePodActive returns true if even a single pod for a service is active
-func (k *Ops) CheckIfServicePodActive(ns, svc string) (bool, error) {
-	selectors, err := k.getServiceSelectorStr(ns, svc)
+// CheckIfServiceEnpointActive returns true if endpoint for a service is active
+func (k *Ops) CheckIfServiceEnpointActive(ns, svc string) (bool, error) {
+	endpoint, err := k.kClient.CoreV1().Endpoints(ns).Get(context.TODO(), svc, metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
-	pods, err := k.kClient.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{
-		LabelSelector: selectors,
-	})
-	if err != nil {
-		return false, err
-	}
-	if len(pods.Items) == 0 {
-		return false, ErrNoPodFound
-	}
-	podActive := false
-	for _, pod := range pods.Items {
-		if pod.Status.Phase == corev1.PodRunning {
-			podActive = true
-			break
+
+	if endpoint.Subsets != nil && len(endpoint.Subsets) > 0 {
+		if endpoint.Subsets[0].Addresses != nil && len(endpoint.Subsets[0].Addresses) != 0 {
+			k.logger.Debug("Checking if service endpoint is active", zap.String("service", svc), zap.String("namespace", ns), zap.Any("endpoint", endpoint.Subsets[0].Addresses))
+			k.logger.Debug("Service endpoint is active", zap.String("service", svc), zap.String("namespace", ns))
+			return true, nil
 		}
 	}
-	if !podActive {
-		return podActive, ErrNoActivePodFound
-	}
-
-	return podActive, nil
-}
-
-// GetServiceSelectorStr is to generate a k8s acceptable selector string for the provided service
-func (k *Ops) getServiceSelectorStr(ns, svc string) (string, error) {
-	service, err := k.kClient.CoreV1().Services(ns).Get(context.TODO(), svc, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	selectorString := ""
-	for key, value := range service.Spec.Selector {
-		if selectorString != "" {
-			selectorString += ","
-		}
-		selectorString += fmt.Sprintf("%s=%s", key, value)
-	}
-
-	return selectorString, nil
+	k.logger.Debug("Service endpoint is not active", zap.String("service", svc), zap.String("namespace", ns), zap.Any("endpoint", endpoint.Subsets))
+	return false, nil
 }
 
 // ScaleTargetWhenAtZero scales the TargetRef to the provided replicas when it's at 0
@@ -123,18 +93,25 @@ func (k *Ops) ScaleDeployment(ns, targetName string, replicas int32) error {
 }
 
 func (k *Ops) ScaleArgoRollout(ns, targetName string, replicas int32) error {
-	k.logger.Debug("Scaling Rollout yet to be implimented", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
+	k.logger.Debug("Scaling Rollout", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
 
 	rollout, err := k.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Get(context.TODO(), targetName, metav1.GetOptions{})
 	if err != nil {
+		k.logger.Error("Error getting rollout", zap.Error(err), zap.String("rollout", targetName))
 		return err
 	}
 
-	currentReplicas := rollout.Object["spec"].(map[string]interface{})["replicas"]
+	currentReplicas := rollout.Object["spec"].(map[string]interface{})["replicas"].(int64)
+	k.logger.Debug("Rollout found", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
 	if currentReplicas == 0 {
 		rollout.Object["spec"].(map[string]interface{})["replicas"] = replicas
 		_, err = k.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Update(context.TODO(), rollout, metav1.UpdateOptions{})
-		return err
+		if err != nil {
+			k.logger.Error("Error updating rollout", zap.Error(err), zap.String("rollout", targetName))
+			return err
+		}
+		k.logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
 	}
+
 	return nil
 }

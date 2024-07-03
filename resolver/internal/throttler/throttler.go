@@ -2,10 +2,11 @@ package throttler
 
 import (
 	"context"
+	"time"
+
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
-	"time"
 )
 
 type Throttler struct {
@@ -37,11 +38,11 @@ func (t *Throttler) Try(ctx context.Context, host *messages.Host, resolve func(i
 		reenqueue = false
 		var tryErr error
 		if tryErr = t.breaker.Maybe(ctx, func() {
-			if isPodActive, err := t.k8sUtil.CheckIfServicePodActive(host.Namespace, host.TargetService); err != nil {
-				t.logger.Info("Unable to get target active pod", zap.Error(err), zap.Int("retryCount", retryCount))
+			if isPodActive, err := t.k8sUtil.CheckIfServiceEnpointActive(host.Namespace, host.TargetService); err != nil {
+				t.logger.Info("Unable to get target active endpoints", zap.Error(err), zap.Int("retryCount", retryCount))
 				reenqueue = true
 			} else if !isPodActive {
-				t.logger.Info("No active pods", zap.Any("host", host), zap.Int("retryCount", retryCount))
+				t.logger.Info("No active endpoints", zap.Any("host", host), zap.Int("retryCount", retryCount))
 				reenqueue = true
 			} else {
 				if res := resolve(retryCount); res != nil {
