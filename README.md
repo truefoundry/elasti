@@ -36,10 +36,13 @@ TBA
 You will be able to install the Elasti Tool by following command
 ```bash
 make deploy
+
+or 
+
+kubectl apply -f install.yaml
 ```
 
 After this, you can start creating elastiService, you can find a sample at `demo-elastiService.yaml`
-Please use the exact format.
 
 # Uninstallation 
 
@@ -47,6 +50,10 @@ For this, **you will need to remove all the CRDs first. **
 Post that, just delete the install file. 
 ```bash
 make undeploy
+
+or 
+
+kubectl delete -f install.yaml
 ```
 
 # Development
