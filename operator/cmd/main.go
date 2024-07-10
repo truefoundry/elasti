@@ -58,7 +58,6 @@ func init() {
 }
 
 const (
-	// TODO: This can be configured to be sent via config or env
 	elastiServerPort = ":8013"
 )
 

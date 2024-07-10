@@ -3,9 +3,10 @@ package elastiServer
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"sync"
 
 	"k8s.io/client-go/rest"
 
@@ -24,8 +25,9 @@ type (
 	// It is used by components about certain events, like when resolver receive the request
 	// for a service, that service is scaled up if it's at 0 replicas
 	Server struct {
-		logger    *zap.Logger
-		k8sHelper *k8sHelper.Ops
+		logger     *zap.Logger
+		k8sHelper  *k8sHelper.Ops
+		scaleLocks sync.Map
 	}
 )
 
@@ -93,22 +95,29 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 	}
 	err = s.scaleTargetForService(ctx, body.Svc, body.Namespace)
 	if err != nil {
-		s.logger.Error("Failed to compare and scale deployment", zap.Error(err))
+		s.logger.Error("Failed to compare and scale target", zap.Error(err))
 		return
 	}
 	s.logger.Info("-- Received fulfilled from Resolver", zap.Any("body", body))
 }
 
 func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace string) error {
+	scaleMutex := s.getMutexForServiceScale(serviceName)
+	scaleMutex.Lock()
+	defer s.logger.Debug("Scale target lock released")
+	defer scaleMutex.Unlock()
+	s.logger.Debug("Scale target lock taken")
 	crd, found := crdDirectory.CRDDirectory.GetCRD(serviceName)
 	if !found {
-		s.logger.Error("Failed to get CRD details from directory")
-		return errors.New("failed to get CRD details from directory")
+		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, serviceName: %s", serviceName)
 	}
 	if err := s.k8sHelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
-		s.logger.Error("Failed to scale TargetRef", zap.Any("TargetRef", crd.Spec.ScaleTargetRef), zap.Error(err))
-		return err
+		return fmt.Errorf("scaleTargetForService - error: %w, targetRefKind: %s, targetRefName: %s", err, crd.Spec.ScaleTargetRef.Kind, crd.Spec.ScaleTargetRef.Name)
 	}
-	s.logger.Info("TargetRef is scaled up", zap.Any("TargetRef", crd.Spec.ScaleTargetRef))
 	return nil
+}
+
+func (s *Server) getMutexForServiceScale(serviceName string) *sync.Mutex {
+	l, _ := s.scaleLocks.LoadOrStore(serviceName, &sync.Mutex{})
+	return l.(*sync.Mutex)
 }

@@ -35,7 +35,7 @@ docker-buildx: ## Build and push docker image for cross-platform support
 	$(CONTAINER_TOOL) buildx use project-resolver-v3-builder
 	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile ../
 	- $(CONTAINER_TOOL) buildx rm project-resolver-v3-builder
-	# rm Dockerfile.cross
+	# rm Dockerfile.cross 
 
 
 .PHONY: deploy

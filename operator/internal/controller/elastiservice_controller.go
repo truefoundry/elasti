@@ -70,9 +70,12 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// If the ElastiService is being deleted, we need to clean up the resources
-	if err := r.checkIfCRDIsDeleted(ctx, es, req); err != nil {
+	if isDeleted, err := r.checkIfCRDIsDeleted(ctx, es, req); err != nil {
 		r.Logger.Error("Failed to check if CRD is deleted", zap.String("es", req.String()), zap.Error(err))
 		return res, err
+	} else if isDeleted {
+		r.Logger.Info("CRD is deleted", zap.String("es", req.String()))
+		return res, nil
 	}
 
 	// We also check if the CRD has finalizer, and if not, we add the finalizer
@@ -84,12 +87,6 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Check if ScaleTargetRef is present, and has not changed from the values in CRDDirectory
 	if err := r.checkChangesInScaleTargetRef(ctx, es, req); err != nil {
 		r.Logger.Error("Failed to check changes in ScaleTargetRef", zap.String("es", req.String()), zap.Error(err))
-		return res, err
-	}
-
-	// Check if Public Service is present, and has not changed from the values in CRDDirectory
-	if err := r.checkChangesInPublicService(ctx, es, req); err != nil {
-		r.Logger.Error("Failed to check changes in public service", zap.String("es", req.String()), zap.Error(err))
 		return res, err
 	}
 

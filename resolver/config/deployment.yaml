@@ -18,8 +18,26 @@ spec:
         image: localhost:5001/elasti-resolver:v1alpha1
         imagePullPolicy: Always
         env:
-        - name: SYSTEM_NAMESPACE
-          value: elasti
+        - name: MAX_IDLE_PROXY_CONNS
+          value: "10"
+        - name: MAX_IDLE_PROXY_CONNS_PER_HOST
+          value: "100"
+        - name: REQ_TIMEOUT
+          value: "10"       
+        - name: TRAFFIC_RE_ENABLE_DURATION
+          value: "10"
+        - name: OPERATOR_RETRY_DURATION
+          value: "10"
+        - name: HEADER_FOR_HOST
+          value: X-Envoy-Decorator-Operation
+        - name: QUEUE_SIZE
+          value: "50"
+        - name: QUEUE_RETRY_DURATION
+          value: "2"       
+        - name: MAX_QUEUE_CONCURRENCY
+          value: "5"
+        - name: INITIAL_CAPACITY
+          value: "10"
         ports:
         - containerPort: 8012
         resources:

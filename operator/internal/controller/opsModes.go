@@ -59,6 +59,13 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.
 	if err != nil {
 		return err
 	}
+
+	// Check if Public Service is present, and has not changed from the values in CRDDirectory
+	if err := r.checkChangesInPublicService(ctx, es, req); err != nil {
+		r.Logger.Error("Failed to check changes in public service", zap.String("es", req.String()), zap.Error(err))
+		return err
+	}
+
 	if err = r.createOrUpdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
 		return err
 	}

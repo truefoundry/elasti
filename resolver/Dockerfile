@@ -27,9 +27,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o re
 
 FROM alpine:latest
 COPY --from=builder /workspace/resolver .
-EXPOSE 8080
 EXPOSE 8012
-EXPOSE 8013
 CMD ["./resolver"]
 
  

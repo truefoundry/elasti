@@ -2,6 +2,7 @@ package k8sHelper
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/truefoundry/elasti/pkg/values"
@@ -45,73 +46,71 @@ func (k *Ops) CheckIfServiceEnpointActive(ns, svc string) (bool, error) {
 
 	if endpoint.Subsets != nil && len(endpoint.Subsets) > 0 {
 		if endpoint.Subsets[0].Addresses != nil && len(endpoint.Subsets[0].Addresses) != 0 {
-			k.logger.Debug("Checking if service endpoint is active", zap.String("service", svc), zap.String("namespace", ns), zap.Any("endpoint", endpoint.Subsets[0].Addresses))
 			k.logger.Debug("Service endpoint is active", zap.String("service", svc), zap.String("namespace", ns))
 			return true, nil
 		}
 	}
-	k.logger.Debug("Service endpoint is not active", zap.String("service", svc), zap.String("namespace", ns), zap.Any("endpoint", endpoint.Subsets))
 	return false, nil
 }
 
 // ScaleTargetWhenAtZero scales the TargetRef to the provided replicas when it's at 0
 func (k *Ops) ScaleTargetWhenAtZero(ns, targetName, targetKind string, replicas int32) error {
+	k.logger.Info("Initiating scale of ScaleTargetRef", zap.String("kind", targetKind), zap.String("kind_name", targetName), zap.Int32("replicas", replicas))
 	switch strings.ToLower(targetKind) {
 	case values.KindDeployments:
-		k.logger.Info("ScaleTargetRef kind is deployment", zap.String("kind", targetKind))
 		err := k.ScaleDeployment(ns, targetName, replicas)
 		if err != nil {
-			return err
+			return fmt.Errorf("ScaleTargetWhenAtZero - Deployment: %w", err)
 		}
 	case values.KindRollout:
-		k.logger.Info("ScaleTargetRef kind is rollout", zap.String("kind", targetKind))
 		err := k.ScaleArgoRollout(ns, targetName, replicas)
 		if err != nil {
-			return err
+			return fmt.Errorf("ScaleTargetWhenAtZero - Rollout: %w", err)
 		}
 	default:
-		k.logger.Error("Unsupported target kind", zap.String("kind", targetKind))
+		return fmt.Errorf("unsupported target kind: %s", targetKind)
 	}
 	return nil
 }
 
 func (k *Ops) ScaleDeployment(ns, targetName string, replicas int32) error {
-	k.logger.Debug("Scaling deployment", zap.String("deployment", targetName), zap.Int32("replicas", replicas))
 	deploymentClient := k.kClient.AppsV1().Deployments(ns)
 	deploy, err := deploymentClient.Get(context.TODO(), targetName, metav1.GetOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("ScaleDeployment - GET: %w", err)
 	}
 
 	k.logger.Debug("Deployment found", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas), zap.Int32("desired replicas", replicas))
 	if *deploy.Spec.Replicas == 0 {
 		deploy.Spec.Replicas = &replicas
 		_, err = deploymentClient.Update(context.TODO(), deploy, metav1.UpdateOptions{})
-		return err
+		if err != nil {
+			return fmt.Errorf("ScaleDeployment - Update: %w", err)
+		}
+		k.logger.Info("Deployment scaled", zap.String("deployment", targetName), zap.Int32("replicas", replicas))
+		return nil
 	}
+	k.logger.Info("Deployment already scaled", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas))
 	return nil
 }
 
 func (k *Ops) ScaleArgoRollout(ns, targetName string, replicas int32) error {
-	k.logger.Debug("Scaling Rollout", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
-
 	rollout, err := k.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Get(context.TODO(), targetName, metav1.GetOptions{})
 	if err != nil {
-		k.logger.Error("Error getting rollout", zap.Error(err), zap.String("rollout", targetName))
-		return err
+		return fmt.Errorf("ScaleArgoRollout - GET: %w", err)
 	}
-
 	currentReplicas := rollout.Object["spec"].(map[string]interface{})["replicas"].(int64)
-	k.logger.Debug("Rollout found", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
+	k.logger.Info("Rollout found", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
 	if currentReplicas == 0 {
 		rollout.Object["spec"].(map[string]interface{})["replicas"] = replicas
 		_, err = k.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Update(context.TODO(), rollout, metav1.UpdateOptions{})
 		if err != nil {
-			k.logger.Error("Error updating rollout", zap.Error(err), zap.String("rollout", targetName))
-			return err
+			return fmt.Errorf("ScaleArgoRollout - Update: %w", err)
 		}
 		k.logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
+		return nil
 	}
+	k.logger.Info("Rollout already scaled", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas))
 
 	return nil
 }

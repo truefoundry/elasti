@@ -12,7 +12,6 @@ import (
 	"time"
 	"truefoundry/resolver/internal/throttler"
 
-	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
 )
@@ -29,13 +28,14 @@ type (
 		hostManager HostManager
 	}
 
-	// HandlerConfig is the configuration for the handler
-	HandlerConfig struct {
-		MaxIdleProxyConns        int
-		MaxIdleProxyConnsPerHost int
-		OperatorRPC              Operator
-		HostManager              HostManager
-		K8sUtil                  *k8sHelper.Ops
+	// HandlerParams is the configuration for the handler
+	HandlerParams struct {
+		Logger      *zap.Logger
+		ReqTimeout  time.Duration
+		OperatorRPC Operator
+		HostManager HostManager
+		Throttler   *throttler.Throttler
+		Transport   http.RoundTripper
 	}
 
 	// Operator is to communicate with the operator
@@ -51,15 +51,13 @@ type (
 )
 
 // NewHandler returns a new Handler
-func NewHandler(ctx context.Context, logger *zap.Logger, hc *HandlerConfig) *Handler {
-	transport := throttler.NewProxyAutoTransport(logger, hc.MaxIdleProxyConns, hc.MaxIdleProxyConnsPerHost)
-	newThrottler := throttler.NewThrottler(ctx, logger, hc.K8sUtil)
+func NewHandler(hc *HandlerParams) *Handler {
 	return &Handler{
-		throttler:   newThrottler,
-		logger:      logger.With(zap.String("component", "handler")),
-		transport:   transport,
+		throttler:   hc.Throttler,
+		logger:      hc.Logger.With(zap.String("component", "handler")),
+		transport:   hc.Transport,
 		bufferPool:  NewBufferPool(),
-		timeout:     10 * time.Second,
+		timeout:     hc.ReqTimeout,
 		operatorRPC: hc.OperatorRPC,
 		hostManager: hc.HostManager,
 	}
@@ -70,9 +68,8 @@ type Response struct {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// Get host details from hostManager
 	h.logger.Debug("Request received")
-	ctx, cancel := context.WithTimeout(context.Background(), h.timeout)
-	defer cancel()
 	host, err := h.hostManager.GetHost(req)
 	if err != nil {
 		h.logger.Error("Error getting host", zap.Error(err))
@@ -80,6 +77,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	h.logger.Debug("host received", zap.Any("host", host))
+
+	// This closes the connections, in case the host is scaled up by the controller.
 	if !host.TrafficAllowed {
 		h.logger.Info("Traffic not allowed", zap.Any("host", host))
 		w.Header().Set("Connection", "close")
@@ -92,28 +91,29 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		return
 	}
+
+	// Inform the controller about the incoming request
 	go h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
-	select {
-	case <-ctx.Done():
-		h.logger.Error("Request timeout", zap.Error(ctx.Err()))
-		w.WriteHeader(http.StatusInternalServerError)
-	default:
-		if tryErr := h.throttler.Try(ctx, host, func(count int) error {
-			err := h.ProxyRequest(w, req, host.TargetHost, count)
-			if err != nil {
-				return err
-			}
-			h.hostManager.DisableTrafficForHost(host.SourceService)
-			return nil
-		}); tryErr != nil {
-			h.logger.Error("throttler try error: ", zap.Error(tryErr))
-			if errors.Is(tryErr, context.DeadlineExceeded) {
-				http.Error(w, tryErr.Error(), http.StatusServiceUnavailable)
-			} else {
-				w.WriteHeader(http.StatusInternalServerError)
-			}
+
+	// Send request to throttler
+	ctx, cancel := context.WithTimeout(context.Background(), h.timeout)
+	defer cancel()
+	if tryErr := h.throttler.Try(ctx, host, func(count int) error {
+		err := h.ProxyRequest(w, req, host.TargetHost, count)
+		if err != nil {
+			return err
+		}
+		h.hostManager.DisableTrafficForHost(host.SourceService)
+		return nil
+	}); tryErr != nil {
+		h.logger.Error("throttler try error: ", zap.Error(tryErr))
+		if errors.Is(tryErr, context.DeadlineExceeded) {
+			http.Error(w, tryErr.Error(), http.StatusServiceUnavailable)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}
+	h.logger.Debug("Try completed")
 }
 
 func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, host string, count int) (rErr error) {

@@ -33,9 +33,7 @@ type ElastiServiceSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	ScaleTargetRef    ScaleTargetRef `json:"scaleTargetRef,omitempty"`
 	Service           string         `json:"service,omitempty"`
-	QTimout           int32          `json:"queueTimeout,omitempty"`
-	IdlePeriod        int32          `json:"idlePeriod,omitempty"`
-	MinTargetReplicas int32          `json:"minTargetReplicas,omitempty"`
+	MinTargetReplicas int32          `json:"minTargetReplicas,omitempty" default:"1"`
 }
 
 type ScaleTargetRef struct {

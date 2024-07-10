@@ -6,11 +6,8 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: target
 spec:
-  queueTimeout: 4
-  idlePeriod: 20
   service: target-service
-  deploymentName: target
-  minTargetReplicas: 2
+  minTargetReplicas: 0
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployments

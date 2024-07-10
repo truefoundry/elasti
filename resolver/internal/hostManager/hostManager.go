@@ -21,14 +21,16 @@ type HostManager struct {
 	logger                  *zap.Logger
 	hosts                   sync.Map
 	trafficReEnableDuration time.Duration
+	headerForHost           string
 }
 
 // NewHostManager returns a new HostManager
-func NewHostManager(logger *zap.Logger, trafficReEnableDuration time.Duration) *HostManager {
+func NewHostManager(logger *zap.Logger, trafficReEnableDuration time.Duration, headerForHost string) *HostManager {
 	return &HostManager{
 		logger:                  logger.With(zap.String("component", "hostManager")),
 		hosts:                   sync.Map{},
 		trafficReEnableDuration: trafficReEnableDuration,
+		headerForHost:           headerForHost,
 	}
 }
 
@@ -37,7 +39,7 @@ func (hm *HostManager) GetHost(req *http.Request) (*messages.Host, error) {
 	var namespace, sourceService, targetService, sourceHost, targetHost string
 	sourceHost = req.Host
 	internal := true
-	if values, ok := req.Header["X-Envoy-Decorator-Operation"]; ok {
+	if values, ok := req.Header[hm.headerForHost]; ok {
 		sourceHost = values[0]
 		internal = false
 	}

@@ -2,6 +2,7 @@ package throttler
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
@@ -9,57 +10,74 @@ import (
 	"go.uber.org/zap"
 )
 
-type Throttler struct {
-	logger        *zap.Logger
-	breaker       *Breaker
-	k8sUtil       *k8sHelper.Ops
-	retryDuration time.Duration
-}
+type (
+	Throttler struct {
+		logger        *zap.Logger
+		breaker       *Breaker
+		k8sUtil       *k8sHelper.Ops
+		retryDuration time.Duration
+	}
 
-func NewThrottler(ctx context.Context, logger *zap.Logger, k8sUtil *k8sHelper.Ops) *Throttler {
+	ThrottlerParams struct {
+		QueueRetryDuration time.Duration
+		K8sUtil            *k8sHelper.Ops
+		QueueDepth         int
+		MaxConcurrency     int
+		InitialCapacity    int
+		Logger             *zap.Logger
+	}
+)
+
+func NewThrottler(param *ThrottlerParams) *Throttler {
+	breaker := NewBreaker(BreakerParams{
+		QueueDepth:      param.QueueDepth,
+		MaxConcurrency:  param.MaxConcurrency,
+		InitialCapacity: param.InitialCapacity,
+		Logger:          param.Logger,
+	})
+
 	return &Throttler{
-		logger: logger.With(zap.String("component", "throttler")),
-		// TODOs: We will make this parameter dynamic
-		breaker: NewBreaker(BreakerParams{
-			QueueDepth:      200,
-			MaxConcurrency:  10,
-			InitialCapacity: 200,
-			Logger:          logger,
-		}),
-		k8sUtil:       k8sUtil,
-		retryDuration: 5 * time.Second,
+		logger:        param.Logger.With(zap.String("component", "throttler")),
+		breaker:       breaker,
+		k8sUtil:       param.K8sUtil,
+		retryDuration: param.QueueRetryDuration,
 	}
 }
 
 func (t *Throttler) Try(ctx context.Context, host *messages.Host, resolve func(int) error) error {
 	reenqueue := true
-	retryCount := 1
+	tryCount := 1
+	var tryErr error
+
 	for reenqueue {
-		reenqueue = false
-		var tryErr error
-		if tryErr = t.breaker.Maybe(ctx, func() {
+		breakErr := t.breaker.Maybe(ctx, func() {
 			if isPodActive, err := t.k8sUtil.CheckIfServiceEnpointActive(host.Namespace, host.TargetService); err != nil {
-				t.logger.Info("Unable to get target active endpoints", zap.Error(err), zap.Int("retryCount", retryCount))
-				reenqueue = true
+				tryErr = fmt.Errorf("unable to get target active endpoints: %w", err)
 			} else if !isPodActive {
-				t.logger.Info("No active endpoints", zap.Any("host", host), zap.Int("retryCount", retryCount))
-				reenqueue = true
-			} else {
-				if res := resolve(retryCount); res != nil {
-					t.logger.Error("Error resolving proxy request", zap.Error(res), zap.Int("retryCount", retryCount))
-					reenqueue = false
-					tryErr = res
-					return
-				}
+				tryErr = fmt.Errorf("no active endpoints found for namespace: %v service: %v", host.Namespace, host.TargetService)
+			} else if res := resolve(tryCount); res != nil {
+				tryErr = fmt.Errorf("resolve error: %w", res)
+				reenqueue = false
 			}
 
-			if reenqueue {
-				retryCount++
-				time.Sleep(t.retryDuration)
+			select {
+			case <-ctx.Done():
+				// NOTE: We have commited it to stop it from overridding the previous error
+				//tryErr = fmt.Errorf("context done error: %w", ctx.Err())
+				reenqueue = false
+			default:
+				if reenqueue {
+					tryCount++
+					time.Sleep(t.retryDuration)
+				}
 			}
-		}); tryErr != nil {
-			t.logger.Error("Error resolving request", zap.Error(tryErr), zap.Int("retryCount", retryCount))
+		})
+		if breakErr != nil {
+			return fmt.Errorf("breaker error: %w", breakErr)
 		}
+	}
+	if tryErr != nil {
+		return fmt.Errorf("thunk error: %w retry count: %v", tryErr, tryCount)
 	}
 	return nil
 }

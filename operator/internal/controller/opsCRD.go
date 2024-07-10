@@ -56,14 +56,13 @@ func (r *ElastiServiceReconciler) checkAndAddCRDFinalizer(ctx context.Context, e
 	return nil
 }
 
+// finalizeCRD reset changes made for the CRD
 func (r *ElastiServiceReconciler) finalizeCRD(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
 	r.Logger.Info("ElastiService is being deleted", zap.String("name", es.Name), zap.Any("deletionTimestamp", es.ObjectMeta.DeletionTimestamp))
 	// Reset the informer start mutex, so if the ElastiService is recreated, we will need to reset the informer
 	r.resetMutexForInformer(r.getMutexKeyForTargetRef(req))
 	r.resetMutexForInformer(r.getMutexKeyForPublicSVC(req))
-	// Stop all active informers
-	// NOTE: If the informerManager is shared across multiple controllers, this will stop all informers
-	// In that case, we must call the
+	// Stop all active informers related to this CRD
 	go r.Informer.StopForCRD(req.Name)
 	// Remove CRD details from service directory
 	crdDirectory.CRDDirectory.RemoveCRD(es.Spec.Service)
@@ -134,24 +133,11 @@ func (r *ElastiServiceReconciler) checkChangesInScaleTargetRef(ctx context.Conte
 }
 
 // checkChangesInPublicService checks if the Public Service has changed, and makes sure it's not null
-
 func (r *ElastiServiceReconciler) checkChangesInPublicService(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
 	if es.Spec.Service == "" {
 		r.Logger.Error("Public Service is not present", zap.String("es", req.String()))
 		return k8sHelper.ErrNoPublicServiceFound
 	}
-
-	// crd, found := crdDirectory.CRDDirectory.GetCRD(es.Spec.Service)
-	// if found {
-	// 	if crd.Spec.Service != es.Spec.Service {
-	// 		r.Logger.Info("Public Service has changed", zap.String("es", req.String()))
-	// 		r.Logger.Debug("Stopping informer for public service", zap.String("public service", crd.Spec.Service))
-	// 		key := r.Informer.GetKey(req.Namespace, req.Name, crd.Spec.Service, values.KindService)
-	// 		r.Informer.StopInformer(key)
-	// 		r.Logger.Debug("Resetting mutex for public service", zap.String("public service", crd.Spec.Service))
-	// 		r.resetMutexForInformer(r.getMutexKeyForPublicSVC(req))
-	// 	}
-	// }
 
 	r.getMutexForInformerStart(r.getMutexKeyForPublicSVC(req)).Do(func() {
 		r.Informer.Add(&informer.RequestWatch{
@@ -170,20 +156,21 @@ func (r *ElastiServiceReconciler) checkChangesInPublicService(ctx context.Contex
 	return nil
 }
 
-func (r *ElastiServiceReconciler) checkIfCRDIsDeleted(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
+func (r *ElastiServiceReconciler) checkIfCRDIsDeleted(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) (bool, error) {
 	// If the ElastiService is being deleted, we need to clean up the resources
 	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
 			// If CRD contains finalizer, we call the finaizer function and remove the finalizer post that
 			if err := r.finalizeCRD(ctx, es, req); err != nil {
 				r.Logger.Error("Failed to enable serve mode", zap.String("es", req.String()), zap.Error(err))
-				return err
+				return true, err
 			}
 			controllerutil.RemoveFinalizer(es, v1alpha1.ElastiServiceFinalizer)
 			if err := r.Update(ctx, es); err != nil {
-				return err
+				return true, err
 			}
 		}
+		return true, nil
 	}
-	return nil
+	return false, nil
 }

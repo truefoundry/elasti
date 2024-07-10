@@ -1,13 +1,13 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"time"
 	"truefoundry/resolver/internal/handler"
 	"truefoundry/resolver/internal/hostManager"
 	"truefoundry/resolver/internal/operator"
+	"truefoundry/resolver/internal/throttler"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
@@ -19,43 +19,66 @@ import (
 type config struct {
 	MaxIdleProxyConns        int `split_words:"true" default:"1000"`
 	MaxIdleProxyConnsPerHost int `split_words:"true" default:"100"`
+	// ReqTimeout is the timeout for each request
+	ReqTimeout int `split_words:"true" default:"10"`
+	// TrafficReEnableDuration is the duration for which the traffic is disabled for a host
+	TrafficReEnableDuration int `split_words:"true" default:"30"`
+	// OperatorRetryDuration is the duration for which we don't inform the operator
+	// about the traffic on the same host
+	OperatorRetryDuration int `split_words:"true" default:"30"`
+	// QueueRetryDuration is the duration after we retry the requests in queue
+	QueueRetryDuration int `split_words:"true" default:"5"`
+	// QueueSize is the size of the queue
+	QueueSize int `split_words:"true" default:"100"`
+	// MaxQueueConcurrency is the maximum number of concurrent requests
+	MaxQueueConcurrency int `split_words:"true" default:"10"`
+	// InitialCapacity is the initial capacity of the semaphore
+	InitialCapacity int `split_words:"true" default:"100"`
+	// HeaderForHost is the header to look for to get the host
+	HeaderForHost string `split_words:"true" default:"Host"`
 }
 
 const (
-	port                    = ":8012"
-	trafficReEnableDuration = 30 * time.Second
-	operatorRetryDuration   = 30 * time.Second
+	port = ":8012"
 )
 
 func main() {
-	ctx := context.Background()
 	logger, err := logger.NewLogger("dev")
 	if err != nil {
 		log.Fatal("Failed to get logger: ", err)
 	}
-
-	// Read env values
 	var env config
 	if err := envconfig.Process("", &env); err != nil {
 		log.Fatal("Failed to process env: ", err)
 	}
-	logger.Info("config", zap.Int("MaxIdleProxyConns", env.MaxIdleProxyConns), zap.Int("MaxIdleProxyConnsPerHost", env.MaxIdleProxyConnsPerHost))
-
-	// Get kubernetes client
+	logger.Info("config", zap.Any("env", env))
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		logger.Fatal("Error fetching cluster config", zap.Error(err))
 	}
 
+	// Get components required for the handler
 	k8sUtil := k8sHelper.NewOps(logger, config)
-	operatorRPC := operator.NewOperatorClient(logger, operatorRetryDuration)
-	reqHostManager := hostManager.NewHostManager(logger, trafficReEnableDuration)
-	requestHandler := handler.NewHandler(ctx, logger, &handler.HandlerConfig{
-		MaxIdleProxyConns:        env.MaxIdleProxyConns,
-		MaxIdleProxyConnsPerHost: env.MaxIdleProxyConnsPerHost,
-		OperatorRPC:              operatorRPC,
-		HostManager:              reqHostManager,
-		K8sUtil:                  k8sUtil,
+	newOperatorRPC := operator.NewOperatorClient(logger, time.Duration(env.OperatorRetryDuration)*time.Second)
+	newHostManager := hostManager.NewHostManager(logger, time.Duration(env.TrafficReEnableDuration)*time.Second, env.HeaderForHost)
+	newTransport := throttler.NewProxyAutoTransport(logger, env.MaxIdleProxyConns, env.MaxIdleProxyConnsPerHost)
+	newThrottler := throttler.NewThrottler(&throttler.ThrottlerParams{
+		QueueRetryDuration: time.Duration(env.QueueRetryDuration) * time.Second,
+		K8sUtil:            k8sUtil,
+		QueueDepth:         env.QueueSize,
+		MaxConcurrency:     env.MaxQueueConcurrency,
+		InitialCapacity:    env.InitialCapacity,
+		Logger:             logger,
+	})
+
+	// Create a handler
+	requestHandler := handler.NewHandler(&handler.HandlerParams{
+		Logger:      logger,
+		ReqTimeout:  time.Duration(env.ReqTimeout) * time.Second,
+		OperatorRPC: newOperatorRPC,
+		HostManager: newHostManager,
+		Throttler:   newThrottler,
+		Transport:   newTransport,
 	})
 
 	// Handle all the incoming requests

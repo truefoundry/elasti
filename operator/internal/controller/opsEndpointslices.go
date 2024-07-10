@@ -58,8 +58,8 @@ func (r *ElastiServiceReconciler) createOrUpdateEndpointsliceToResolver(ctx cont
 		return err
 	}
 
-	// TODO: Suggestion is to give it a random name in end, to avoid any conflicts, which is rare, but possible.
-	// In case of random name, we need to store the name in CRD.
+	// NOTE: Suggestion is to give it a random name in end, to avoid any conflicts, which is rare, but possible.
+	// In case of random name, we need to store the name in CRD. Right now, we provide a deterministic hashed name.
 	newEndpointsliceToResolverName := utils.GetEndpointSliceToResolverName(service.Name)
 	EndpointsliceNamespacedName := types.NamespacedName{
 		Name:      newEndpointsliceToResolverName,
@@ -116,7 +116,7 @@ func (r *ElastiServiceReconciler) createOrUpdateEndpointsliceToResolver(ctx cont
 		}
 		r.Logger.Info("EndpointSlice updated successfully", zap.String("endpointslice", EndpointsliceNamespacedName.String()))
 	} else {
-		// TODO: Make sure the private service is owned by the ElastiService
+		// TODOS: Make sure the private service is owned by the ElastiService
 		if err := r.Create(ctx, newEndpointSlice); err != nil {
 			r.Logger.Error("failed to create sliceToResolver", zap.String("endpointslice", EndpointsliceNamespacedName.String()), zap.Error(err))
 			return err
