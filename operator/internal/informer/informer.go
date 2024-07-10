@@ -254,11 +254,18 @@ func (m *Manager) getKeyFromRequestWatch(req *RequestWatch) string {
 		strings.ToLower(req.ResourceName))                  // Resource Name
 }
 
+type KeyParams struct {
+	Namespace    string
+	CRDName      string
+	Resource     string
+	ResourceName string
+}
+
 // GetKey is to get the key for the informer map using namespace and resource name
-func (m *Manager) GetKey(namespace, crdName, resource, resourceName string) string {
+func (m *Manager) GetKey(param KeyParams) string {
 	return fmt.Sprintf("%s/%s/%s/%s",
-		strings.ToLower(crdName),      // CRD Name
-		strings.ToLower(namespace),    // Namespace
-		strings.ToLower(resource),     // Resource Type
-		strings.ToLower(resourceName)) // Resource Name
+		strings.ToLower(param.CRDName),      // CRD Name
+		strings.ToLower(param.Namespace),    // Namespace
+		strings.ToLower(param.Resource),     // Resource Type
+		strings.ToLower(param.ResourceName)) // Resource Name
 }

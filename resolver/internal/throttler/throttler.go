@@ -50,20 +50,22 @@ func (t *Throttler) Try(ctx context.Context, host *messages.Host, resolve func(i
 	var tryErr error
 
 	for reenqueue {
+		tryErr = nil
 		breakErr := t.breaker.Maybe(ctx, func() {
 			if isPodActive, err := t.k8sUtil.CheckIfServiceEnpointActive(host.Namespace, host.TargetService); err != nil {
 				tryErr = fmt.Errorf("unable to get target active endpoints: %w", err)
 			} else if !isPodActive {
 				tryErr = fmt.Errorf("no active endpoints found for namespace: %v service: %v", host.Namespace, host.TargetService)
-			} else if res := resolve(tryCount); res != nil {
-				tryErr = fmt.Errorf("resolve error: %w", res)
+			} else {
+				if res := resolve(tryCount); res != nil {
+					tryErr = fmt.Errorf("resolve error: %w", res)
+				}
 				reenqueue = false
 			}
 
 			select {
 			case <-ctx.Done():
-				// NOTE: We have commited it to stop it from overridding the previous error
-				//tryErr = fmt.Errorf("context done error: %w", ctx.Err())
+				tryErr = fmt.Errorf("context done error: %w", ctx.Err())
 				reenqueue = false
 			default:
 				if reenqueue {

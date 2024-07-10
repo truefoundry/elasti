@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"truefoundry.io/elasti/api/v1alpha1"
+	"truefoundry.io/elasti/internal/informer"
 )
 
 func (r *ElastiServiceReconciler) getMutexForSwitchMode(key string) *sync.Mutex {
@@ -78,7 +79,12 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.
 
 func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService) error {
 	// Stop the watch on resolver deployment, since we are in serve mode
-	key := r.Informer.GetKey(resolverNamespace, req.Name, resolverDeploymentName, values.KindDeployments)
+	key := r.Informer.GetKey(informer.KeyParams{
+		Namespace:    resolverNamespace,
+		CRDName:      req.Name,
+		ResourceName: resolverDeploymentName,
+		Resource:     values.KindDeployments,
+	})
 	r.Informer.StopInformer(key)
 
 	targetNamespacedName := types.NamespacedName{

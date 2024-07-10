@@ -31,11 +31,11 @@ spec:
         - name: HEADER_FOR_HOST
           value: X-Envoy-Decorator-Operation
         - name: QUEUE_SIZE
-          value: "50"
+          value: "100"
         - name: QUEUE_RETRY_DURATION
           value: "2"       
         - name: MAX_QUEUE_CONCURRENCY
-          value: "5"
+          value: "10"
         - name: INITIAL_CAPACITY
           value: "10"
         ports:

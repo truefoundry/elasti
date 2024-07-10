@@ -100,7 +100,12 @@ func (r *ElastiServiceReconciler) checkChangesInScaleTargetRef(ctx context.Conte
 			es.Spec.ScaleTargetRef.APIVersion != crd.Spec.ScaleTargetRef.APIVersion {
 			r.Logger.Info("ScaleTargetRef has changed", zap.String("es", req.String()))
 			r.Logger.Debug("Stopping informer for scaleTargetRef", zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
-			key := r.Informer.GetKey(req.Namespace, req.Name, crd.Spec.ScaleTargetRef.Name, strings.ToLower(crd.Spec.ScaleTargetRef.Kind))
+			key := r.Informer.GetKey(informer.KeyParams{
+				Namespace:    req.Namespace,
+				CRDName:      req.Name,
+				ResourceName: crd.Spec.ScaleTargetRef.Name,
+				Resource:     strings.ToLower(crd.Spec.ScaleTargetRef.Kind),
+			})
 			r.Informer.StopInformer(key)
 			r.Logger.Debug("Resetting mutex for scaleTargetRef", zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
 			r.resetMutexForInformer(r.getMutexKeyForTargetRef(req))

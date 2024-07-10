@@ -3,11 +3,10 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"runtime"
-	"strconv"
 	"sync"
 	"time"
 	"truefoundry/resolver/internal/throttler"
@@ -116,54 +115,42 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	h.logger.Debug("Try completed")
 }
 
-func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, host string, count int) (rErr error) {
+func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetHost string, count int) (rErr error) {
 	defer func() {
 		if r := recover(); r != nil {
-			h.logger.Error("Recovered from panic", zap.Any("panic", r))
-			buf := make([]byte, 4096)
-			n := runtime.Stack(buf, false)
-			h.logger.Error("Panic stack trace", zap.ByteString("stacktrace", buf[:n]))
-			rErr = r.(error)
+			rErr = fmt.Errorf("panic in ProxyRequest: %w", r.(error))
 		}
 	}()
-	targetURL, err := url.Parse(host)
+	targetURL, err := url.Parse(targetHost + req.RequestURI)
 	if err != nil {
 		h.logger.Error("Error parsing target URL", zap.Error(err))
 		http.Error(w, "Error parsing target URL", http.StatusInternalServerError)
 		return
 	}
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	//proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	proxy := h.NewHeaderPruningReverseProxy(targetURL, true)
 	proxy.BufferPool = h.bufferPool
 	proxy.Transport = h.transport
-	req.Header.Set("elasti-retry-count", strconv.Itoa(count))
+	// req.Header.Set("elasti-retry-count", strconv.Itoa(count))
 	proxy.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
-		panic(err)
+		panic(fmt.Errorf("serveHTTP error: %w", err))
 	}
 	proxy.ServeHTTP(w, req)
 	return nil
 }
-
-// NoHostOverride signifies that no host overriding should be done and that the host
-// should be inferred from the target of the reverse-proxy.
-const NoHostOverride = ""
 
 // NewHeaderPruningReverseProxy returns a httputil.ReverseProxy that proxies
 // requests to the given targetHost after removing the headersToRemove.
 // If hostOverride is not an empty string, the outgoing request's Host header will be
 // replaced with that explicit value and the passthrough loadbalancing header will be
 // set to enable pod-addressability.
-func (h *Handler) NewHeaderPruningReverseProxy(target, hostOverride string, useHTTPS bool) *httputil.ReverseProxy {
+func (h *Handler) NewHeaderPruningReverseProxy(target *url.URL, hostOverride bool) *httputil.ReverseProxy {
 	return &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
-			if useHTTPS {
-				req.URL.Scheme = "https"
-			} else {
-				req.URL.Scheme = "http"
-			}
-			req.URL.Host = target
+			req.URL = target
 
-			if hostOverride != NoHostOverride {
-				req.Host = target
+			if hostOverride {
+				req.Host = target.Host
 			}
 		},
 	}

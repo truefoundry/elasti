@@ -4,12 +4,13 @@ metadata:
   labels:
     app.kubernetes.io/name: elasti-operator
     app.kubernetes.io/managed-by: kustomize
-  name: target
+  name: httpbin-hello
+  namespace: raman-ws
 spec:
-  service: target-service
   minTargetReplicas: 1
+  service: httpbin-hello
   scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployments
-    name: target
- 
+    apiVersion: argoproj.io/v1alpha1
+    kind: rollouts
+    name: httpbin-hello
+
