@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/utils"
@@ -17,15 +18,14 @@ func (r *ElastiServiceReconciler) deletePrivateService(ctx context.Context, publ
 	privateServiceNamespacedName := publichServiceNamespacedName
 	privateServiceNamespacedName.Name = utils.GetPrivateSerivceName(publichServiceNamespacedName.Name)
 	privateSVC := &v1.Service{}
-	if err := r.Get(ctx, privateServiceNamespacedName, privateSVC); err != nil {
-		if errors.IsNotFound(err) {
-			r.Logger.Info("Private Service already deleted or not found", zap.String("private-service", privateServiceNamespacedName.String()))
-			return nil
-		}
-		return err
+	if err := r.Get(ctx, privateServiceNamespacedName, privateSVC); err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("failed to get private service: %w", err)
+	} else if errors.IsNotFound(err) {
+		return nil
 	}
+
 	if err := r.Delete(ctx, privateSVC); err != nil {
-		return err
+		return fmt.Errorf("failed to delete private service: %w", err)
 	}
 	return nil
 }

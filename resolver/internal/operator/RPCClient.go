@@ -18,8 +18,8 @@ type Client struct {
 	logger *zap.Logger
 	// retryDuration is the duration to wait before retrying the operator
 	retryDuration time.Duration
-	// rpcMap is to keep track of the locks for different services
-	rpcMap sync.Map
+	// serviceRPCLocks is to keep track of the locks for different services
+	serviceRPCLocks sync.Map
 	// operatorURL is the URL of the operator
 	operatorURL string
 	// incomingRequestEndpoint is the endpoint to send information about the incoming request
@@ -41,10 +41,15 @@ func NewOperatorClient(logger *zap.Logger, retryDuration time.Duration) *Client 
 
 // SendIncomingRequestInfo send request details like service name to the operator
 func (o *Client) SendIncomingRequestInfo(ns, svc string) {
-	if _, ok := o.rpcMap.Load(svc); ok {
-		o.logger.Debug("Operator already informed about incoming requests", zap.String("service", svc))
+	lock, taken := o.getMutexForServiceRPC(svc)
+	if taken {
 		return
 	}
+	lock.Lock()
+	defer time.AfterFunc(o.retryDuration, func() {
+		o.releaseMutexForServiceRPC(svc)
+	})
+
 	requestBody := messages.RequestCount{
 		Count:     1,
 		Svc:       svc,
@@ -77,14 +82,19 @@ func (o *Client) SendIncomingRequestInfo(ns, svc string) {
 			return
 		}
 		o.logger.Info("Request sent to controller", zap.Int("statusCode", resp.StatusCode), zap.Any("body", resp.Body))
-		o.rpcMap.Store(svc, true)
-		go time.AfterFunc(o.retryDuration, o.getLockReleaseFunc(svc))
 	}
 }
 
-// getLockReleaseFunc returns a function to release the lock, taken by the operatorRPC to rate limit the requests
-func (o *Client) getLockReleaseFunc(svc string) func() {
-	return func() {
-		o.rpcMap.Delete(svc)
+func (o *Client) releaseMutexForServiceRPC(service string) {
+	lock, loaded := o.serviceRPCLocks.Load(service)
+	if !loaded {
+		return
 	}
+	lock.(*sync.Mutex).Unlock()
+	o.serviceRPCLocks.Delete(service)
+}
+
+func (o *Client) getMutexForServiceRPC(service string) (*sync.Mutex, bool) {
+	m, loaded := o.serviceRPCLocks.LoadOrStore(service, &sync.Mutex{})
+	return m.(*sync.Mutex), loaded
 }

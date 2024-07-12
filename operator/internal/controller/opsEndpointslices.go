@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/truefoundry/elasti/pkg/utils"
 	"go.uber.org/zap"
@@ -37,16 +38,15 @@ func (r *ElastiServiceReconciler) getIPsForResolver(ctx context.Context) ([]stri
 func (r *ElastiServiceReconciler) deleteEndpointsliceToResolver(ctx context.Context, serviceNamespacedName types.NamespacedName) error {
 	endpointSlice := &networkingv1.EndpointSlice{}
 	serviceNamespacedName.Name = utils.GetEndpointSliceToResolverName(serviceNamespacedName.Name)
-	if err := r.Get(ctx, serviceNamespacedName, endpointSlice); err != nil {
-		if errors.IsNotFound(err) {
-			r.Logger.Info("EndpointSlice already deleted or not found", zap.String("service", serviceNamespacedName.String()))
-			return nil
-		}
+	if err := r.Get(ctx, serviceNamespacedName, endpointSlice); err != nil && !errors.IsNotFound(err) {
 		r.Logger.Error("Failed to get endpoint slice", zap.String("service", serviceNamespacedName.String()), zap.Error(err))
-		return err
+		return fmt.Errorf("failed to get endpointslice: %w", err)
+	} else if errors.IsNotFound(err) {
+		return nil
 	}
+
 	if err := r.Delete(ctx, endpointSlice); err != nil {
-		return err
+		return fmt.Errorf("failed to delete endpointslice: %w", err)
 	}
 	return nil
 }

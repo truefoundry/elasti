@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
@@ -21,8 +22,7 @@ import (
 func (r *ElastiServiceReconciler) getCRD(ctx context.Context, crdNamespacedName types.NamespacedName) (*v1alpha1.ElastiService, error) {
 	es := &v1alpha1.ElastiService{}
 	if err := r.Get(ctx, crdNamespacedName, es); err != nil {
-		r.Logger.Error("Failed to get ElastiService", zap.String("es", crdNamespacedName.String()), zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to get ElastiService: %w", err)
 	}
 	return es, nil
 }
@@ -42,15 +42,12 @@ func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamesp
 	r.Logger.Info("CRD Status updated successfully")
 }
 
-func (r *ElastiServiceReconciler) checkAndAddCRDFinalizer(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
+func (r *ElastiServiceReconciler) addCRDFinalizer(ctx context.Context, es *v1alpha1.ElastiService) error {
 	// If the CRD does not contain the finalizer, we add the finalizer
 	if !controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
 		controllerutil.AddFinalizer(es, v1alpha1.ElastiServiceFinalizer)
 		if err := r.Update(ctx, es); err != nil {
-			r.Logger.Error("Failed to add finalizer", zap.String("es", req.String()), zap.Error(err))
-			return err
-		} else {
-			r.Logger.Info("Finalizer added", zap.String("es", req.String()))
+			return fmt.Errorf("failed to add finalizer: %w", err)
 		}
 	}
 	return nil
@@ -59,38 +56,47 @@ func (r *ElastiServiceReconciler) checkAndAddCRDFinalizer(ctx context.Context, e
 // finalizeCRD reset changes made for the CRD
 func (r *ElastiServiceReconciler) finalizeCRD(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
 	r.Logger.Info("ElastiService is being deleted", zap.String("name", es.Name), zap.Any("deletionTimestamp", es.ObjectMeta.DeletionTimestamp))
+	// Stop all active informers related to this CRD
+	r.Informer.StopForCRD(req.Name)
+	r.Logger.Info("1. Informer stopped for CRD", zap.String("es", req.String()))
 	// Reset the informer start mutex, so if the ElastiService is recreated, we will need to reset the informer
 	r.resetMutexForInformer(r.getMutexKeyForTargetRef(req))
 	r.resetMutexForInformer(r.getMutexKeyForPublicSVC(req))
-	// Stop all active informers related to this CRD
-	go r.Informer.StopForCRD(req.Name)
-	// Remove CRD details from service directory
-	crdDirectory.CRDDirectory.RemoveCRD(es.Spec.Service)
+	r.Logger.Info("2. Informer mutex reset for ScaleTargetRef and PublicSVC", zap.String("es", req.String()))
 
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
 	}
 	// Delete EndpointSlice to resolver
-	if err := r.deleteEndpointsliceToResolver(ctx, targetNamespacedName); err != nil {
-		return err
+	err1 := r.deleteEndpointsliceToResolver(ctx, targetNamespacedName)
+	if err1 == nil {
+		r.Logger.Info("3. EndpointSlice to resolver deleted", zap.String("service", targetNamespacedName.String()))
 	}
 	// Delete private service
-	if err := r.deletePrivateService(ctx, targetNamespacedName); err != nil {
-		return err
+	err2 := r.deletePrivateService(ctx, targetNamespacedName)
+	if err2 == nil {
+		r.Logger.Info("4. Private service deleted", zap.String("service", targetNamespacedName.String()))
 	}
-	r.Logger.Info("Serve mode enabled")
+
+	// Remove CRD details from service directory
+	crdDirectory.CRDDirectory.RemoveCRD(es.Spec.Service)
+	r.Logger.Info("5. CRD removed from service directory", zap.String("es", req.String()))
+
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("failed to finalize CRD. \n Error 1: %w \n Error 2: %w", err1, err2)
+	}
+	r.Logger.Info("[SERVE MODE ENABLED]")
 	return nil
 }
 
-// checkChangesInScaleTargetRef checks if the ScaleTargetRef has changed, and if it has, stops the informer for the old ScaleTargetRef
+// watchScaleTargetRef checks if the ScaleTargetRef has changed, and if it has, stops the informer for the old ScaleTargetRef
 // Start the new informer for the new ScaleTargetRef
-func (r *ElastiServiceReconciler) checkChangesInScaleTargetRef(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
+func (r *ElastiServiceReconciler) watchScaleTargetRef(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
 	if es.Spec.ScaleTargetRef.Name == "" ||
 		es.Spec.ScaleTargetRef.Kind == "" ||
 		es.Spec.ScaleTargetRef.APIVersion == "" {
-		r.Logger.Error("ScaleTargetRef is not present", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
-		return k8sHelper.ErrNoScaleTargetFound
+		return fmt.Errorf("scaleTargetRef is incomplete: %w", k8sHelper.ErrNoScaleTargetFound)
 	}
 
 	crd, found := crdDirectory.CRDDirectory.GetCRD(es.Spec.Service)
@@ -98,8 +104,7 @@ func (r *ElastiServiceReconciler) checkChangesInScaleTargetRef(ctx context.Conte
 		if es.Spec.ScaleTargetRef.Name != crd.Spec.ScaleTargetRef.Name ||
 			es.Spec.ScaleTargetRef.Kind != crd.Spec.ScaleTargetRef.Kind ||
 			es.Spec.ScaleTargetRef.APIVersion != crd.Spec.ScaleTargetRef.APIVersion {
-			r.Logger.Info("ScaleTargetRef has changed", zap.String("es", req.String()))
-			r.Logger.Debug("Stopping informer for scaleTargetRef", zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
+			r.Logger.Debug("ScaleTargetRef has changed, stopping previous informer.", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
 			key := r.Informer.GetKey(informer.KeyParams{
 				Namespace:    req.Namespace,
 				CRDName:      req.Name,
@@ -107,18 +112,19 @@ func (r *ElastiServiceReconciler) checkChangesInScaleTargetRef(ctx context.Conte
 				Resource:     strings.ToLower(crd.Spec.ScaleTargetRef.Kind),
 			})
 			r.Informer.StopInformer(key)
-			r.Logger.Debug("Resetting mutex for scaleTargetRef", zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
+			r.Logger.Debug("Resetting mutex for old scaleTargetRef informer", zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
 			r.resetMutexForInformer(r.getMutexKeyForTargetRef(req))
 		}
 	}
 
+	var informerErr error
 	r.getMutexForInformerStart(r.getMutexKeyForTargetRef(req)).Do(func() {
 		targetGroup, targetVersion, err := utils.ParseAPIVersion(es.Spec.ScaleTargetRef.APIVersion)
 		if err != nil {
-			r.Logger.Error("Failed to parse API version", zap.String("APIVersion", es.Spec.ScaleTargetRef.APIVersion), zap.Error(err))
+			informerErr = fmt.Errorf("failed to parse API version: %w", err)
 			return
 		}
-		r.Informer.Add(&informer.RequestWatch{
+		if err := r.Informer.Add(&informer.RequestWatch{
 			Req:               req,
 			ResourceName:      es.Spec.ScaleTargetRef.Name,
 			ResourceNamespace: req.Namespace,
@@ -128,51 +134,52 @@ func (r *ElastiServiceReconciler) checkChangesInScaleTargetRef(ctx context.Conte
 				Resource: strings.ToLower(es.Spec.ScaleTargetRef.Kind),
 			},
 			Handlers: r.getScaleTargetRefChangeHandler(ctx, es, req),
-		})
-
-		r.Logger.Info("ScaleTargetRef added to informer", zap.String("es", req.String()),
-			zap.String("scaleTargetRef", es.Spec.ScaleTargetRef.Name),
-		)
+		}); err != nil {
+			informerErr = fmt.Errorf("failed to add scaledTargetRef Informer: %w", err)
+			return
+		}
 	})
+	if informerErr != nil {
+		return informerErr
+	}
 	return nil
 }
 
-// checkChangesInPublicService checks if the Public Service has changed, and makes sure it's not null
-func (r *ElastiServiceReconciler) checkChangesInPublicService(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
+// watchPublicService checks if the Public Service has changed, and makes sure it's not null
+func (r *ElastiServiceReconciler) watchPublicService(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
 	if es.Spec.Service == "" {
-		r.Logger.Error("Public Service is not present", zap.String("es", req.String()))
-		return k8sHelper.ErrNoPublicServiceFound
+		return fmt.Errorf("null value for public service: %w", k8sHelper.ErrNoPublicServiceFound)
 	}
-
+	var informerErr error
 	r.getMutexForInformerStart(r.getMutexKeyForPublicSVC(req)).Do(func() {
-		r.Informer.Add(&informer.RequestWatch{
+		if err := r.Informer.Add(&informer.RequestWatch{
 			Req:                  req,
 			ResourceName:         es.Spec.Service,
 			ResourceNamespace:    es.Namespace,
 			GroupVersionResource: &values.ServiceGVR,
 			Handlers:             r.getPublicServiceChangeHandler(ctx, es, req),
-		})
-
-		r.Logger.Info("Public Service added to informer", zap.String("es", req.String()),
-			zap.String("public service", es.Spec.Service),
-		)
+		}); err != nil {
+			informerErr = fmt.Errorf("failed to add public service Informer: %w", err)
+			return
+		}
 	})
-
+	if informerErr != nil {
+		return informerErr
+	}
 	return nil
 }
 
-func (r *ElastiServiceReconciler) checkIfCRDIsDeleted(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) (bool, error) {
+func (r *ElastiServiceReconciler) finalizeCRDIfDeleted(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) (bool, error) {
 	// If the ElastiService is being deleted, we need to clean up the resources
 	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
 			// If CRD contains finalizer, we call the finaizer function and remove the finalizer post that
 			if err := r.finalizeCRD(ctx, es, req); err != nil {
-				r.Logger.Error("Failed to enable serve mode", zap.String("es", req.String()), zap.Error(err))
 				return true, err
 			}
 			controllerutil.RemoveFinalizer(es, v1alpha1.ElastiServiceFinalizer)
 			if err := r.Update(ctx, es); err != nil {
-				return true, err
+				return true, fmt.Errorf("failed to remove finalizer: %w", err)
 			}
 		}
 		return true, nil

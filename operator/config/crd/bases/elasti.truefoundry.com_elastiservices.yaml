@@ -39,13 +39,7 @@ spec:
           spec:
             description: ElastiServiceSpec defines the desired state of ElastiService
             properties:
-              idlePeriod:
-                format: int32
-                type: integer
               minTargetReplicas:
-                format: int32
-                type: integer
-              queueTimeout:
                 format: int32
                 type: integer
               scaleTargetRef:

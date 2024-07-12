@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"os"
+	"time"
 
 	"truefoundry.io/elasti/internal/elastiServer"
 
@@ -154,7 +155,7 @@ func main() {
 	}
 
 	// Start the elasti server
-	eServer := elastiServer.NewServer(zapLogger, mgr.GetConfig())
+	eServer := elastiServer.NewServer(zapLogger, mgr.GetConfig(), 30*time.Second)
 	go eServer.Start(elastiServerPort)
 
 	//+kubebuilder:scaffold:builder

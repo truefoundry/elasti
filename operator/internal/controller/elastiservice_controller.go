@@ -62,7 +62,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	es, esErr := r.getCRD(ctx, req.NamespacedName)
 	if esErr != nil {
 		if errors.IsNotFound(esErr) {
-			r.Logger.Info("ElastiService not found", zap.String("es", req.String()))
+			r.Logger.Error("ElastiService not found.", zap.String("es", req.String()))
 			return res, nil
 		}
 		r.Logger.Error("Failed to get ElastiService in Reconcile", zap.String("es", req.String()), zap.Error(esErr))
@@ -70,25 +70,27 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// If the ElastiService is being deleted, we need to clean up the resources
-	if isDeleted, err := r.checkIfCRDIsDeleted(ctx, es, req); err != nil {
+	if isDeleted, err := r.finalizeCRDIfDeleted(ctx, es, req); err != nil {
 		r.Logger.Error("Failed to check if CRD is deleted", zap.String("es", req.String()), zap.Error(err))
 		return res, err
 	} else if isDeleted {
-		r.Logger.Info("CRD is deleted", zap.String("es", req.String()))
+		r.Logger.Info("[CRD is deleted successfully]", zap.String("es", req.String()))
 		return res, nil
 	}
 
 	// We also check if the CRD has finalizer, and if not, we add the finalizer
-	if err := r.checkAndAddCRDFinalizer(ctx, es, req); err != nil {
+	if err := r.addCRDFinalizer(ctx, es); err != nil {
 		r.Logger.Error("Failed to finalize CRD", zap.String("es", req.String()), zap.Error(err))
 		return res, err
 	}
+	r.Logger.Info("Finalizer added to CRD", zap.String("es", req.String()))
 
-	// Check if ScaleTargetRef is present, and has not changed from the values in CRDDirectory
-	if err := r.checkChangesInScaleTargetRef(ctx, es, req); err != nil {
-		r.Logger.Error("Failed to check changes in ScaleTargetRef", zap.String("es", req.String()), zap.Error(err))
+	// Add watch for public service, so when the public service is modified, we can update the private service
+	if err := r.watchScaleTargetRef(ctx, es, req); err != nil {
+		r.Logger.Error("Failed to add watch for ScaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef), zap.Error(err))
 		return res, err
 	}
+	r.Logger.Info("Watch added for ScaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
 
 	// We add the CRD details to service directory, so when elasti server received a request,
 	// we can find the right resource to scale up
@@ -96,6 +98,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		CRDName: es.Name,
 		Spec:    es.Spec,
 	})
+	r.Logger.Info("CRD added to service directory", zap.String("es", req.String()), zap.String("service", es.Spec.Service))
 	return res, nil
 }
 

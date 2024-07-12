@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/truefoundry/elasti/pkg/values"
@@ -19,27 +21,33 @@ func (r *ElastiServiceReconciler) getMutexForSwitchMode(key string) *sync.Mutex 
 }
 
 func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error) {
-	r.Logger.Debug("- In SwitchMode", zap.String("es", req.NamespacedName.String()))
-	// Only 1 switchMode should run at a time for a given ElastiService. This prevents conflicts when updating different objects.
-	mutex := r.getMutexForSwitchMode(req.NamespacedName.String())
-	mutex.Lock()
-	defer r.Logger.Debug("- Out of SwitchMode", zap.String("es", req.NamespacedName.String()))
-	defer mutex.Unlock()
+	{
+		r.Logger.Debug(fmt.Sprintf("[Switching to %s Mode]", strings.ToUpper(mode)), zap.String("es", req.NamespacedName.String()))
+		mutex := r.getMutexForSwitchMode(req.NamespacedName.String())
+		mutex.Lock()
+		defer mutex.Unlock()
+	}
+
 	es, err := r.getCRD(ctx, req.NamespacedName)
+	if err != nil {
+		r.Logger.Error("Failed to get CRD", zap.String("es", req.NamespacedName.String()), zap.Error(err))
+		return res, fmt.Errorf("failed to get CRD: %w", err)
+	}
 	defer r.updateCRDStatus(ctx, req.NamespacedName, mode)
+
 	switch mode {
 	case values.ServeMode:
 		if err = r.enableServeMode(ctx, req, es); err != nil {
-			r.Logger.Error("Failed to enable serve mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
+			r.Logger.Error("Failed to enable SERVE mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
 			return res, err
 		}
-		r.Logger.Info("Serve mode enabled", zap.String("es", req.NamespacedName.String()))
+		r.Logger.Info("[SERVE mode enabled]", zap.String("es", req.NamespacedName.String()))
 	case values.ProxyMode:
 		if err = r.enableProxyMode(ctx, req, es); err != nil {
-			r.Logger.Error("Failed to enable proxy mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
+			r.Logger.Error("Failed to enable PROXY mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
 			return res, err
 		}
-		r.Logger.Debug("Proxy mode enabled", zap.String("es", req.NamespacedName.String()))
+		r.Logger.Debug("[PROXY mode enabled]", zap.String("es", req.NamespacedName.String()))
 	default:
 		r.Logger.Error("Invalid mode", zap.String("mode", mode), zap.String("es", req.NamespacedName.String()))
 	}
@@ -53,26 +61,30 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.
 	}
 	targetSVC := &v1.Service{}
 	if err := r.Get(ctx, targetNamespacedName, targetSVC); err != nil {
-		r.Logger.Error("Failed to get target service", zap.String("service", targetNamespacedName.String()), zap.Error(err))
-		return err
+		return fmt.Errorf("failed to get target service: %w", err)
 	}
-	_, err := r.checkAndCreatePrivateService(ctx, targetSVC, es)
+	PVTName, err := r.checkAndCreatePrivateService(ctx, targetSVC, es)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check and create private service: %w", err)
 	}
+	r.Logger.Info("1. Checked and created private service", zap.String("public service", targetSVC.Name), zap.String("private service", PVTName))
 
 	// Check if Public Service is present, and has not changed from the values in CRDDirectory
-	if err := r.checkChangesInPublicService(ctx, es, req); err != nil {
-		r.Logger.Error("Failed to check changes in public service", zap.String("es", req.String()), zap.Error(err))
-		return err
+	if err := r.watchPublicService(ctx, es, req); err != nil {
+		return fmt.Errorf("failed to add watch on public service: %w", err)
 	}
+	r.Logger.Info("2. Added watch on public service", zap.String("service", targetSVC.Name))
 
 	if err = r.createOrUpdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
-		return err
+		return fmt.Errorf("failed to create or update endpointslice to resolver: %w ", err)
 	}
+	r.Logger.Info("3. Created or updated endpointslice to resolver", zap.String("service", targetSVC.Name))
 
 	// Watch for changes in resolver deployment, and update the endpointslice since we are in proxy mode
-	r.Informer.AddDeploymentWatch(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req))
+	if err := r.Informer.WatchDeployment(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req)); err != nil {
+		return fmt.Errorf("failed to add watch on resolver deployment: %w", err)
+	}
+	r.Logger.Info("4. Added watch on resolver deployment", zap.String("deployment", resolverDeploymentName))
 
 	return nil
 }
@@ -86,13 +98,15 @@ func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, req ctrl.
 		Resource:     values.KindDeployments,
 	})
 	r.Informer.StopInformer(key)
+	r.Logger.Info("1. Stopped watch on resolver deployment", zap.String("deployment", resolverDeploymentName))
 
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
 	}
 	if err := r.deleteEndpointsliceToResolver(ctx, targetNamespacedName); err != nil {
-		return err
+		return fmt.Errorf("failed to delete endpointslice to resolver: %w", err)
 	}
+	r.Logger.Info("2. Deleted endpointslice to resolver", zap.String("service", targetNamespacedName.String()))
 	return nil
 }

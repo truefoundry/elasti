@@ -52,13 +52,7 @@ spec:
           spec:
             description: ElastiServiceSpec defines the desired state of ElastiService
             properties:
-              idlePeriod:
-                format: int32
-                type: integer
               minTargetReplicas:
-                format: int32
-                type: integer
-              queueTimeout:
                 format: int32
                 type: integer
               scaleTargetRef:
@@ -544,7 +538,7 @@ spec:
         - name: MAX_IDLE_PROXY_CONNS_PER_HOST
           value: "100"
         - name: REQ_TIMEOUT
-          value: "120"
+          value: "10"
         - name: TRAFFIC_RE_ENABLE_DURATION
           value: "10"
         - name: OPERATOR_RETRY_DURATION

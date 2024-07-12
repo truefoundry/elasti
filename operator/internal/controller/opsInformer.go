@@ -84,12 +84,11 @@ func (r *ElastiServiceReconciler) getScaleTargetRefChangeHandler(ctx context.Con
 }
 
 func (r *ElastiServiceReconciler) handleScaleTargetRefChanges(ctx context.Context, obj interface{}, es *v1alpha1.ElastiService, req ctrl.Request) {
+	r.Logger.Info("ScaleTargetRef changes detected", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
 	switch strings.ToLower(es.Spec.ScaleTargetRef.Kind) {
 	case values.KindDeployments:
-		r.Logger.Info("ScaleTargetRef kind is deployment", zap.String("kind", es.Spec.ScaleTargetRef.Kind))
 		r.handleTargetDeploymentChanges(ctx, obj, es, req)
 	case values.KindRollout:
-		r.Logger.Info("ScaleTargetRef kind is rollout", zap.String("kind", es.Spec.ScaleTargetRef.Kind))
 		r.handleTargetRolloutChanges(ctx, obj, es, req)
 	default:
 		r.Logger.Error("Unsupported target kind", zap.String("kind", es.Spec.ScaleTargetRef.Kind))

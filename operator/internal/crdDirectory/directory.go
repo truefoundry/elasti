@@ -40,7 +40,6 @@ func (d *Directory) RemoveCRD(serviceName string) {
 func (d *Directory) GetCRD(serviceName string) (*CRDDetails, bool) {
 	value, ok := d.Services.Load(serviceName)
 	if !ok {
-		d.Logger.Error("Service not found in directory", zap.String("service", serviceName))
 		return nil, false
 	}
 	d.Logger.Info("Service found in directory", zap.String("service", serviceName))

@@ -21,19 +21,10 @@ func (r *ElastiServiceReconciler) handleTargetRolloutChanges(ctx context.Context
 	replicas := newRollout.Status.ReadyReplicas
 	condition := newRollout.Status.Phase
 	if replicas == 0 {
-		r.Logger.Debug("Rollout has 0 replicas", zap.String("rollout_name", es.Spec.ScaleTargetRef.Name), zap.String("es", req.String()))
-		_, err := r.switchMode(ctx, req, values.ProxyMode)
-		if err != nil {
-			r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
-			return
-		}
+		r.Logger.Debug("ScaleTargetRef Rollout has 0 replicas", zap.String("rollout_name", es.Spec.ScaleTargetRef.Name), zap.String("es", req.String()))
+		r.switchMode(ctx, req, values.ProxyMode)
 	} else if replicas > 0 && condition == values.ArgoPhaseHealthy {
-		r.Logger.Debug("Rollout has replicas", zap.String("rollout_name", es.Spec.ScaleTargetRef.Name), zap.String("es", req.String()))
-		_, err := r.switchMode(ctx, req, values.ServeMode)
-		if err != nil {
-			r.Logger.Error("Reconciliation failed", zap.String("es", req.String()), zap.Error(err))
-			return
-		}
+		r.Logger.Debug("ScaleTargetRef Deployment has ready replicas", zap.String("rollout_name", es.Spec.ScaleTargetRef.Name), zap.String("es", req.String()))
+		r.switchMode(ctx, req, values.ServeMode)
 	}
-	r.Logger.Info("Rollout changes handled", zap.String("rollout_name", es.Spec.ScaleTargetRef.Name), zap.String("es", req.String()))
 }

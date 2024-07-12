@@ -100,42 +100,40 @@ func (m *Manager) Stop() {
 
 // StopForCRD is to close all the active informers for a perticular CRD
 func (m *Manager) StopForCRD(crdName string) {
-	m.logger.Info("Stopping Informer for CRD", zap.String("crd", crdName))
 	// Loop through all the informers and stop them
 	m.informers.Range(func(key, value interface{}) bool {
 		// Check if key starts with the crdName
 		if key.(string)[:len(crdName)] == crdName {
 			info, ok := value.(info)
 			if ok {
-				m.StopInformer(m.getKeyFromRequestWatch(info.Req))
+				if err := m.StopInformer(m.getKeyFromRequestWatch(info.Req)); err != nil {
+					m.logger.Error("☒ Failed to stop informer", zap.Error(err))
+				}
+				m.logger.Info("☑ Stopped informer", zap.String("key", key.(string)))
 			}
 		}
 		return true
 	})
-	m.logger.Info("Informer stopped for CRD", zap.String("crd", crdName))
 }
 
 // StopInformer is to stop a informer for a resource
 // It closes the shared informer for it and deletes it from the map
-func (m *Manager) StopInformer(key string) {
-	m.logger.Info("Stopping informer", zap.String("key", key))
+func (m *Manager) StopInformer(key string) error {
 	value, ok := m.informers.Load(key)
 	if !ok {
-		m.logger.Info("Informer not found", zap.String("key", key))
-		return
+		return fmt.Errorf("informer not found for key: %s", key)
 	}
 
 	// We need to verify if the informer exists in the map
 	informerInfo, ok := value.(info)
 	if !ok {
-		m.logger.Error("Failed to cast WatchInfo", zap.String("key", key))
-		return
+		return fmt.Errorf("failed to cast WatchInfo for key: %s", key)
 	}
 
 	// Close the informer, delete it from the map
 	close(informerInfo.StopCh)
 	m.informers.Delete(key)
-	m.logger.Info("Informer stopped", zap.String("key", key))
+	return nil
 }
 
 func (m *Manager) monitorInformers() {
@@ -152,8 +150,8 @@ func (m *Manager) monitorInformers() {
 	})
 }
 
-// AddDeploymentWatch is to add a watch on a deployment
-func (m *Manager) AddDeploymentWatch(req ctrl.Request, deploymentName, namespace string, handlers cache.ResourceEventHandlerFuncs) {
+// WatchDeployment is to add a watch on a deployment
+func (m *Manager) WatchDeployment(req ctrl.Request, deploymentName, namespace string, handlers cache.ResourceEventHandlerFuncs) error {
 	request := &RequestWatch{
 		Req:               req,
 		ResourceName:      deploymentName,
@@ -165,11 +163,11 @@ func (m *Manager) AddDeploymentWatch(req ctrl.Request, deploymentName, namespace
 		},
 		Handlers: handlers,
 	}
-	m.Add(request)
+	return m.Add(request)
 }
 
 // Add is to add a watch on a resource
-func (m *Manager) Add(req *RequestWatch) {
+func (m *Manager) Add(req *RequestWatch) error {
 	m.logger.Info("Adding informer",
 		zap.String("group", req.GroupVersionResource.Group),
 		zap.String("version", req.GroupVersionResource.Version),
@@ -178,7 +176,21 @@ func (m *Manager) Add(req *RequestWatch) {
 		zap.String("resourceNamespace", req.ResourceNamespace),
 		zap.String("crd", req.Req.String()),
 	)
+
+	key := m.getKeyFromRequestWatch(req)
+	// Proceed only if the informer is not already running, we verify by checking the map
+	if _, ok := m.informers.Load(key); ok {
+		m.logger.Info("Informer already running", zap.String("key", key))
+		return nil
+	}
+
+	//TODO: Check if the resource exists
+	if err := m.verifyTargetExist(req); err != nil {
+		return fmt.Errorf("failed to add to informer: %w", err)
+	}
+
 	m.enableInformer(req)
+	return nil
 }
 
 // enableInformer is to enable the informer for a resource
@@ -191,12 +203,6 @@ func (m *Manager) enableInformer(req *RequestWatch) {
 			m.logger.Error("Panic stack trace", zap.ByteString("stacktrace", buf[:n]))
 		}
 	}()
-	key := m.getKeyFromRequestWatch(req)
-	// Proceed only if the informer is not already running, we verify by checking the map
-	if _, ok := m.informers.Load(key); ok {
-		m.logger.Info("Informer already running", zap.String("key", key))
-		return
-	}
 
 	ctx := context.Background()
 	// Create an informer for the resource
@@ -230,6 +236,7 @@ func (m *Manager) enableInformer(req *RequestWatch) {
 	// This is used to manage the lifecycle of the informer
 	// Recover it in case it's not syncing, this is why we also store the handlers
 	// Stop it when the CRD or the operator is deleted
+	key := m.getKeyFromRequestWatch(req)
 	m.informers.Store(key, info{
 		Informer: informer,
 		StopCh:   informerStop,
@@ -268,4 +275,12 @@ func (m *Manager) GetKey(param KeyParams) string {
 		strings.ToLower(param.Namespace),    // Namespace
 		strings.ToLower(param.Resource),     // Resource Type
 		strings.ToLower(param.ResourceName)) // Resource Name
+}
+
+// verifyTargetExist is to verify if the target resource exists
+func (m *Manager) verifyTargetExist(req *RequestWatch) error {
+	if _, err := m.dynamicClient.Resource(*req.GroupVersionResource).Namespace(req.ResourceNamespace).Get(context.Background(), req.ResourceName, metav1.GetOptions{}); err != nil {
+		return fmt.Errorf("resource doesn't exist: %w | resource name: %v | resource type: %v | resource namespace: %v", err, req.ResourceName, req.GroupVersionResource.Resource, req.ResourceNamespace)
+	}
+	return nil
 }

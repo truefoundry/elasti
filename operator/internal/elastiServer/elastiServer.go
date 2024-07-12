@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"time"
 
 	"k8s.io/client-go/rest"
 
@@ -28,15 +29,18 @@ type (
 		logger     *zap.Logger
 		k8sHelper  *k8sHelper.Ops
 		scaleLocks sync.Map
+		// rescaleDuration is the duration to wait before checking to rescaling the target
+		rescaleDuration time.Duration
 	}
 )
 
-func NewServer(logger *zap.Logger, config *rest.Config) *Server {
+func NewServer(logger *zap.Logger, config *rest.Config, rescaleDuration time.Duration) *Server {
 	// Get Ops client
 	k8sUtil := k8sHelper.NewOps(logger, config)
 	return &Server{
-		logger:    logger.Named("elastiServer"),
-		k8sHelper: k8sUtil,
+		logger:          logger.Named("elastiServer"),
+		k8sHelper:       k8sUtil,
+		rescaleDuration: rescaleDuration,
 	}
 }
 
@@ -102,22 +106,40 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace string) error {
-	scaleMutex := s.getMutexForServiceScale(serviceName)
+	scaleMutex, loaded := s.getMutexForServiceScale(serviceName)
+	if loaded {
+		return nil
+	}
 	scaleMutex.Lock()
 	defer s.logger.Debug("Scale target lock released")
-	defer scaleMutex.Unlock()
 	s.logger.Debug("Scale target lock taken")
 	crd, found := crdDirectory.CRDDirectory.GetCRD(serviceName)
 	if !found {
+		s.releaseMutexForServiceScale(serviceName)
 		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, serviceName: %s", serviceName)
 	}
 	if err := s.k8sHelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
+		s.releaseMutexForServiceScale(serviceName)
 		return fmt.Errorf("scaleTargetForService - error: %w, targetRefKind: %s, targetRefName: %s", err, crd.Spec.ScaleTargetRef.Kind, crd.Spec.ScaleTargetRef.Name)
 	}
+
+	// If the target is scaled up, we will hold the lock for longer, to not scale up again
+	time.AfterFunc(s.rescaleDuration, func() {
+		s.releaseMutexForServiceScale(serviceName)
+	})
 	return nil
 }
 
-func (s *Server) getMutexForServiceScale(serviceName string) *sync.Mutex {
-	l, _ := s.scaleLocks.LoadOrStore(serviceName, &sync.Mutex{})
-	return l.(*sync.Mutex)
+func (s *Server) releaseMutexForServiceScale(service string) {
+	lock, loaded := s.scaleLocks.Load(service)
+	if !loaded {
+		return
+	}
+	lock.(*sync.Mutex).Unlock()
+	s.scaleLocks.Delete(service)
+}
+
+func (s *Server) getMutexForServiceScale(serviceName string) (*sync.Mutex, bool) {
+	l, loaded := s.scaleLocks.LoadOrStore(serviceName, &sync.Mutex{})
+	return l.(*sync.Mutex), loaded
 }
