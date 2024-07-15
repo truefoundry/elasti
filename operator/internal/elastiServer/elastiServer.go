@@ -11,10 +11,12 @@ import (
 
 	"k8s.io/client-go/rest"
 
+	"truefoundry/elasti/operator/internal/crdDirectory"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
-	"truefoundry.io/elasti/internal/crdDirectory"
 )
 
 type (
@@ -52,6 +54,8 @@ func (s *Server) Start(port string) {
 			go s.Start(port)
 		}
 	}()
+
+	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/informer/incoming-request", s.resolverReqHandler)
 	s.logger.Info("Starting ElastiServer", zap.String("port", port))
 	if err := http.ListenAndServe(port, nil); err != nil {

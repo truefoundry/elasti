@@ -1,6 +1,9 @@
 apiVersion: v1
 kind: Namespace
 metadata:
+  labels:
+    app.kubernetes.io/name: elasti-resolver
+    prometheus.io/scrape: enable
   name: elasti
 ---
 apiVersion: v1
@@ -441,7 +444,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: resolver-service
+  labels:
+    app.kubernetes.io/name: elasti-resolver
+  name: elasti-resolver-service
   namespace: elasti
 spec:
   ports:
@@ -470,6 +475,9 @@ spec:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8013"
+        prometheus.io/scrape: "true"
       labels:
         control-plane: controller-manager
     spec:
@@ -480,7 +488,7 @@ spec:
         - --metrics-bind-address=0
         command:
         - /manager
-        image: ramantehlan/elasti-operator:v1alpha1
+        image: localhost:5001/elasti-operator:v1alpha1
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
@@ -519,6 +527,8 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  labels:
+    app.kubernetes.io/name: elasti-resolver
   name: elasti-resolver
   namespace: elasti
 spec:
@@ -528,6 +538,10 @@ spec:
       app: elasti-resolver
   template:
     metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8012"
+        prometheus.io/scrape: "true"
       labels:
         app: elasti-resolver
     spec:
@@ -538,7 +552,7 @@ spec:
         - name: MAX_IDLE_PROXY_CONNS_PER_HOST
           value: "100"
         - name: REQ_TIMEOUT
-          value: "10"
+          value: "120"
         - name: TRAFFIC_RE_ENABLE_DURATION
           value: "10"
         - name: OPERATOR_RETRY_DURATION
@@ -553,7 +567,7 @@ spec:
           value: "10"
         - name: INITIAL_CAPACITY
           value: "10"
-        image: ramantehlan/elasti-resolver:v1alpha1
+        image: localhost:5001/elasti-resolver:v1alpha1
         imagePullPolicy: Always
         name: playground
         ports:
@@ -565,3 +579,37 @@ spec:
           requests:
             cpu: 250m
             memory: 500Mi
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: elasti-operator
+    control-plane: controller-manager
+  name: elasti-operator-controller-manager-metrics-monitor
+  namespace: elasti-operator-system
+spec:
+  endpoints:
+  - path: /metrics
+    port: custom-port
+    scheme: http
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    group: elasti
+  name: elasti-resolver-metrics-monitor
+  namespace: elasti
+spec:
+  endpoints:
+  - path: /metrics
+    port: http-playground
+    scheme: http
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: elasti-resolver

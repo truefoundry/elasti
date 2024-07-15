@@ -22,11 +22,12 @@ import (
 	"os"
 	"time"
 
-	"truefoundry.io/elasti/internal/elastiServer"
+	"truefoundry/elasti/operator/internal/elastiServer"
+
+	"truefoundry/elasti/operator/internal/crdDirectory"
+	"truefoundry/elasti/operator/internal/informer"
 
 	tfLogger "github.com/truefoundry/elasti/pkg/logger"
-	"truefoundry.io/elasti/internal/crdDirectory"
-	"truefoundry.io/elasti/internal/informer"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -41,8 +42,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	elastiv1alpha1 "truefoundry.io/elasti/api/v1alpha1"
-	"truefoundry.io/elasti/internal/controller"
+	elastiv1alpha1 "truefoundry/elasti/operator/api/v1alpha1"
+	"truefoundry/elasti/operator/internal/controller"
 	//+kubebuilder:scaffold:imports
 )
 

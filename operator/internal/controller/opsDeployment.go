@@ -3,6 +3,8 @@ package controller
 import (
 	"context"
 
+	"truefoundry/elasti/operator/api/v1alpha1"
+
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
@@ -10,7 +12,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"truefoundry.io/elasti/api/v1alpha1"
 )
 
 func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Context, obj interface{}, _ *v1alpha1.ElastiService, req ctrl.Request) {

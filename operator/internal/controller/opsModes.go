@@ -6,13 +6,14 @@ import (
 	"strings"
 	"sync"
 
+	"truefoundry/elasti/operator/api/v1alpha1"
+	"truefoundry/elasti/operator/internal/informer"
+
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"truefoundry.io/elasti/api/v1alpha1"
-	"truefoundry.io/elasti/internal/informer"
 )
 
 func (r *ElastiServiceReconciler) getMutexForSwitchMode(key string) *sync.Mutex {
@@ -47,7 +48,7 @@ func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Reque
 			r.Logger.Error("Failed to enable PROXY mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
 			return res, err
 		}
-		r.Logger.Debug("[PROXY mode enabled]", zap.String("es", req.NamespacedName.String()))
+		r.Logger.Info("[PROXY mode enabled]", zap.String("es", req.NamespacedName.String()))
 	default:
 		r.Logger.Error("Invalid mode", zap.String("mode", mode), zap.String("es", req.NamespacedName.String()))
 	}

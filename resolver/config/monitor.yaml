@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    group: elasti
+  name: elasti-resolver-metrics-monitor
+  namespace: elasti
+spec:
+  endpoints:
+    - port: http-playground
+      path: /metrics
+      scheme: http
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: elasti-resolver

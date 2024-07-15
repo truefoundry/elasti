@@ -4,11 +4,13 @@ package informer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
+	"truefoundry/elasti/operator/internal/prom"
 
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -101,24 +103,37 @@ func (m *Manager) Stop() {
 // StopForCRD is to close all the active informers for a perticular CRD
 func (m *Manager) StopForCRD(crdName string) {
 	// Loop through all the informers and stop them
+	var wg sync.WaitGroup
 	m.informers.Range(func(key, value interface{}) bool {
-		// Check if key starts with the crdName
-		if key.(string)[:len(crdName)] == crdName {
-			info, ok := value.(info)
-			if ok {
-				if err := m.StopInformer(m.getKeyFromRequestWatch(info.Req)); err != nil {
-					m.logger.Error("☒ Failed to stop informer", zap.Error(err))
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Check if key starts with the crdName
+			if key.(string)[:len(crdName)] == crdName {
+				info, ok := value.(info)
+				if ok {
+					if err := m.StopInformer(m.getKeyFromRequestWatch(info.Req)); err != nil {
+						m.logger.Error("Failed to stop informer", zap.Error(err))
+					}
+					m.logger.Info("Stopped informer", zap.String("key", key.(string)))
 				}
-				m.logger.Info("☑ Stopped informer", zap.String("key", key.(string)))
 			}
-		}
+		}()
 		return true
 	})
+	wg.Wait()
 }
 
 // StopInformer is to stop a informer for a resource
 // It closes the shared informer for it and deletes it from the map
-func (m *Manager) StopInformer(key string) error {
+func (m *Manager) StopInformer(key string) (err error) {
+	defer func() {
+		errStr := ""
+		if err != nil {
+			errStr = err.Error()
+		}
+		prom.InformerCounter.WithLabelValues(key, "stop", errStr).Inc()
+	}()
 	value, ok := m.informers.Load(key)
 	if !ok {
 		return fmt.Errorf("informer not found for key: %s", key)
@@ -133,6 +148,7 @@ func (m *Manager) StopInformer(key string) error {
 	// Close the informer, delete it from the map
 	close(informerInfo.StopCh)
 	m.informers.Delete(key)
+	prom.InformerGauge.WithLabelValues(key).Dec()
 	return nil
 }
 
@@ -167,7 +183,15 @@ func (m *Manager) WatchDeployment(req ctrl.Request, deploymentName, namespace st
 }
 
 // Add is to add a watch on a resource
-func (m *Manager) Add(req *RequestWatch) error {
+func (m *Manager) Add(req *RequestWatch) (err error) {
+	key := m.getKeyFromRequestWatch(req)
+	defer func() {
+		errStr := ""
+		if err != nil {
+			errStr = err.Error()
+		}
+		prom.InformerCounter.WithLabelValues(key, "add", errStr).Inc()
+	}()
 	m.logger.Info("Adding informer",
 		zap.String("group", req.GroupVersionResource.Group),
 		zap.String("version", req.GroupVersionResource.Version),
@@ -177,7 +201,6 @@ func (m *Manager) Add(req *RequestWatch) error {
 		zap.String("crd", req.Req.String()),
 	)
 
-	key := m.getKeyFromRequestWatch(req)
 	// Proceed only if the informer is not already running, we verify by checking the map
 	if _, ok := m.informers.Load(key); ok {
 		m.logger.Info("Informer already running", zap.String("key", key))
@@ -185,16 +208,19 @@ func (m *Manager) Add(req *RequestWatch) error {
 	}
 
 	//TODO: Check if the resource exists
-	if err := m.verifyTargetExist(req); err != nil {
-		return fmt.Errorf("failed to add to informer: %w", err)
+	if err = m.verifyTargetExist(req); err != nil {
+		return fmt.Errorf("target not found: %w", err)
 	}
 
-	m.enableInformer(req)
+	if err = m.enableInformer(req); err != nil {
+		return fmt.Errorf("failed to enable to informer: %w", err)
+	}
+	prom.InformerGauge.WithLabelValues(key).Inc()
 	return nil
 }
 
 // enableInformer is to enable the informer for a resource
-func (m *Manager) enableInformer(req *RequestWatch) {
+func (m *Manager) enableInformer(req *RequestWatch) (err error) {
 	defer func() {
 		if rErr := recover(); rErr != nil {
 			m.logger.Error("Recovered from panic", zap.Any("recovered", rErr))
@@ -223,10 +249,10 @@ func (m *Manager) enableInformer(req *RequestWatch) {
 		0,
 	)
 	// We pass the handlers we received as a parameter
-	_, err := informer.AddEventHandler(req.Handlers)
+	_, err = informer.AddEventHandler(req.Handlers)
 	if err != nil {
 		m.logger.Error("Error creating informer handler", zap.Error(err))
-		return
+		return err
 	}
 	// This channel is used to stop the informer
 	// We add it in the informers map, so we can stop it when required
@@ -246,9 +272,10 @@ func (m *Manager) enableInformer(req *RequestWatch) {
 	// Wait for the cache to syncß
 	if !cache.WaitForCacheSync(ctx.Done(), informer.HasSynced) {
 		m.logger.Error("Failed to sync informer", zap.String("key", key))
-		return
+		return errors.New("failed to sync informer")
 	}
 	m.logger.Info("Informer started", zap.String("key", key))
+	return nil
 }
 
 // getKeyFromRequestWatch is to get the key for the informer map using namespace and resource name from the request

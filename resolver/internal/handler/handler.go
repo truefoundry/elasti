@@ -9,7 +9,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
-	"truefoundry/resolver/internal/throttler"
+	"truefoundry/elasti/resolver/internal/prom"
+	"truefoundry/elasti/resolver/internal/throttler"
 
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
@@ -67,15 +68,40 @@ type Response struct {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// Get host details from hostManager
-	h.logger.Debug("Request received")
+	start := time.Now()
+	customWriter := newResponseWriter(w)
+	host, err := h.handleAnyRequest(customWriter, req)
+	var responseStatus, errorMessage string
+	if err != nil {
+		errorMessage = err.Error()
+	}
+	responseStatus = http.StatusText(customWriter.statusCode)
+	duration := time.Since(start).Seconds()
+	prom.IncomingRequestHistogram.WithLabelValues(
+		host.SourceService,
+		host.TargetService,
+		host.SourceHost,
+		host.TargetHost,
+		host.Namespace,
+		req.Method,
+		req.RequestURI,
+		responseStatus,
+		errorMessage,
+	).Observe(duration)
+
+}
+
+// handleAnyRequest handles any incoming request
+func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*messages.Host, error) {
+	prom.QueuedRequestGague.WithLabelValues().Inc()
+	defer prom.QueuedRequestGague.WithLabelValues().Dec()
 	host, err := h.hostManager.GetHost(req)
 	if err != nil {
-		h.logger.Error("Error getting host", zap.Error(err))
 		http.Error(w, "Error getting host", http.StatusInternalServerError)
-		return
+		h.logger.Error("error getting host", zap.Error(err))
+		return host, fmt.Errorf("error getting host: %w", err)
 	}
-	h.logger.Debug("host received", zap.Any("host", host))
+	h.logger.Debug("request received", zap.Any("host", host))
 
 	// This closes the connections, in case the host is scaled up by the controller.
 	if !host.TrafficAllowed {
@@ -86,9 +112,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		_, err := w.Write([]byte(`{"error": "traffic is switched"}`))
 		if err != nil {
 			h.logger.Error("Error writing response", zap.Error(err))
-			return
+			return host, fmt.Errorf("error writing response: %w", err)
 		}
-		return
+		return host, fmt.Errorf("traffic not allowed by resolver")
 	}
 
 	// Inform the controller about the incoming request
@@ -100,19 +126,22 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if tryErr := h.throttler.Try(ctx, host, func(count int) error {
 		err := h.ProxyRequest(w, req, host.TargetHost, count)
 		if err != nil {
+			h.logger.Error("Error proxying request", zap.Error(err))
 			return err
 		}
-		h.hostManager.DisableTrafficForHost(host.SourceService)
+		h.hostManager.DisableTrafficForHost(host.IncomingHost)
 		return nil
 	}); tryErr != nil {
 		h.logger.Error("throttler try error: ", zap.Error(tryErr))
 		if errors.Is(tryErr, context.DeadlineExceeded) {
-			http.Error(w, tryErr.Error(), http.StatusServiceUnavailable)
+			http.Error(w, "request timeout", http.StatusRequestTimeout)
+			return host, fmt.Errorf("throttler try error: %w", tryErr)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
+			return host, fmt.Errorf("throttler try error: %w", tryErr)
 		}
 	}
-	h.logger.Debug("Try completed")
+	return host, nil
 }
 
 func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetHost string, count int) (rErr error) {
@@ -123,18 +152,16 @@ func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetH
 	}()
 	targetURL, err := url.Parse(targetHost + req.RequestURI)
 	if err != nil {
-		h.logger.Error("Error parsing target URL", zap.Error(err))
-		http.Error(w, "Error parsing target URL", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("error parsing target URL: %w", err)
 	}
-	//proxy := httputil.NewSingleHostReverseProxy(targetURL)
+
 	proxy := h.NewHeaderPruningReverseProxy(targetURL, true)
 	proxy.BufferPool = h.bufferPool
 	proxy.Transport = h.transport
-	// req.Header.Set("elasti-retry-count", strconv.Itoa(count))
 	proxy.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
 		panic(fmt.Errorf("serveHTTP error: %w", err))
 	}
+	h.logger.Debug("Request sent to proxy", zap.Int("Retry Count", count))
 	proxy.ServeHTTP(w, req)
 	return nil
 }

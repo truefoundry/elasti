@@ -7,7 +7,7 @@ metadata:
   name: httpbin-hello
   namespace: raman-ws
 spec:
-  minTargetReplicas: 1
+  minTargetReplicas: 0
   service: httpbin-hello
   scaleTargetRef:
     apiVersion: argoproj.io/v1alpha1

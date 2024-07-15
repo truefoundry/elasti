@@ -1,4 +1,3 @@
-# Prometheus Monitor Service (Metrics)
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -11,7 +10,7 @@ metadata:
 spec:
   endpoints:
     - path: /metrics
-      port: http # Ensure this is the name of the port that exposes HTTP metrics
+      port: custom-port
       scheme: http
   selector:
     matchLabels:

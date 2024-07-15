@@ -4,6 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
+
+	"truefoundry/elasti/operator/api/v1alpha1"
+	"truefoundry/elasti/operator/internal/crdDirectory"
+	"truefoundry/elasti/operator/internal/informer"
+	"truefoundry/elasti/operator/internal/prom"
 
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/utils"
@@ -14,9 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"truefoundry.io/elasti/api/v1alpha1"
-	"truefoundry.io/elasti/internal/crdDirectory"
-	"truefoundry.io/elasti/internal/informer"
 )
 
 func (r *ElastiServiceReconciler) getCRD(ctx context.Context, crdNamespacedName types.NamespacedName) (*v1alpha1.ElastiService, error) {
@@ -27,19 +30,27 @@ func (r *ElastiServiceReconciler) getCRD(ctx context.Context, crdNamespacedName 
 	return es, nil
 }
 
-func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamespacedName types.NamespacedName, mode string) {
+func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamespacedName types.NamespacedName, mode string) (err error) {
+	defer func() {
+		errStr := ""
+		if err != nil {
+			errStr = err.Error()
+		}
+		prom.CRDUpdateCounter.WithLabelValues(crdNamespacedName.String(), mode, errStr).Inc()
+	}()
 	es := &v1alpha1.ElastiService{}
-	if err := r.Client.Get(ctx, crdNamespacedName, es); err != nil {
+	if err = r.Client.Get(ctx, crdNamespacedName, es); err != nil {
 		r.Logger.Error("Failed to get ElastiService for status update", zap.String("es", crdNamespacedName.String()), zap.Error(err))
-		return
+		return fmt.Errorf("failed to get elastiService for status update")
 	}
 	es.Status.LastReconciledTime = metav1.Now()
 	es.Status.Mode = mode
-	if err := r.Status().Update(ctx, es); err != nil {
+	if err = r.Status().Update(ctx, es); err != nil {
 		r.Logger.Error("Failed to update status", zap.String("es", crdNamespacedName.String()), zap.Error(err))
-		return
+		return fmt.Errorf("failed to update CRD status")
 	}
 	r.Logger.Info("CRD Status updated successfully")
+	return nil
 }
 
 func (r *ElastiServiceReconciler) addCRDFinalizer(ctx context.Context, es *v1alpha1.ElastiService) error {
@@ -56,32 +67,43 @@ func (r *ElastiServiceReconciler) addCRDFinalizer(ctx context.Context, es *v1alp
 // finalizeCRD reset changes made for the CRD
 func (r *ElastiServiceReconciler) finalizeCRD(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
 	r.Logger.Info("ElastiService is being deleted", zap.String("name", es.Name), zap.Any("deletionTimestamp", es.ObjectMeta.DeletionTimestamp))
-	// Stop all active informers related to this CRD
-	r.Informer.StopForCRD(req.Name)
-	r.Logger.Info("1. Informer stopped for CRD", zap.String("es", req.String()))
-	// Reset the informer start mutex, so if the ElastiService is recreated, we will need to reset the informer
-	r.resetMutexForInformer(r.getMutexKeyForTargetRef(req))
-	r.resetMutexForInformer(r.getMutexKeyForPublicSVC(req))
-	r.Logger.Info("2. Informer mutex reset for ScaleTargetRef and PublicSVC", zap.String("es", req.String()))
-
+	var wg sync.WaitGroup
+	wg.Add(3)
+	// Stop all active informers related to this CRD in background
+	go func() {
+		defer wg.Done()
+		r.Informer.StopForCRD(req.Name)
+		r.Logger.Info("[Done] Informer stopped for CRD", zap.String("es", req.String()))
+		// Reset the informer start mutex, so if the ElastiService is recreated, we will need to reset the informer
+		r.resetMutexForInformer(r.getMutexKeyForTargetRef(req))
+		r.resetMutexForInformer(r.getMutexKeyForPublicSVC(req))
+		r.Logger.Info("[Done] Informer mutex reset for ScaleTargetRef and PublicSVC", zap.String("es", req.String()))
+	}()
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
 	}
-	// Delete EndpointSlice to resolver
-	err1 := r.deleteEndpointsliceToResolver(ctx, targetNamespacedName)
-	if err1 == nil {
-		r.Logger.Info("3. EndpointSlice to resolver deleted", zap.String("service", targetNamespacedName.String()))
-	}
-	// Delete private service
-	err2 := r.deletePrivateService(ctx, targetNamespacedName)
-	if err2 == nil {
-		r.Logger.Info("4. Private service deleted", zap.String("service", targetNamespacedName.String()))
-	}
-
+	var err1, err2 error
+	go func() {
+		defer wg.Done()
+		// Delete EndpointSlice to resolver
+		err1 = r.deleteEndpointsliceToResolver(ctx, targetNamespacedName)
+		if err1 == nil {
+			r.Logger.Info("[Done] EndpointSlice to resolver deleted", zap.String("service", targetNamespacedName.String()))
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		// Delete private service
+		err2 = r.deletePrivateService(ctx, targetNamespacedName)
+		if err2 == nil {
+			r.Logger.Info("[Done] Private service deleted", zap.String("service", targetNamespacedName.String()))
+		}
+	}()
+	wg.Wait()
 	// Remove CRD details from service directory
 	crdDirectory.CRDDirectory.RemoveCRD(es.Spec.Service)
-	r.Logger.Info("5. CRD removed from service directory", zap.String("es", req.String()))
+	r.Logger.Info("[Done] CRD removed from service directory", zap.String("es", req.String()))
 
 	if err1 != nil || err2 != nil {
 		return fmt.Errorf("failed to finalize CRD. \n Error 1: %w \n Error 2: %w", err1, err2)
@@ -169,16 +191,23 @@ func (r *ElastiServiceReconciler) watchPublicService(ctx context.Context, es *v1
 	return nil
 }
 
-func (r *ElastiServiceReconciler) finalizeCRDIfDeleted(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) (bool, error) {
+func (r *ElastiServiceReconciler) finalizeCRDIfDeleted(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) (delete bool, err error) {
+	defer func() {
+		e := ""
+		if err != nil {
+			e = err.Error()
+		}
+		prom.CRDFinalizerCounter.WithLabelValues(req.String(), e).Inc()
+	}()
 	// If the ElastiService is being deleted, we need to clean up the resources
 	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
 			// If CRD contains finalizer, we call the finaizer function and remove the finalizer post that
-			if err := r.finalizeCRD(ctx, es, req); err != nil {
+			if err = r.finalizeCRD(ctx, es, req); err != nil {
 				return true, err
 			}
 			controllerutil.RemoveFinalizer(es, v1alpha1.ElastiServiceFinalizer)
-			if err := r.Update(ctx, es); err != nil {
+			if err = r.Update(ctx, es); err != nil {
 				return true, fmt.Errorf("failed to remove finalizer: %w", err)
 			}
 		}

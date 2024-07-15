@@ -27,7 +27,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	elastiv1alpha1 "truefoundry.io/elasti/api/v1alpha1"
+	elastiv1alpha1 "truefoundry/elasti/operator/api/v1alpha1"
 )
 
 var _ = Describe("ElastiService Controller", func() {

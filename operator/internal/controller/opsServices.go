@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"truefoundry/elasti/operator/api/v1alpha1"
+
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/utils"
 	"go.uber.org/zap"
@@ -11,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"truefoundry.io/elasti/api/v1alpha1"
 )
 
 func (r *ElastiServiceReconciler) deletePrivateService(ctx context.Context, publichServiceNamespacedName types.NamespacedName) (err error) {

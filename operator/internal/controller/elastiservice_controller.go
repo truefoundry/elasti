@@ -3,16 +3,18 @@ package controller
 import (
 	"context"
 	"sync"
+	"time"
 
-	"truefoundry.io/elasti/internal/crdDirectory"
-	"truefoundry.io/elasti/internal/informer"
+	"truefoundry/elasti/operator/internal/crdDirectory"
+	"truefoundry/elasti/operator/internal/informer"
+	"truefoundry/elasti/operator/internal/prom"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	kRuntime "k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"truefoundry.io/elasti/api/v1alpha1"
+	"truefoundry/elasti/operator/api/v1alpha1"
 
 	"go.uber.org/zap"
 )
@@ -35,7 +37,7 @@ const (
 	// These are resolver details, ideally in future we can move this to a configmap, or find a better way to serve this
 	resolverNamespace      = "elasti"
 	resolverDeploymentName = "elasti-resolver"
-	resolverServiceName    = "resolver-service"
+	resolverServiceName    = "elasti-resolver-service"
 	resolverPort           = 8012
 )
 
@@ -58,6 +60,16 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	mutex.Lock()
 	defer r.Logger.Debug("- Out of Reconcile", zap.String("es", req.NamespacedName.String()))
 	defer mutex.Unlock()
+	start := time.Now()
+
+	defer func() {
+		duration := time.Since(start).Seconds()
+		e := ""
+		if err != nil {
+			e = err.Error()
+		}
+		prom.CRDRequestHistogram.WithLabelValues(req.String(), e).Observe(duration)
+	}()
 
 	es, esErr := r.getCRD(ctx, req.NamespacedName)
 	if esErr != nil {

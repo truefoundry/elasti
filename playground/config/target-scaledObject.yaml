@@ -13,4 +13,4 @@ spec:
   triggers:
   - type: external
     metadata:
-      scalerAddress: http://resolver-service.elasti.svc.cluster.local
+      scalerAddress: http://elasti-resolver-service.elasti.svc.cluster.local

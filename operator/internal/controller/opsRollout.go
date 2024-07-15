@@ -3,12 +3,13 @@ package controller
 import (
 	"context"
 
+	"truefoundry/elasti/operator/api/v1alpha1"
+
 	argo "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"truefoundry.io/elasti/api/v1alpha1"
 )
 
 func (r *ElastiServiceReconciler) handleTargetRolloutChanges(ctx context.Context, obj interface{}, es *v1alpha1.ElastiService, req ctrl.Request) {

@@ -120,7 +120,18 @@ kubectl apply -f https://github.com/argoproj/argo-rollouts/releases/latest/downl
 
 ```
 
+```
+ helm upgrade --install promstack prometheus-community/kube-prometheus-stack -f prom-stack.yaml
 
+
+helm upgrade --install prometheus prometheus-community/prometheus --version 25.24.0 -f prometheus.yaml -n prometheus  
+
+helm upgrade --install grafana grafana/grafana -n prometheus
+
+
+ kubectl get secret --namespace prometheus grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+```
 
 
 

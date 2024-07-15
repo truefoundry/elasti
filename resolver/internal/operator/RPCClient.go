@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
+	"truefoundry/elasti/resolver/internal/prom"
 
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
@@ -57,30 +59,36 @@ func (o *Client) SendIncomingRequestInfo(ns, svc string) {
 	}
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
+		prom.OperatorRPCCounter.WithLabelValues(err.Error()).Inc()
 		o.logger.Error("Error marshalling request body for operatorRPC", zap.Error(err))
 		return
 	}
 	url := o.operatorURL + o.incomingRequestEndpoint
 	if req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData)); err != nil {
+		prom.OperatorRPCCounter.WithLabelValues(err.Error()).Inc()
 		o.logger.Error("Error creating request", zap.Error(err))
 		return
 	} else {
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := o.client.Do(req)
 		if err != nil {
+			prom.OperatorRPCCounter.WithLabelValues(err.Error()).Inc()
 			o.logger.Error("Error sending request", zap.Error(err))
 			return
 		}
 		defer func(Body io.ReadCloser) {
 			err := Body.Close()
 			if err != nil {
+				prom.OperatorRPCCounter.WithLabelValues(err.Error()).Inc()
 				o.logger.Error("Error closing body", zap.Error(err))
 			}
 		}(resp.Body)
 		if resp.StatusCode != http.StatusOK {
+			prom.OperatorRPCCounter.WithLabelValues(strconv.Itoa(resp.StatusCode)).Inc()
 			o.logger.Error("Request failed with status code", zap.Int("status_code", resp.StatusCode))
 			return
 		}
+		prom.OperatorRPCCounter.WithLabelValues("").Inc()
 		o.logger.Info("Request sent to controller", zap.Int("statusCode", resp.StatusCode), zap.Any("body", resp.Body))
 	}
 }

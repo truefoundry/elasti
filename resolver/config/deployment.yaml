@@ -1,6 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  labels:
+     app.kubernetes.io/name: elasti-resolver
   name: elasti-resolver
   namespace: elasti
 spec:
@@ -10,6 +12,10 @@ spec:
       app: elasti-resolver 
   template:
     metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8012"
+        prometheus.io/path: "/metrics"
       labels:
         app: elasti-resolver 
     spec:

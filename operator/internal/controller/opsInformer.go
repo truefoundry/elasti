@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"truefoundry.io/elasti/api/v1alpha1"
+	"truefoundry/elasti/operator/api/v1alpha1"
 )
 
 const (

@@ -4,12 +4,13 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"truefoundry/resolver/internal/handler"
-	"truefoundry/resolver/internal/hostManager"
-	"truefoundry/resolver/internal/operator"
-	"truefoundry/resolver/internal/throttler"
+	"truefoundry/elasti/resolver/internal/handler"
+	"truefoundry/elasti/resolver/internal/hostManager"
+	"truefoundry/elasti/resolver/internal/operator"
+	"truefoundry/elasti/resolver/internal/throttler"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/logger"
 	"go.uber.org/zap"
@@ -22,6 +23,7 @@ type config struct {
 	// ReqTimeout is the timeout for each request
 	ReqTimeout int `split_words:"true" default:"10"`
 	// TrafficReEnableDuration is the duration for which the traffic is disabled for a host
+	// This is also duration for which we don't recheck readiness of the service
 	TrafficReEnableDuration int `split_words:"true" default:"30"`
 	// OperatorRetryDuration is the duration for which we don't inform the operator
 	// about the traffic on the same host
@@ -63,12 +65,13 @@ func main() {
 	newHostManager := hostManager.NewHostManager(logger, time.Duration(env.TrafficReEnableDuration)*time.Second, env.HeaderForHost)
 	newTransport := throttler.NewProxyAutoTransport(logger, env.MaxIdleProxyConns, env.MaxIdleProxyConnsPerHost)
 	newThrottler := throttler.NewThrottler(&throttler.ThrottlerParams{
-		QueueRetryDuration: time.Duration(env.QueueRetryDuration) * time.Second,
-		K8sUtil:            k8sUtil,
-		QueueDepth:         env.QueueSize,
-		MaxConcurrency:     env.MaxQueueConcurrency,
-		InitialCapacity:    env.InitialCapacity,
-		Logger:             logger,
+		QueueRetryDuration:      time.Duration(env.QueueRetryDuration) * time.Second,
+		K8sUtil:                 k8sUtil,
+		QueueDepth:              env.QueueSize,
+		MaxConcurrency:          env.MaxQueueConcurrency,
+		InitialCapacity:         env.InitialCapacity,
+		TrafficReEnableDuration: time.Duration(env.TrafficReEnableDuration) * time.Second,
+		Logger:                  logger,
 	})
 
 	// Create a handler
@@ -82,6 +85,7 @@ func main() {
 	})
 
 	// Handle all the incoming requests
+	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", requestHandler.ServeHTTP)
 	logger.Info("Reverse Proxy Server starting at ", zap.String("port", port))
 	if err := http.ListenAndServe(port, nil); err != nil {

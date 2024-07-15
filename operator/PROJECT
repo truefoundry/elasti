@@ -6,7 +6,7 @@ domain: truefoundry.io
 layout:
 - go.kubebuilder.io/v4
 projectName: elasti-operator
-repo: truefoundry.io/elasti
+repo: truefoundry/elasti
 resources:
 - api:
     crdVersion: v1
@@ -15,6 +15,6 @@ resources:
   domain: truefoundry.io
   group: elasti
   kind: ElastiService
-  path: truefoundry.io/elasti/api/v1alpha1
+  path: truefoundry/elasti/api/v1alpha1
   version: v1alpha1
 version: "3"

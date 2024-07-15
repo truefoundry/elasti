@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"truefoundry/elasti/resolver/internal/prom"
 
 	"github.com/truefoundry/elasti/pkg/utils"
 
@@ -36,25 +37,27 @@ func NewHostManager(logger *zap.Logger, trafficReEnableDuration time.Duration, h
 
 // GetHost returns the host details for incoming and outgoing requests
 func (hm *HostManager) GetHost(req *http.Request) (*messages.Host, error) {
-	var namespace, sourceService, targetService, sourceHost, targetHost string
-	sourceHost = req.Host
+	incomingHost := req.Host
 	internal := true
 	if values, ok := req.Header[hm.headerForHost]; ok {
-		sourceHost = values[0]
+		incomingHost = values[0]
 		internal = false
 	}
-	namespace, sourceService, err := hm.extractNamespaceAndService(sourceHost, internal)
-	if err != nil {
-		return nil, err
-	}
-	host, ok := hm.hosts.Load(sourceService)
+
+	host, ok := hm.hosts.Load(incomingHost)
 	if !ok {
-		targetService = utils.GetPrivateSerivceName(sourceService)
-		sourceHost = hm.removeTrailingWildcardIfNeeded(sourceHost)
+		namespace, sourceService, err := hm.extractNamespaceAndService(incomingHost, internal)
+		if err != nil {
+			prom.HostExtractionCounter.WithLabelValues("error", incomingHost, hm.headerForHost, err.Error()).Inc()
+			return &messages.Host{}, err
+		}
+		targetService := utils.GetPrivateSerivceName(sourceService)
+		sourceHost := hm.removeTrailingWildcardIfNeeded(incomingHost)
 		sourceHost = hm.addHTTPIfNeeded(sourceHost)
-		targetHost = hm.replaceServiceName(sourceHost, targetService)
+		targetHost := hm.replaceServiceName(sourceHost, targetService)
 		targetHost = hm.addHTTPIfNeeded(targetHost)
-		host = &messages.Host{
+		newHost := &messages.Host{
+			IncomingHost:   incomingHost,
 			Namespace:      namespace,
 			SourceService:  sourceService,
 			TargetService:  targetService,
@@ -62,8 +65,11 @@ func (hm *HostManager) GetHost(req *http.Request) (*messages.Host, error) {
 			TargetHost:     targetHost,
 			TrafficAllowed: true,
 		}
-		hm.hosts.Store(sourceService, host)
+		hm.hosts.Store(incomingHost, newHost)
+		prom.HostExtractionCounter.WithLabelValues("cache-miss", incomingHost, hm.headerForHost, "").Inc()
+		return newHost, nil
 	}
+	prom.HostExtractionCounter.WithLabelValues("cache-hit", incomingHost, hm.headerForHost, "").Inc()
 	return host.(*messages.Host), nil
 }
 
@@ -78,6 +84,7 @@ func (hm *HostManager) DisableTrafficForHost(hostName string) {
 		go time.AfterFunc(hm.trafficReEnableDuration, func() {
 			hm.enableTrafficForHost(hostName)
 		})
+		prom.TrafficSwitchCounter.WithLabelValues(hostName, "disabled").Inc()
 	}
 }
 
@@ -87,6 +94,7 @@ func (hm *HostManager) enableTrafficForHost(hostName string) {
 		host.(*messages.Host).TrafficAllowed = true
 		hm.hosts.Store(hostName, host)
 		hm.logger.Debug("Enabled traffic for host", zap.Any("hostName", hostName))
+		prom.TrafficSwitchCounter.WithLabelValues(hostName, "enabled").Inc()
 	}
 }
 

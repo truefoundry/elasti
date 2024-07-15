@@ -24,6 +24,9 @@ spec:
   template:
     metadata:
       annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8013"
+        prometheus.io/path: "/metrics"
         kubectl.kubernetes.io/default-container: manager
       labels:
         control-plane: controller-manager

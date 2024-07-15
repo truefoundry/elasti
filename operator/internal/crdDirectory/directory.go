@@ -3,8 +3,9 @@ package crdDirectory
 import (
 	"sync"
 
+	"truefoundry/elasti/operator/api/v1alpha1"
+
 	"go.uber.org/zap"
-	"truefoundry.io/elasti/api/v1alpha1"
 )
 
 type Directory struct {

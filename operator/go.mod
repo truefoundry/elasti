@@ -1,4 +1,4 @@
-module truefoundry.io/elasti
+module truefoundry/elasti/operator
 
 go 1.22.3
 
