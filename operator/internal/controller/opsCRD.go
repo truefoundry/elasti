@@ -192,15 +192,15 @@ func (r *ElastiServiceReconciler) watchPublicService(ctx context.Context, es *v1
 }
 
 func (r *ElastiServiceReconciler) finalizeCRDIfDeleted(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) (delete bool, err error) {
-	defer func() {
-		e := ""
-		if err != nil {
-			e = err.Error()
-		}
-		prom.CRDFinalizerCounter.WithLabelValues(req.String(), e).Inc()
-	}()
 	// If the ElastiService is being deleted, we need to clean up the resources
 	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
+		defer func() {
+			e := ""
+			if err != nil {
+				e = err.Error()
+			}
+			prom.CRDFinalizerCounter.WithLabelValues(req.String(), e).Inc()
+		}()
 		if controllerutil.ContainsFinalizer(es, v1alpha1.ElastiServiceFinalizer) {
 			// If CRD contains finalizer, we call the finaizer function and remove the finalizer post that
 			if err = r.finalizeCRD(ctx, es, req); err != nil {
