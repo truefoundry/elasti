@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	CRDRequestHistogram = promauto.NewHistogramVec(
+	CRDReconcileHistogram = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "elasti_operator_CRD_counter",
+			Name:    "elasti_operator_reconcile",
 			Help:    "Tracks the number of active elasti service",
 			Buckets: []float64{0.1, 0.5, 1, 2, 5, 10},
 		},
@@ -45,5 +45,21 @@ var (
 			Help: "Counter for informer",
 		},
 		[]string{"crd_name", "action", "error"},
+	)
+
+	InformerHandlerCounter = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "elasti_operator_informer_handler_counter",
+			Help: "Counter for informer handler",
+		},
+		[]string{"crd_name", "key", "error"},
+	)
+
+	TargetScaleCounter = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "elasti_operator_scale_counter",
+			Help: "Scale counter for target",
+		},
+		[]string{"service_name", "target", "error"},
 	)
 )

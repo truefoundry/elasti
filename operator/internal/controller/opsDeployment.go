@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"truefoundry/elasti/operator/api/v1alpha1"
 
@@ -14,29 +15,32 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Context, obj interface{}, _ *v1alpha1.ElastiService, req ctrl.Request) {
+func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Context, obj interface{}, _ *v1alpha1.ElastiService, req ctrl.Request) error {
 	targetDeployment := &appsv1.Deployment{}
 	err := k8sHelper.UnstructuredToResource(obj, targetDeployment)
 	if err != nil {
-		r.Logger.Error("Failed to convert unstructured to deployment", zap.Error(err))
-		return
+		return fmt.Errorf("failed to convert unstructured to deployment: %w", err)
 	}
 	condition := targetDeployment.Status.Conditions
 	if targetDeployment.Status.Replicas == 0 {
 		r.Logger.Info("ScaleTargetRef Deployment has 0 replicas", zap.String("deployment_name", targetDeployment.Name), zap.String("es", req.String()))
-		r.switchMode(ctx, req, values.ProxyMode)
+		if _, err := r.switchMode(ctx, req, values.ProxyMode); err != nil {
+			return fmt.Errorf("failed to switch mode: %w", err)
+		}
 	} else if targetDeployment.Status.Replicas > 0 && condition[1].Status == values.DeploymentConditionStatusTrue {
 		r.Logger.Info("ScaleTargetRef Deployment has ready replicas", zap.String("deployment_name", targetDeployment.Name), zap.String("es", req.String()))
-		r.switchMode(ctx, req, values.ServeMode)
+		if _, err := r.switchMode(ctx, req, values.ServeMode); err != nil {
+			return fmt.Errorf("failed to switch mode: %w", err)
+		}
 	}
+	return nil
 }
 
-func (r *ElastiServiceReconciler) handleResolverChanges(ctx context.Context, obj interface{}, serviceName, namespace string) {
+func (r *ElastiServiceReconciler) handleResolverChanges(ctx context.Context, obj interface{}, serviceName, namespace string) error {
 	resolverDeployment := &appsv1.Deployment{}
 	err := k8sHelper.UnstructuredToResource(obj, resolverDeployment)
 	if err != nil {
-		r.Logger.Error("Failed to convert unstructured to deployment", zap.Error(err))
-		return
+		return fmt.Errorf("failed to convert unstructured to deployment: %w", err)
 	}
 	if resolverDeployment.Name == resolverDeploymentName {
 		targetNamespacedName := types.NamespacedName{
@@ -45,13 +49,11 @@ func (r *ElastiServiceReconciler) handleResolverChanges(ctx context.Context, obj
 		}
 		targetSVC := &v1.Service{}
 		if err := r.Get(ctx, targetNamespacedName, targetSVC); err != nil {
-			r.Logger.Error("Failed to get service to update endpointslice", zap.String("service", targetNamespacedName.String()), zap.Error(err))
-			return
+			return fmt.Errorf("failed to get service to update endpointslice: %w", err)
 		}
 		if err := r.createOrUpdateEndpointsliceToResolver(ctx, targetSVC); err != nil {
-			r.Logger.Error("Failed to create or update endpointslice to resolver", zap.String("service", targetNamespacedName.String()), zap.Error(err))
-			return
+			return fmt.Errorf("failed to create or update endpointslice to resolver: %w", err)
 		}
 	}
-	r.Logger.Info("Resolver changes handled", zap.String("deployment_name", resolverDeploymentName))
+	return nil
 }

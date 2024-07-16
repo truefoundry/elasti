@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"truefoundry/elasti/operator/internal/crdDirectory"
+	"truefoundry/elasti/operator/internal/prom"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
@@ -122,10 +123,13 @@ func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace
 		s.releaseMutexForServiceScale(serviceName)
 		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, serviceName: %s", serviceName)
 	}
+
 	if err := s.k8sHelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
 		s.releaseMutexForServiceScale(serviceName)
+		prom.TargetScaleCounter.WithLabelValues(serviceName, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, err.Error()).Inc()
 		return fmt.Errorf("scaleTargetForService - error: %w, targetRefKind: %s, targetRefName: %s", err, crd.Spec.ScaleTargetRef.Kind, crd.Spec.ScaleTargetRef.Name)
 	}
+	prom.TargetScaleCounter.WithLabelValues(serviceName, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, "success").Inc()
 
 	// If the target is scaled up, we will hold the lock for longer, to not scale up again
 	time.AfterFunc(s.rescaleDuration, func() {

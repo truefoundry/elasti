@@ -128,7 +128,7 @@ func (m *Manager) StopForCRD(crdName string) {
 // It closes the shared informer for it and deletes it from the map
 func (m *Manager) StopInformer(key string) (err error) {
 	defer func() {
-		errStr := ""
+		errStr := "success"
 		if err != nil {
 			errStr = err.Error()
 		}
@@ -186,7 +186,7 @@ func (m *Manager) WatchDeployment(req ctrl.Request, deploymentName, namespace st
 func (m *Manager) Add(req *RequestWatch) (err error) {
 	key := m.getKeyFromRequestWatch(req)
 	defer func() {
-		errStr := ""
+		errStr := "success"
 		if err != nil {
 			errStr = err.Error()
 		}

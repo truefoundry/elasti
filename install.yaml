@@ -560,13 +560,13 @@ spec:
         - name: HEADER_FOR_HOST
           value: X-Envoy-Decorator-Operation
         - name: QUEUE_SIZE
-          value: "100"
+          value: "500"
         - name: QUEUE_RETRY_DURATION
           value: "2"
         - name: MAX_QUEUE_CONCURRENCY
-          value: "10"
+          value: "50"
         - name: INITIAL_CAPACITY
-          value: "10"
+          value: "50"
         image: localhost:5001/elasti-resolver:v1alpha1
         imagePullPolicy: Always
         name: playground

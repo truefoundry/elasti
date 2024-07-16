@@ -69,29 +69,25 @@ func (r *ElastiServiceReconciler) checkAndCreatePrivateService(ctx context.Conte
 }
 
 // handlePublicServiceChanges handles the changes in the public service, and sync those changes in the private service
-func (r *ElastiServiceReconciler) handlePublicServiceChanges(ctx context.Context, obj interface{}, serviceName, _ string) {
+func (r *ElastiServiceReconciler) handlePublicServiceChanges(ctx context.Context, obj interface{}, serviceName, _ string) error {
 	publicSVC := &v1.Service{}
 	err := k8sHelper.UnstructuredToResource(obj, publicSVC)
 	if err != nil {
-		r.Logger.Error("Failed to convert unstructured to service", zap.Error(err))
-		return
+		return fmt.Errorf("failed to convert unstructured to service: %w", err)
 	}
 
 	// Check if the service is same as mentioned in CRD
 	if publicSVC.Name != serviceName {
-		r.Logger.Debug("Public service is not same as mentioned in CRD. Informer misconfigured.", zap.String("service", publicSVC.Name))
-		return
+		return fmt.Errorf("public service is not same as mentioned in CRD; informer misconfigured")
 	}
 	// Get Private Service
 	PVTName := utils.GetPrivateSerivceName(publicSVC.Name)
 	privateServiceNamespacedName := types.NamespacedName{Name: PVTName, Namespace: publicSVC.Namespace}
 	privateSVC := &v1.Service{}
 	if err := r.Get(ctx, privateServiceNamespacedName, privateSVC); err != nil && !errors.IsNotFound(err) {
-		r.Logger.Error("Failed to get private service", zap.Error(err))
-		return
+		return fmt.Errorf("failed to get private service: %w", err)
 	} else if errors.IsNotFound(err) {
-		r.Logger.Error("Private service not found", zap.String("private-service", privateServiceNamespacedName.String()))
-		return
+		return fmt.Errorf("private service not found: %w", err)
 	}
 
 	// Sync the changes in private service
@@ -100,9 +96,8 @@ func (r *ElastiServiceReconciler) handlePublicServiceChanges(ctx context.Context
 
 	// Update the private service
 	if err := r.Update(ctx, privateSVC); err != nil {
-		r.Logger.Error("Failed to update private service", zap.String("private-service", privateServiceNamespacedName.String()), zap.Error(err))
-		return
+		return fmt.Errorf("failed to update private service: %w", err)
 	}
 
-	r.Logger.Info("Public service changed. Private service synced.", zap.String("service", publicSVC.Name))
+	return nil
 }

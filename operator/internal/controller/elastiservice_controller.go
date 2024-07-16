@@ -63,12 +63,12 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	start := time.Now()
 
 	defer func() {
-		duration := time.Since(start).Seconds()
-		e := ""
+		e := "success"
 		if err != nil {
 			e = err.Error()
 		}
-		prom.CRDRequestHistogram.WithLabelValues(req.String(), e).Observe(duration)
+		duration := time.Since(start).Seconds()
+		prom.CRDReconcileHistogram.WithLabelValues(req.String(), e).Observe(duration)
 	}()
 
 	es, esErr := r.getCRD(ctx, req.NamespacedName)

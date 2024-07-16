@@ -29,7 +29,7 @@ spec:
         - name: MAX_IDLE_PROXY_CONNS_PER_HOST
           value: "100"
         - name: REQ_TIMEOUT
-          value: "10"       
+          value: "120"       
         - name: TRAFFIC_RE_ENABLE_DURATION
           value: "10"
         - name: OPERATOR_RETRY_DURATION
@@ -37,13 +37,13 @@ spec:
         - name: HEADER_FOR_HOST
           value: X-Envoy-Decorator-Operation
         - name: QUEUE_SIZE
-          value: "100"
+          value: "500"
         - name: QUEUE_RETRY_DURATION
           value: "2"       
         - name: MAX_QUEUE_CONCURRENCY
-          value: "10"
+          value: "50"
         - name: INITIAL_CAPACITY
-          value: "10"
+          value: "50"
         ports:
         - containerPort: 8012
         resources:
