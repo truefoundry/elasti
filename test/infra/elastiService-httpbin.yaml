@@ -1,0 +1,47 @@
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  labels:
+    app.kubernetes.io/name: elasti-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: httpbin-hello
+  namespace: raman-ws
+spec:
+  minTargetReplicas: 1
+  service: httpbin-hello
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: rollouts
+    name: httpbin-hello
+---
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  labels:
+    app.kubernetes.io/name: elasti-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: httpbin-hello-1
+  namespace: raman-ws
+spec:
+  minTargetReplicas: 1
+  service: httpbin-hello-1
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: rollouts
+    name: httpbin-hello-1
+---
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  labels:
+    app.kubernetes.io/name: elasti-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: httpbin-hello-2
+  namespace: raman-ws
+spec:
+  minTargetReplicas: 1
+  service: httpbin-hello-2
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: rollouts
+    name: httpbin-hello-2

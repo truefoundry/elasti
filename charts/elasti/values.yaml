@@ -1,0 +1,72 @@
+kubernetesClusterDomain: cluster.local
+operatorControllerManager:
+  manager:
+    args:
+    - --leader-elect
+    - --health-probe-bind-address=:8081
+    - --metrics-bind-address=0
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+    image:
+      repository: localhost:5001/elasti-operator
+      tag: v1alpha1
+    imagePullPolicy: Always
+    resources:
+      limits:
+        cpu: 500m
+        memory: 128Mi
+      requests:
+        cpu: 10m
+        memory: 64Mi
+  replicas: 1
+  serviceAccount:
+    annotations: {}
+operatorControllerManagerMetricsService:
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  type: ClusterIP
+operatorControllerService:
+  ports:
+  - name: custom-port
+    port: 8013
+    protocol: TCP
+    targetPort: 8013
+  type: ClusterIP
+resolver:
+  playground:
+    env:
+      headerForHost: X-Envoy-Decorator-Operation
+      initialCapacity: "50"
+      maxIdleProxyConns: "10"
+      maxIdleProxyConnsPerHost: "100"
+      maxQueueConcurrency: "50"
+      operatorRetryDuration: "10"
+      queueRetryDuration: "2"
+      queueSize: "500"
+      reqTimeout: "120"
+      trafficReEnableDuration: "10"
+    image:
+      repository: localhost:5001/elasti-resolver
+      tag: v1alpha1
+    imagePullPolicy: Always
+    resources:
+      limits:
+        cpu: 750m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 500Mi
+  replicas: 1
+resolverService:
+  ports:
+  - name: http-playground
+    port: 8012
+    protocol: TCP
+    targetPort: 0
+  type: LoadBalancer

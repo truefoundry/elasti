@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "elasti.fullname" . }}-operator-controller-manager-metrics-monitor
+  labels:
+    control-plane: controller-manager
+  {{- include "elasti.labels" . | nindent 4 }}
+spec:
+  endpoints:
+  - path: /metrics
+    port: custom-port
+    scheme: http
+  selector:
+    matchLabels:
+      control-plane: controller-manager

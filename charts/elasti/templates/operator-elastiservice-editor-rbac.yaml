@@ -1,0 +1,25 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "elasti.fullname" . }}-operator-elastiservice-editor-role
+  labels:
+  {{- include "elasti.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - elasti.truefoundry.com
+  resources:
+  - elastiservices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - elasti.truefoundry.com
+  resources:
+  - elastiservices/status
+  verbs:
+  - get

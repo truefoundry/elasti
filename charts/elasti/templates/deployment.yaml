@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "elasti.fullname" . }}-operator-controller-manager
+  labels:
+    control-plane: controller-manager
+  {{- include "elasti.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.operatorControllerManager.replicas }}
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+    {{- include "elasti.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+      {{- include "elasti.selectorLabels" . | nindent 8 }}
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8013"
+        prometheus.io/scrape: "true"
+    spec:
+      containers:
+      - args: {{- toYaml .Values.operatorControllerManager.manager.args | nindent 8 }}
+        command:
+        - /manager
+        env:
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: {{ .Values.operatorControllerManager.manager.image.repository }}:{{ .Values.operatorControllerManager.manager.image.tag
+          | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.operatorControllerManager.manager.imagePullPolicy }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports:
+        - containerPort: 8013
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources: {{- toYaml .Values.operatorControllerManager.manager.resources | nindent
+          10 }}
+        securityContext: {{- toYaml .Values.operatorControllerManager.manager.containerSecurityContext
+          | nindent 10 }}
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: {{ include "elasti.fullname" . }}-operator-controller-manager
+      terminationGracePeriodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "elasti.fullname" . }}-resolver
+  labels:
+  {{- include "elasti.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.resolver.replicas }}
+  selector:
+    matchLabels:
+      app: elasti-resolver
+    {{- include "elasti.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app: elasti-resolver
+      {{- include "elasti.selectorLabels" . | nindent 8 }}
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8012"
+        prometheus.io/scrape: "true"
+    spec:
+      containers:
+      - env:
+        - name: MAX_IDLE_PROXY_CONNS
+          value: {{ quote .Values.resolver.playground.env.maxIdleProxyConns }}
+        - name: MAX_IDLE_PROXY_CONNS_PER_HOST
+          value: {{ quote .Values.resolver.playground.env.maxIdleProxyConnsPerHost }}
+        - name: REQ_TIMEOUT
+          value: {{ quote .Values.resolver.playground.env.reqTimeout }}
+        - name: TRAFFIC_RE_ENABLE_DURATION
+          value: {{ quote .Values.resolver.playground.env.trafficReEnableDuration }}
+        - name: OPERATOR_RETRY_DURATION
+          value: {{ quote .Values.resolver.playground.env.operatorRetryDuration }}
+        - name: HEADER_FOR_HOST
+          value: {{ quote .Values.resolver.playground.env.headerForHost }}
+        - name: QUEUE_SIZE
+          value: {{ quote .Values.resolver.playground.env.queueSize }}
+        - name: QUEUE_RETRY_DURATION
+          value: {{ quote .Values.resolver.playground.env.queueRetryDuration }}
+        - name: MAX_QUEUE_CONCURRENCY
+          value: {{ quote .Values.resolver.playground.env.maxQueueConcurrency }}
+        - name: INITIAL_CAPACITY
+          value: {{ quote .Values.resolver.playground.env.initialCapacity }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        image: {{ .Values.resolver.playground.image.repository }}:{{ .Values.resolver.playground.image.tag
+          | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.resolver.playground.imagePullPolicy }}
+        name: playground
+        ports:
+        - containerPort: 8012
+        resources: {{- toYaml .Values.resolver.playground.resources | nindent 10 }}

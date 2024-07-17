@@ -12,7 +12,7 @@ help:
 
 .PHONY: helm-chart 
 helm-chart: ## Create Helm chart for the operator
-	kustomize build operator/config/default | helmify ../charts/elasti
+	kustomize build . | helmify ./charts/elasti
 
 .PHONY: generate-manifest
 generate-manifest: ## Generate deploy manifest

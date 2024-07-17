@@ -31,6 +31,14 @@ var (
 		[]string{"crd_name", "mode", "error"},
 	)
 
+	ModeGauge = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "elasti_operator_mode",
+			Help: "Gauge for mode",
+		},
+		[]string{"crd_name"},
+	)
+
 	InformerGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "elasti_operator_informer_count",

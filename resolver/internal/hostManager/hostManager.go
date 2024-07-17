@@ -38,15 +38,12 @@ func NewHostManager(logger *zap.Logger, trafficReEnableDuration time.Duration, h
 // GetHost returns the host details for incoming and outgoing requests
 func (hm *HostManager) GetHost(req *http.Request) (*messages.Host, error) {
 	incomingHost := req.Host
-	internal := true
 	if values, ok := req.Header[hm.headerForHost]; ok {
 		incomingHost = values[0]
-		internal = false
 	}
-
 	host, ok := hm.hosts.Load(incomingHost)
 	if !ok {
-		namespace, sourceService, err := hm.extractNamespaceAndService(incomingHost, internal)
+		sourceService, namespace, err := hm.extractNamespaceAndService(incomingHost)
 		if err != nil {
 			prom.HostExtractionCounter.WithLabelValues("error", incomingHost, hm.headerForHost, err.Error()).Inc()
 			return &messages.Host{}, err
@@ -98,20 +95,41 @@ func (hm *HostManager) enableTrafficForHost(hostName string) {
 	}
 }
 
-// extractNamespaceAndService extracts the namespace and service name from the host
-func (hm *HostManager) extractNamespaceAndService(s string, internal bool) (string, string, error) {
-	re := regexp.MustCompile(`(?P<service>[^.]+)\.(?P<namespace>[^.]+)\.svc\.cluster\.local:\d+/\*`)
-	// When the request come internal source, we don't get a http
-	if internal {
-		re = regexp.MustCompile(`(?P<service>[^.]+)\.(?P<namespace>[^.]+)\.svc\.cluster\.local:\d+`)
+func (hm *HostManager) extractNamespaceAndService(url string) (string, string, error) {
+	// Define regular expression patterns for different Kubernetes internal URL formats
+	patterns := []string{
+		`http://([a-zA-Z0-9-]+)\.([a-zA-Z0-9-]+)\.svc\.cluster\.local:\d+/\*`,
+		`([a-zA-Z0-9-]+)\.([a-zA-Z0-9-]+)\.svc\.cluster\.local:\d+/\*`,
+		`http://([a-zA-Z0-9-]+)\.([a-zA-Z0-9-]+)\.svc\.cluster\.local:\d+`,
+		`([a-zA-Z0-9-]+)\.([a-zA-Z0-9-]+)\.svc\.cluster\.local:\d+`,
+		`http://([a-zA-Z0-9-]+)\.([a-zA-Z0-9-]+)\.svc\.cluster\.local`,
+		`([a-zA-Z0-9-]+)\.([a-zA-Z0-9-]+)\.svc\.cluster\.local`,
+		`http://([a-zA-Z0-9-]+)\.([a-zA-Z0-9-]+)\.svc`,
+		`([a-zA-Z0-9-]+)\.([a-zA-Z0-9-]+)\.svc`,
+		`http://([a-zA-Z0-9-]+)\.([a-zA-Z0-9-]+)`,
+		`([a-zA-Z0-9-]+)\.([a-zA-Z0-9-]+)`,
+		`http://([a-zA-Z0-9-]+)\.svc\.cluster\.local`,
+		`([a-zA-Z0-9-]+)\.svc\.cluster\.local`,
+		`http://([a-zA-Z0-9-]+)\.svc`,
+		`([a-zA-Z0-9-]+)\.svc`,
+		`http://([a-zA-Z0-9-]+)`,
+		`([a-zA-Z0-9-]+)`,
 	}
-	matches := re.FindStringSubmatch(s)
-	if len(matches) < 3 {
-		return "", "", fmt.Errorf("unable to extract namespace and service name")
+	var serviceName, namespace string
+	for _, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		matches := re.FindStringSubmatch(url)
+		if len(matches) == 3 {
+			serviceName = matches[1]
+			namespace = matches[2]
+			return serviceName, namespace, nil
+		} else if len(matches) == 2 {
+			serviceName = matches[1]
+			namespace = "default"
+			return serviceName, namespace, fmt.Errorf("namespace not found in URL: %s", url)
+		}
 	}
-	service := matches[re.SubexpIndex("service")]
-	namespace := matches[re.SubexpIndex("namespace")]
-	return namespace, service, nil
+	return "", "", fmt.Errorf("invalid Kubernetes URL: %s", url)
 }
 
 // addHTTPIfNeeded adds http if not present in the service URL

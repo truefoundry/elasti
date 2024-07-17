@@ -37,6 +37,12 @@ func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamesp
 			errStr = err.Error()
 		}
 		prom.CRDUpdateCounter.WithLabelValues(crdNamespacedName.String(), mode, errStr).Inc()
+		var modeGauge float64
+		modeGauge = 0
+		if mode == values.ProxyMode {
+			modeGauge = 1
+		}
+		prom.ModeGauge.WithLabelValues(crdNamespacedName.String()).Set(modeGauge)
 	}()
 	es := &v1alpha1.ElastiService{}
 	if err = r.Client.Get(ctx, crdNamespacedName, es); err != nil {
@@ -49,6 +55,7 @@ func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamesp
 		r.Logger.Error("Failed to update status", zap.String("es", crdNamespacedName.String()), zap.Error(err))
 		return fmt.Errorf("failed to update CRD status")
 	}
+
 	r.Logger.Info("CRD Status updated successfully")
 	return nil
 }

@@ -12,4 +12,21 @@ spec:
     apiVersion: apps/v1
     kind: Deployments
     name: target
+---
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  labels:
+    app.kubernetes.io/name: elasti-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: target-2
+  namespace: default-2
+spec:
+  service: target-service-2
+  minTargetReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployments
+    name: target-2
  
+
