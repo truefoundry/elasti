@@ -198,12 +198,4 @@ mv "$$(echo "$(1)" | sed "s/-$(3)$$//")" $(1) ;\
 }
 endef
 
-.PHONY: helm-chart 
-helm-chart: ## Create Helm chart for the operator
-	 $(KUSTOMIZE) build config/default | helmify ../charts/elasti
-
-.PHONY: generate-manifest
-generate-manifest: ## Generate deploy manifest
-	$(KUSTOMIZE) build config/default > operator.yaml
-
 

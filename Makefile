@@ -10,6 +10,7 @@ help:
 		printf "  %-15s %s\n", target, helpMsg; \
 	}' $(MAKEFILE_LIST) | column -s ':' -t
 
+
 .PHONY: helm-chart 
 helm-chart: ## Create Helm chart for the operator
 	kustomize build . | helmify ./charts/elasti

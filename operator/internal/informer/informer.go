@@ -91,7 +91,10 @@ func (m *Manager) Stop() {
 	m.informers.Range(func(key, value interface{}) bool {
 		info, ok := value.(info)
 		if ok {
-			m.StopInformer(m.getKeyFromRequestWatch(info.Req))
+			err := m.StopInformer(m.getKeyFromRequestWatch(info.Req))
+			if err != nil {
+				m.logger.Error("failed to stop informer", zap.Error(err))
+			}
 		}
 		return true
 	})
@@ -136,7 +139,7 @@ func (m *Manager) StopInformer(key string) (err error) {
 	}()
 	value, ok := m.informers.Load(key)
 	if !ok {
-		return fmt.Errorf("informer not found for key: %s", key)
+		return fmt.Errorf("informer not found, already stopped for key: %s", key)
 	}
 
 	// We need to verify if the informer exists in the map
@@ -158,7 +161,10 @@ func (m *Manager) monitorInformers() {
 		if ok {
 			if !info.Informer.HasSynced() {
 				m.logger.Info("Informer not synced", zap.String("key", key.(string)))
-				m.StopInformer(m.getKeyFromRequestWatch(info.Req))
+				err := m.StopInformer(m.getKeyFromRequestWatch(info.Req))
+				if err != nil {
+					m.logger.Error("Error in stopping informer", zap.Error(err))
+				}
 				m.enableInformer(info.Req)
 			}
 		}

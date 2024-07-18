@@ -4,12 +4,11 @@ metadata:
   labels:
     app.kubernetes.io/name: elasti-resolver
   name: elasti-resolver-service
-  namespace: elasti
 spec:
   selector:
     app: elasti-resolver
   ports:
-  - name: http-playground
+  - name: http-resolver
     protocol: TCP
     port: 8012
   type: LoadBalancer

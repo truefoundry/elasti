@@ -39,7 +39,7 @@ operatorControllerService:
     targetPort: 8013
   type: ClusterIP
 resolver:
-  playground:
+  proxy:
     env:
       headerForHost: X-Envoy-Decorator-Operation
       initialCapacity: "50"
@@ -65,7 +65,7 @@ resolver:
   replicas: 1
 resolverService:
   ports:
-  - name: http-playground
+  - name: http-resolver
     port: 8012
     protocol: TCP
     targetPort: 0

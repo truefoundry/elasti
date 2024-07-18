@@ -140,7 +140,10 @@ func (r *ElastiServiceReconciler) watchScaleTargetRef(ctx context.Context, es *v
 				ResourceName: crd.Spec.ScaleTargetRef.Name,
 				Resource:     strings.ToLower(crd.Spec.ScaleTargetRef.Kind),
 			})
-			r.Informer.StopInformer(key)
+			err := r.Informer.StopInformer(key)
+			if err != nil {
+				r.Logger.Error("Failed to stop informer for old scaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef), zap.Error(err))
+			}
 			r.Logger.Debug("Resetting mutex for old scaleTargetRef informer", zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
 			r.resetMutexForInformer(r.getMutexKeyForTargetRef(req))
 		}

@@ -4,10 +4,9 @@ metadata:
   labels:
     group: elasti
   name: elasti-resolver-metrics-monitor
-  namespace: elasti
 spec:
   endpoints:
-    - port: http-playground
+    - port: http-resolver
       path: /metrics
       scheme: http
   selector:

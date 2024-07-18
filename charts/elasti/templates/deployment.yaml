@@ -83,31 +83,31 @@ spec:
       containers:
       - env:
         - name: MAX_IDLE_PROXY_CONNS
-          value: {{ quote .Values.resolver.playground.env.maxIdleProxyConns }}
+          value: {{ quote .Values.resolver.proxy.env.maxIdleProxyConns }}
         - name: MAX_IDLE_PROXY_CONNS_PER_HOST
-          value: {{ quote .Values.resolver.playground.env.maxIdleProxyConnsPerHost }}
+          value: {{ quote .Values.resolver.proxy.env.maxIdleProxyConnsPerHost }}
         - name: REQ_TIMEOUT
-          value: {{ quote .Values.resolver.playground.env.reqTimeout }}
+          value: {{ quote .Values.resolver.proxy.env.reqTimeout }}
         - name: TRAFFIC_RE_ENABLE_DURATION
-          value: {{ quote .Values.resolver.playground.env.trafficReEnableDuration }}
+          value: {{ quote .Values.resolver.proxy.env.trafficReEnableDuration }}
         - name: OPERATOR_RETRY_DURATION
-          value: {{ quote .Values.resolver.playground.env.operatorRetryDuration }}
+          value: {{ quote .Values.resolver.proxy.env.operatorRetryDuration }}
         - name: HEADER_FOR_HOST
-          value: {{ quote .Values.resolver.playground.env.headerForHost }}
+          value: {{ quote .Values.resolver.proxy.env.headerForHost }}
         - name: QUEUE_SIZE
-          value: {{ quote .Values.resolver.playground.env.queueSize }}
+          value: {{ quote .Values.resolver.proxy.env.queueSize }}
         - name: QUEUE_RETRY_DURATION
-          value: {{ quote .Values.resolver.playground.env.queueRetryDuration }}
+          value: {{ quote .Values.resolver.proxy.env.queueRetryDuration }}
         - name: MAX_QUEUE_CONCURRENCY
-          value: {{ quote .Values.resolver.playground.env.maxQueueConcurrency }}
+          value: {{ quote .Values.resolver.proxy.env.maxQueueConcurrency }}
         - name: INITIAL_CAPACITY
-          value: {{ quote .Values.resolver.playground.env.initialCapacity }}
+          value: {{ quote .Values.resolver.proxy.env.initialCapacity }}
         - name: KUBERNETES_CLUSTER_DOMAIN
           value: {{ quote .Values.kubernetesClusterDomain }}
-        image: {{ .Values.resolver.playground.image.repository }}:{{ .Values.resolver.playground.image.tag
+        image: {{ .Values.resolver.proxy.image.repository }}:{{ .Values.resolver.proxy.image.tag
           | default .Chart.AppVersion }}
-        imagePullPolicy: {{ .Values.resolver.playground.imagePullPolicy }}
-        name: playground
+        imagePullPolicy: {{ .Values.resolver.proxy.imagePullPolicy }}
+        name: proxy
         ports:
         - containerPort: 8012
-        resources: {{- toYaml .Values.resolver.playground.resources | nindent 10 }}
+        resources: {{- toYaml .Values.resolver.proxy.resources | nindent 10 }}

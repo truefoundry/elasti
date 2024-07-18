@@ -4,7 +4,6 @@ metadata:
   labels:
      app.kubernetes.io/name: elasti-resolver
   name: elasti-resolver
-  namespace: elasti
 spec:
   replicas: 1
   selector:
@@ -20,7 +19,7 @@ spec:
         app: elasti-resolver 
     spec:
       containers:
-      - name: playground
+      - name: proxy
         image: localhost:5001/elasti-resolver:v1alpha1
         imagePullPolicy: Always
         env:

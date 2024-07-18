@@ -15,8 +15,6 @@ namespace: elasti
 #    someName: someValue
 
 resources:
-- namespace.yaml
-# - serviceAccount.yaml
 - clusterRole.yaml
 - clusterRoleBinding.yaml
 - deployment.yaml

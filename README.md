@@ -131,6 +131,15 @@ helm upgrade --install grafana grafana/grafana -n prometheus
 
  kubectl get secret --namespace prometheus grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 
+ kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_alertmanagers.yaml
+kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
+kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_probes.yaml
+kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_prometheuses.yaml
+kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml
+kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml
+kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_thanosrulers.yaml
+
+
 ```
 
 

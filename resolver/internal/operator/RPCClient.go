@@ -35,7 +35,7 @@ func NewOperatorClient(logger *zap.Logger, retryDuration time.Duration) *Client 
 	return &Client{
 		logger:                  logger.With(zap.String("component", "operatorRPC")),
 		retryDuration:           retryDuration,
-		operatorURL:             "http://elasti-operator-controller-service.elasti-operator-system.svc.cluster.local:8013",
+		operatorURL:             "http://elasti-operator-controller-service:8013",
 		incomingRequestEndpoint: "/informer/incoming-request",
 		client:                  http.Client{},
 	}

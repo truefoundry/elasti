@@ -37,14 +37,3 @@ docker-buildx: ## Build and push docker image for cross-platform support
 	- $(CONTAINER_TOOL) buildx rm project-resolver-v3-builder
 	# rm Dockerfile.cross 
 
-
-.PHONY: deploy
-deploy: ## Deploy resolver on k8s
-	kubectl apply -f ./config/deployment.yaml -n elasti
-	kubectl apply -f ./config/service.yaml -n elasti
-
-.PHONY: undeploy
-undeploy: ## undeploy docker image for resolver, publish it, and deploy it on k8s
-	kubectl delete -f ./config/deployment.yaml -n elasti
-	kubectl delete -f ./config/service.yaml -n elasti
-

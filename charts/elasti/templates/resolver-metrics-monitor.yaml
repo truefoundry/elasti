@@ -8,7 +8,7 @@ metadata:
 spec:
   endpoints:
   - path: /metrics
-    port: http-playground
+    port: http-resolver
     scheme: http
   selector:
     matchLabels:
