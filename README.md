@@ -58,7 +58,8 @@ make undeploy
 
 or 
 
-helm uninstall elasti -n elasti```
+helm uninstall elasti -n elasti
+```
 
 # Development
 
