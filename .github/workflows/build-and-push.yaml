@@ -48,7 +48,8 @@ jobs:
           REPOSITORY: ${{ matrix.repository }}
           IMAGE_TAG: ${{ github.sha }}
         with:
-          context: ./${{ matrix.context }}
+          context: .
+          file: ${{ matrix.context }}/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.REGISTRY_ALIAS }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.REGISTRY_ALIAS }}/${{ env.REPOSITORY }}:buildcache
