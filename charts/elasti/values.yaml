@@ -1,4 +1,8 @@
-kubernetesClusterDomain: cluster.local
+global:
+  kubernetesClusterDomain: cluster.local
+  imageRegistry: truefoundrycloud
+  nameOverride: ""
+  fullnameOverride: ""
 operatorControllerManager:
   manager:
     args:
@@ -11,7 +15,7 @@ operatorControllerManager:
         drop:
         - ALL
     image:
-      repository: localhost:5001/elasti-operator
+      repository: "{{ .Values.global.imageRegistry}}/elasti-operator"
       tag: v1alpha1
     imagePullPolicy: Always
     resources:
@@ -52,7 +56,7 @@ resolver:
       reqTimeout: "120"
       trafficReEnableDuration: "10"
     image:
-      repository: localhost:5001/elasti-resolver
+      repository: "{{ .Values.global.imageRegistry}}/elasti-resolver"
       tag: v1alpha1
     imagePullPolicy: Always
     resources:

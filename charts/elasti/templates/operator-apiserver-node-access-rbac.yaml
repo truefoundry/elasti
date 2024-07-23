@@ -5,17 +5,9 @@ metadata:
   labels:
   {{- include "elasti.labels" . | nindent 4 }}
 rules:
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - nodes/proxy
-  verbs:
-  - get
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["nodes/proxy"]
+  verbs: ["get"]

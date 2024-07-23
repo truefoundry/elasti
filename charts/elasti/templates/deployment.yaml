@@ -23,14 +23,14 @@ spec:
         prometheus.io/scrape: "true"
     spec:
       containers:
-      - args: {{- toYaml .Values.operatorControllerManager.manager.args | nindent 8 }}
+      - args: 
+      {{- toYaml .Values.operatorControllerManager.manager.args | nindent 8 }}
         command:
         - /manager
         env:
         - name: KUBERNETES_CLUSTER_DOMAIN
-          value: {{ quote .Values.kubernetesClusterDomain }}
-        image: {{ .Values.operatorControllerManager.manager.image.repository }}:{{ .Values.operatorControllerManager.manager.image.tag
-          | default .Chart.AppVersion }}
+          value: {{ quote .Values.global.kubernetesClusterDomain }}
+        image: {{ .Values.operatorControllerManager.manager.image.repository }}:{{ .Values.operatorControllerManager.manager.image.tag | default .Chart.AppVersion }}
         imagePullPolicy: {{ .Values.operatorControllerManager.manager.imagePullPolicy }}
         livenessProbe:
           httpGet:
@@ -103,9 +103,8 @@ spec:
         - name: INITIAL_CAPACITY
           value: {{ quote .Values.resolver.proxy.env.initialCapacity }}
         - name: KUBERNETES_CLUSTER_DOMAIN
-          value: {{ quote .Values.kubernetesClusterDomain }}
-        image: {{ .Values.resolver.proxy.image.repository }}:{{ .Values.resolver.proxy.image.tag
-          | default .Chart.AppVersion }}
+          value: {{ quote .Values.global.kubernetesClusterDomain }}
+        image: {{ .Values.resolver.proxy.image.repository }}:{{ .Values.resolver.proxy.image.tag | default .Chart.AppVersion }}
         imagePullPolicy: {{ .Values.resolver.proxy.imagePullPolicy }}
         name: proxy
         ports:
