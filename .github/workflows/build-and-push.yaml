@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - 'main'
-      - 'add_build_push'
+    paths:
+      - 'operator/**'
+      - 'resolver/**'
 
 permissions:
   id-token: write
