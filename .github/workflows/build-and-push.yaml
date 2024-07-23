@@ -14,6 +14,13 @@ jobs:
   build:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
+    strategy:
+        matrix:
+          include:
+            - context: operator
+              repository: elasti-operator
+            - context: resolver
+              repository: elasti-resolver
     steps:
       - name: Checkoutout code
         uses: actions/checkout@v4
@@ -38,10 +45,10 @@ jobs:
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           REGISTRY_ALIAS: truefoundrycloud
-          REPOSITORY: elasti-operator
+          REPOSITORY: ${{ matrix.repository }}
           IMAGE_TAG: ${{ github.sha }}
         with:
-          context: ./operator
+          context: ./${{ matrix.context }}
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.REGISTRY_ALIAS }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.REGISTRY_ALIAS }}/${{ env.REPOSITORY }}:buildcache
