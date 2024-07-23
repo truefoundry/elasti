@@ -3,11 +3,11 @@ kind: ClusterRole
 metadata:
   name: {{ include "elasti.fullname" . }}-operator-elastiservice-editor-role
   labels:
-  {{- include "elasti.labels" . | nindent 4 }}
+    {{- include "elasti.labels" . | nindent 4 }}
 rules:
 - apiGroups: ["elastic.truefoundry.com"]
   resources: ["elastiservices"]
   verbs: ["get", "list", "watch", "update", "patch", "delete", "create"]
 - apiGroups: ["elastic.truefoundry.com"]
   resources: ["elastiservices/status"]
-  verbs: ["get", "list", "watch", "update", "patch"]
+  verbs: ["get"]

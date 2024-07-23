@@ -2,34 +2,35 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "elasti.fullname" . }}-operator-controller-manager
+  namespace: '{{ .Release.Namespace }}'
   labels:
     control-plane: controller-manager
-  {{- include "elasti.labels" . | nindent 4 }}
+    {{- include "elasti.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.operatorControllerManager.replicas }}
   selector:
     matchLabels:
       control-plane: controller-manager
-    {{- include "elasti.selectorLabels" . | nindent 6 }}
+      {{- include "elasti.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         control-plane: controller-manager
-      {{- include "elasti.selectorLabels" . | nindent 8 }}
+        {{- include "elasti.selectorLabels" . | nindent 8 }}
       annotations:
         kubectl.kubernetes.io/default-container: manager
         prometheus.io/path: /metrics
-        prometheus.io/port: {{ quote .Values.operatorControllerManagerMetricsService[0].port }}
+        prometheus.io/port: {{ (index .Values.operatorControllerService.ports 0).port | quote }}
         prometheus.io/scrape: "true"
     spec:
       containers:
       - args: 
-      {{- toYaml .Values.operatorControllerManager.manager.args | nindent 8 }}
+        {{- toYaml .Values.operatorControllerManager.manager.args | nindent 8 }}
         command:
         - /manager
         env:
         - name: KUBERNETES_CLUSTER_DOMAIN
-          value: {{ quote .Values.global.kubernetesClusterDomain }}
+          value: {{ .Values.global.kubernetesClusterDomain }}
         image: {{ .Values.operatorControllerManager.manager.image.repository }}:{{ .Values.operatorControllerManager.manager.image.tag | default .Chart.AppVersion }}
         imagePullPolicy: {{ .Values.operatorControllerManager.manager.imagePullPolicy }}
         livenessProbe:
@@ -40,7 +41,7 @@ spec:
           periodSeconds: 20
         name: manager
         ports:
-        - containerPort: {{ .Values.operatorControllerManagerMetricsService[0].port }}
+        - containerPort: {{ (index .Values.operatorControllerService.ports 0).port }}
           name: metrics
           protocol: TCP
         readinessProbe:
@@ -49,10 +50,10 @@ spec:
             port: 8081
           initialDelaySeconds: 5
           periodSeconds: 10
-        resources: {{- toYaml .Values.operatorControllerManager.manager.resources | nindent
-          10 }}
-        securityContext: {{- toYaml .Values.operatorControllerManager.manager.containerSecurityContext
-          | nindent 10 }}
+        resources: 
+          {{- toYaml .Values.operatorControllerManager.manager.resources | nindent 10 }}
+        securityContext: 
+          {{- toYaml .Values.operatorControllerManager.manager.containerSecurityContext | nindent 10 }}
       securityContext:
         runAsNonRoot: true
       serviceAccountName: {{ include "elasti.fullname" . }}-operator-controller-manager
@@ -62,22 +63,23 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "elasti.fullname" . }}-resolver
+  namespace: '{{ .Release.Namespace }}'
   labels:
-  {{- include "elasti.labels" . | nindent 4 }}
+    {{- include "elasti.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.resolver.replicas }}
   selector:
     matchLabels:
       app: elasti-resolver
-    {{- include "elasti.selectorLabels" . | nindent 6 }}
+      {{- include "elasti.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         app: elasti-resolver
-      {{- include "elasti.selectorLabels" . | nindent 8 }}
+        {{- include "elasti.selectorLabels" . | nindent 8 }}
       annotations:
         prometheus.io/path: /metrics
-        prometheus.io/port: {{ quote .Values.resolverService[0].port }}
+        prometheus.io/port: {{ (index .Values.resolverService.ports 0).port | quote }}
         prometheus.io/scrape: "true"
     spec:
       containers:
@@ -103,10 +105,11 @@ spec:
         - name: INITIAL_CAPACITY
           value: {{ quote .Values.resolver.proxy.env.initialCapacity }}
         - name: KUBERNETES_CLUSTER_DOMAIN
-          value: {{ quote .Values.global.kubernetesClusterDomain }}
+          value: {{ .Values.global.kubernetesClusterDomain }}
         image: {{ .Values.resolver.proxy.image.repository }}:{{ .Values.resolver.proxy.image.tag | default .Chart.AppVersion }}
         imagePullPolicy: {{ .Values.resolver.proxy.imagePullPolicy }}
         name: proxy
         ports:
-        - containerPort: {{ .Values.resolverService[0].port }}
-        resources: {{- toYaml .Values.resolver.proxy.resources | nindent 10 }}
+        - containerPort: {{ (index .Values.resolverService.ports 0).port }}
+        resources: 
+          {{- toYaml .Values.resolver.proxy.resources | nindent 10 }}

@@ -3,7 +3,7 @@ kind: ClusterRole
 metadata:
   name: {{ include "elasti.fullname" . }}-resolver-additional-access
   labels:
-  {{- include "elasti.labels" . | nindent 4 }}
+    {{- include "elasti.labels" . | nindent 4 }}
 rules:
 - apiGroups: ["apps"]
   resources: ["deployments"]

@@ -3,6 +3,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "elasti.fullname" . }}-resolver
+  namespace: '{{ .Release.Namespace }}'
   labels:
     {{- include "elasti.labels" . | nindent 4 }}
 spec:
@@ -13,20 +14,20 @@ spec:
   minReplicas: {{ .Values.resolver.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.resolver.autoscaling.maxReplicas }}
   metrics:
-    {{- if .Values.resolver.autoscaling.targetCPUUtilizationPercentage }}
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: {{ .Values.resolver.autoscaling.targetCPUUtilizationPercentage }}
-    {{- end }}
-    {{- if .Values.resolver.autoscaling.targetMemoryUtilizationPercentage }}
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: {{ .Values.resolver.autoscaling.targetMemoryUtilizationPercentage }}
-    {{- end }}
+  {{- if .Values.resolver.autoscaling.targetCPUUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.resolver.autoscaling.targetCPUUtilizationPercentage }}
+  {{- end }}
+  {{- if .Values.resolver.autoscaling.targetMemoryUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.resolver.autoscaling.targetMemoryUtilizationPercentage }}
+  {{- end }}
 {{- end }}

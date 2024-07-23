@@ -3,11 +3,11 @@ kind: ClusterRoleBinding
 metadata:
   name: {{ include "elasti.fullname" . }}-resolver-additional-access-binding
   labels:
-  {{- include "elasti.labels" . | nindent 4 }}
+    {{- include "elasti.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: '{{ include "elasti.fullname" . }}-resolver-additional-access'
+  name: {{ include "elasti.fullname" . }}-resolver-additional-access
 subjects:
 - kind: ServiceAccount
   name: default
