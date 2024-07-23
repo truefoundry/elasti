@@ -19,7 +19,7 @@ spec:
       annotations:
         kubectl.kubernetes.io/default-container: manager
         prometheus.io/path: /metrics
-        prometheus.io/port: "8013"
+        prometheus.io/port: {{ quote .Values.operatorControllerManagerMetricsService[0].port }}
         prometheus.io/scrape: "true"
     spec:
       containers:
@@ -40,7 +40,7 @@ spec:
           periodSeconds: 20
         name: manager
         ports:
-        - containerPort: 8013
+        - containerPort: {{ .Values.operatorControllerManagerMetricsService[0].port }}
           name: metrics
           protocol: TCP
         readinessProbe:
@@ -77,7 +77,7 @@ spec:
       {{- include "elasti.selectorLabels" . | nindent 8 }}
       annotations:
         prometheus.io/path: /metrics
-        prometheus.io/port: "8012"
+        prometheus.io/port: {{ quote .Values.resolverService[0].port }}
         prometheus.io/scrape: "true"
     spec:
       containers:
@@ -108,5 +108,5 @@ spec:
         imagePullPolicy: {{ .Values.resolver.proxy.imagePullPolicy }}
         name: proxy
         ports:
-        - containerPort: 8012
+        - containerPort: {{ .Values.resolverService[0].port }}
         resources: {{- toYaml .Values.resolver.proxy.resources | nindent 10 }}
