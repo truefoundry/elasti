@@ -7,7 +7,7 @@ metadata:
     control-plane: controller-manager
     {{- include "elasti.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.operatorControllerManager.replicas }}
+  replicas: {{ .Values.operatorController.replicas }}
   selector:
     matchLabels:
       control-plane: controller-manager
@@ -20,19 +20,19 @@ spec:
       annotations:
         kubectl.kubernetes.io/default-container: manager
         prometheus.io/path: /metrics
-        prometheus.io/port: {{ (index .Values.operatorControllerService.ports 0).port | quote }}
+        prometheus.io/port: {{ .Values.operatorController.service.port | quote }}
         prometheus.io/scrape: "true"
     spec:
       containers:
       - args: 
-        {{- toYaml .Values.operatorControllerManager.manager.args | nindent 8 }}
+        {{- toYaml .Values.operatorController.manager.args | nindent 8 }}
         command:
         - /manager
         env:
         - name: KUBERNETES_CLUSTER_DOMAIN
           value: {{ .Values.global.kubernetesClusterDomain }}
-        image: {{ .Values.operatorControllerManager.manager.image.repository }}:{{ .Values.operatorControllerManager.manager.image.tag | default .Chart.AppVersion }}
-        imagePullPolicy: {{ .Values.operatorControllerManager.manager.imagePullPolicy }}
+        image: {{ .Values.operatorController.manager.image.repository }}:{{ .Values.operatorController.manager.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.operatorController.manager.imagePullPolicy }}
         livenessProbe:
           httpGet:
             path: /healthz
@@ -41,7 +41,7 @@ spec:
           periodSeconds: 20
         name: manager
         ports:
-        - containerPort: {{ (index .Values.operatorControllerService.ports 0).port }}
+        - containerPort: {{ .Values.operatorController.service.port }}
           name: metrics
           protocol: TCP
         readinessProbe:
@@ -51,9 +51,9 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
         resources: 
-          {{- toYaml .Values.operatorControllerManager.manager.resources | nindent 10 }}
+          {{- toYaml .Values.operatorController.manager.resources | nindent 10 }}
         securityContext: 
-          {{- toYaml .Values.operatorControllerManager.manager.containerSecurityContext | nindent 10 }}
+          {{- toYaml .Values.operatorController.manager.containerSecurityContext | nindent 10 }}
       securityContext:
         runAsNonRoot: true
       serviceAccountName: {{ include "elasti.fullname" . }}-operator-controller-manager
@@ -79,7 +79,7 @@ spec:
         {{- include "elasti.selectorLabels" . | nindent 8 }}
       annotations:
         prometheus.io/path: /metrics
-        prometheus.io/port: {{ (index .Values.resolverService.ports 0).port | quote }}
+        prometheus.io/port: {{ .Values.resolver.service.port | quote }}
         prometheus.io/scrape: "true"
     spec:
       containers:
@@ -110,6 +110,6 @@ spec:
         imagePullPolicy: {{ .Values.resolver.proxy.imagePullPolicy }}
         name: proxy
         ports:
-        - containerPort: {{ (index .Values.resolverService.ports 0).port }}
+        - containerPort: {{ .Values.resolver.service.port }}
         resources: 
           {{- toYaml .Values.resolver.proxy.resources | nindent 10 }}

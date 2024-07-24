@@ -2,7 +2,7 @@ global:
   kubernetesClusterDomain: cluster.local
   nameOverride: ""
   fullnameOverride: ""
-operatorControllerManager:
+operatorController:
   manager:
     args:
     - --leader-elect
@@ -27,20 +27,13 @@ operatorControllerManager:
   replicas: 1
   serviceAccount:
     annotations: {}
-operatorControllerManagerMetricsService:
-  ports:
-  - name: http
+  managerMetricsService:
     port: 8080
-    protocol: TCP
-    targetPort: 8080
-  type: ClusterIP
-operatorControllerService:
-  ports:
-  - name: custom-port
+    type: ClusterIP
+  service:
     port: 8013
-    protocol: TCP
-    targetPort: 8013
-  type: ClusterIP
+    type: ClusterIP
+
 resolver:
   proxy:
     env:
@@ -72,10 +65,6 @@ resolver:
     maxReplicas: 4
     targetCPUUtilizationPercentage: 70
     # targetMemoryUtilizationPercentage: 80
-
-resolverService:
-  ports:
-  - name: http-resolver
+  service:
     port: 8012
-    protocol: TCP
-  type: LoadBalancer
+    type: LoadBalancer

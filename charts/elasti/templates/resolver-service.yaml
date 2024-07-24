@@ -6,9 +6,12 @@ metadata:
   labels:
     {{- include "elasti.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.resolverService.type }}
+  type: {{ .Values.resolver.service.type }}
   selector:
     app: elasti-resolver
     {{- include "elasti.selectorLabels" . | nindent 4 }}
   ports:
-	{{- .Values.resolverService.ports | toYaml | nindent 2 }}
+  - port: {{ .Values.resolver.service.port }}
+    targetPort: {{ .Values.resolver.service.port }}
+    protocol: TCP
+    name: http-resolver
