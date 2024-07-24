@@ -33,18 +33,13 @@ TBA
 
 # Installation / Deployment on K8s
 
-## Cd into the charts directory
-```bash
-cd charts/elasti
-```
-
 You can install the Elasti Tool by running the following command:
 ```bash
 make deploy
 
 or 
 
-helm install elasti . -n elasti
+helm install elasti ./charts/elasti -n elasti
 ```
 
 After this, you can start creating elastiService. You can find a sample at `demo-elastiService.yaml`.

@@ -14,7 +14,7 @@ operatorControllerManager:
         drop:
         - ALL
     image:
-      repository: "public.ecr.aws/truefoundrycloud/elasti-operator"
+      repository: public.ecr.aws/truefoundrycloud/elasti-operator
       tag: 189cb16a46af8fb559ee727c63917672e72a9192
     imagePullPolicy: Always
     resources:
@@ -55,7 +55,7 @@ resolver:
       reqTimeout: "120"
       trafficReEnableDuration: "10"
     image:
-      repository: "public.ecr.aws/truefoundrycloud/elasti-resolver"
+      repository: public.ecr.aws/truefoundrycloud/elasti-resolver
       tag: 189cb16a46af8fb559ee727c63917672e72a9192
     imagePullPolicy: Always
     resources:
