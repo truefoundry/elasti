@@ -3,7 +3,7 @@ global:
   nameOverride: ""
   fullnameOverride: ""
 elastiController:
-  deployment:
+  manager:
     args:
     - --leader-elect
     - --health-probe-bind-address=:8081
@@ -24,7 +24,7 @@ elastiController:
       requests:
         cpu: 10m
         memory: 64Mi
-    replicas: 1
+  replicas: 1
   serviceAccount:
     annotations: {}
   metricsService:
@@ -35,7 +35,7 @@ elastiController:
     type: ClusterIP
 
 elastiResolver:
-  deployment:
+  proxy:
     env:
       headerForHost: X-Envoy-Decorator-Operation
       initialCapacity: "50"
@@ -58,7 +58,7 @@ elastiResolver:
       requests:
         cpu: 250m
         memory: 500Mi
-    replicas: 1
+  replicas: 1
   autoscaling:
     enabled: true
     minReplicas: 1
