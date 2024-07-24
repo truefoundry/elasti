@@ -2,8 +2,6 @@ name: Release Elasti Helm Chart
 
 on:
   push:
-    branches:
-      - release_workflow_update
     tags:
       - elasti-helm-v*
     
