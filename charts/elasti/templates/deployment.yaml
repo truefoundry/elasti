@@ -7,7 +7,7 @@ metadata:
     control-plane: controller-manager
     {{- include "elasti.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.elastiController.replicas }}
+  replicas: {{ .Values.elastiController.deployment.replicas }}
   selector:
     matchLabels:
       control-plane: controller-manager
@@ -25,14 +25,14 @@ spec:
     spec:
       containers:
       - args: 
-        {{- toYaml .Values.elastiController.manager.args | nindent 8 }}
+        {{- toYaml .Values.elastiController.deployment.args | nindent 8 }}
         command:
         - /manager
         env:
         - name: KUBERNETES_CLUSTER_DOMAIN
           value: {{ .Values.global.kubernetesClusterDomain }}
-        image: {{ .Values.elastiController.manager.image.repository }}:{{ .Values.elastiController.manager.image.tag | default .Chart.AppVersion }}
-        imagePullPolicy: {{ .Values.elastiController.manager.imagePullPolicy }}
+        image: {{ .Values.elastiController.deployment.image.repository }}:{{ .Values.elastiController.deployment.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.elastiController.deployment.imagePullPolicy }}
         livenessProbe:
           httpGet:
             path: /healthz
@@ -51,9 +51,9 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
         resources: 
-          {{- toYaml .Values.elastiController.manager.resources | nindent 10 }}
+          {{- toYaml .Values.elastiController.deployment.resources | nindent 10 }}
         securityContext: 
-          {{- toYaml .Values.elastiController.manager.containerSecurityContext | nindent 10 }}
+          {{- toYaml .Values.elastiController.deployment.containerSecurityContext | nindent 10 }}
       securityContext:
         runAsNonRoot: true
       serviceAccountName: {{ include "elasti.fullname" . }}-operator-controller-manager
@@ -67,7 +67,7 @@ metadata:
   labels:
     {{- include "elasti.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.elastiResolver.replicas }}
+  replicas: {{ .Values.elastiResolver.deployment.replicas }}
   selector:
     matchLabels:
       app: elasti-resolver
@@ -85,31 +85,31 @@ spec:
       containers:
       - env:
         - name: MAX_IDLE_PROXY_CONNS
-          value: {{ quote .Values.elastiResolver.proxy.env.maxIdleProxyConns }}
+          value: {{ quote .Values.elastiResolver.deployment.env.maxIdleProxyConns }}
         - name: MAX_IDLE_PROXY_CONNS_PER_HOST
-          value: {{ quote .Values.elastiResolver.proxy.env.maxIdleProxyConnsPerHost }}
+          value: {{ quote .Values.elastiResolver.deployment.env.maxIdleProxyConnsPerHost }}
         - name: REQ_TIMEOUT
-          value: {{ quote .Values.elastiResolver.proxy.env.reqTimeout }}
+          value: {{ quote .Values.elastiResolver.deployment.env.reqTimeout }}
         - name: TRAFFIC_RE_ENABLE_DURATION
-          value: {{ quote .Values.elastiResolver.proxy.env.trafficReEnableDuration }}
+          value: {{ quote .Values.elastiResolver.deployment.env.trafficReEnableDuration }}
         - name: OPERATOR_RETRY_DURATION
-          value: {{ quote .Values.elastiResolver.proxy.env.operatorRetryDuration }}
+          value: {{ quote .Values.elastiResolver.deployment.env.operatorRetryDuration }}
         - name: HEADER_FOR_HOST
-          value: {{ quote .Values.elastiResolver.proxy.env.headerForHost }}
+          value: {{ quote .Values.elastiResolver.deployment.env.headerForHost }}
         - name: QUEUE_SIZE
-          value: {{ quote .Values.elastiResolver.proxy.env.queueSize }}
+          value: {{ quote .Values.elastiResolver.deployment.env.queueSize }}
         - name: QUEUE_RETRY_DURATION
-          value: {{ quote .Values.elastiResolver.proxy.env.queueRetryDuration }}
+          value: {{ quote .Values.elastiResolver.deployment.env.queueRetryDuration }}
         - name: MAX_QUEUE_CONCURRENCY
-          value: {{ quote .Values.elastiResolver.proxy.env.maxQueueConcurrency }}
+          value: {{ quote .Values.elastiResolver.deployment.env.maxQueueConcurrency }}
         - name: INITIAL_CAPACITY
-          value: {{ quote .Values.elastiResolver.proxy.env.initialCapacity }}
+          value: {{ quote .Values.elastiResolver.deployment.env.initialCapacity }}
         - name: KUBERNETES_CLUSTER_DOMAIN
           value: {{ .Values.global.kubernetesClusterDomain }}
-        image: {{ .Values.elastiResolver.proxy.image.repository }}:{{ .Values.elastiResolver.proxy.image.tag | default .Chart.AppVersion }}
-        imagePullPolicy: {{ .Values.elastiResolver.proxy.imagePullPolicy }}
+        image: {{ .Values.elastiResolver.deployment.image.repository }}:{{ .Values.elastiResolver.deployment.image.tag | default .Chart.AppVersion }}
+        imagePullPolicy: {{ .Values.elastiResolver.deployment.imagePullPolicy }}
         name: proxy
         ports:
         - containerPort: {{ .Values.elastiResolver.service.port }}
         resources: 
-          {{- toYaml .Values.elastiResolver.proxy.resources | nindent 10 }}
+          {{- toYaml .Values.elastiResolver.deployment.resources | nindent 10 }}
