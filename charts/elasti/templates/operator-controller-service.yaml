@@ -7,12 +7,12 @@ metadata:
     control-plane: controller-manager
     {{- include "elasti.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.operatorController.service.type }}
+  type: {{ .Values.elastiController.service.type }}
   selector:
     control-plane: controller-manager
     {{- include "elasti.selectorLabels" . | nindent 4 }}
   ports:
-  - port: {{ .Values.operatorController.service.port }}
-    targetPort: {{ .Values.operatorController.service.port }}
+  - port: {{ .Values.elastiController.service.port }}
+    targetPort: {{ .Values.elastiController.service.port }}
     protocol: TCP
     name: custom-port

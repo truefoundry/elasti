@@ -2,7 +2,7 @@ global:
   kubernetesClusterDomain: cluster.local
   nameOverride: ""
   fullnameOverride: ""
-operatorController:
+elastiController:
   manager:
     args:
     - --leader-elect
@@ -27,14 +27,14 @@ operatorController:
   replicas: 1
   serviceAccount:
     annotations: {}
-  managerMetricsService:
+  metricsService:
     port: 8080
     type: ClusterIP
   service:
     port: 8013
     type: ClusterIP
 
-resolver:
+elastiResolver:
   proxy:
     env:
       headerForHost: X-Envoy-Decorator-Operation

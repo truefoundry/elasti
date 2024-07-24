@@ -1,4 +1,4 @@
-{{- if .Values.resolver.autoscaling.enabled }}
+{{- if .Values.elastiResolver.autoscaling.enabled }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -11,23 +11,23 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "elasti.fullname" . }}-resolver
-  minReplicas: {{ .Values.resolver.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.resolver.autoscaling.maxReplicas }}
+  minReplicas: {{ .Values.elastiResolver.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.elastiResolver.autoscaling.maxReplicas }}
   metrics:
-  {{- if .Values.resolver.autoscaling.targetCPUUtilizationPercentage }}
+  {{- if .Values.elastiResolver.autoscaling.targetCPUUtilizationPercentage }}
   - type: Resource
     resource:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: {{ .Values.resolver.autoscaling.targetCPUUtilizationPercentage }}
+        averageUtilization: {{ .Values.elastiResolver.autoscaling.targetCPUUtilizationPercentage }}
   {{- end }}
-  {{- if .Values.resolver.autoscaling.targetMemoryUtilizationPercentage }}
+  {{- if .Values.elastiResolver.autoscaling.targetMemoryUtilizationPercentage }}
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: {{ .Values.resolver.autoscaling.targetMemoryUtilizationPercentage }}
+        averageUtilization: {{ .Values.elastiResolver.autoscaling.targetMemoryUtilizationPercentage }}
   {{- end }}
 {{- end }}
