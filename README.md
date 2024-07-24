@@ -38,7 +38,7 @@ TBA
 cd charts/elasti
 ```
 
-You will be able to install the Elasti Tool by following command
+You can install the Elasti Tool by running the following command:
 ```bash
 make deploy
 
@@ -47,12 +47,11 @@ or
 helm install elasti . -n elasti
 ```
 
-After this, you can start creating elastiService, you can find a sample at `demo-elastiService.yaml`
+After this, you can start creating elastiService. You can find a sample at `demo-elastiService.yaml`.
 
-# Uninstallation 
+## Uninstallation 
 
-For this, **you will need to remove all the CRDs first. **
-Post that, just delete the install file. 
+To uninstall Elasti, **you will need to remove all the CRDs first.** Then, simply delete the installation file. 
 ```bash
 make undeploy
 
@@ -63,14 +62,13 @@ helm uninstall elasti -n elasti
 
 # Development
 
-Here are the steps to deploy Elasti in your kubernetes cluster. 
-For now, we will need to deploy the Elasti-Operator and Elasti-Resolver separately.
+Here are the steps to deploy Elasti in your Kubernetes cluster. For now, we will need to deploy the Elasti-Operator and Elasti-Resolver separately.
 
 ### Setup Docker
 
-This is required to publish our docker images, and pull them inside our manifest files. 
+This is required to publish our Docker images and pull them inside our manifest files. 
 
-1. Login to the docker hub via CLI.
+1. Login to the Docker Hub via CLI.
 ```bash
 docker login -u ramantehlan
 # When asked for password, paste below text.
@@ -83,8 +81,8 @@ dckr_pat_WgMJEsO0nMNp10Bf7rLQ_FcVzLU
 
 We will build and publish our resolver changes.
 
-1. Go into resolver directory. 
-2. Run build and publish command.
+1. Go into the resolver directory. 
+2. Run the build and publish command.
 ```bash
 make docker-buildx IMG=ramantehlan/elasti-resolver:v1alpha1
 ```
@@ -93,13 +91,13 @@ make docker-buildx IMG=ramantehlan/elasti-resolver:v1alpha1
 
 We will build and publish our Operator changes.
 
-1. Go into operator directory.
-2. Run build and publish command.
+1. Go into the operator directory.
+2. Run the build and publish command.
 ```bash
 make docker-buildx IMG=ramantehlan/elasti-operator:v1alpha1
 ```
 
-> Once your changes are published, you can re-deploy in your cluster.
+> Once your changes are published, you can re-deploy them in your cluster.
 
 # Configuration
 TBA
@@ -107,8 +105,8 @@ TBA
 # Playground 
 
 ```
- make docker-build docker-publish IMG=localhost:5001/elasti-operator:v1alpha1
- make docker-build docker-publish IMG=localhost:5001/elasti-resolver:v1alpha1
+make docker-build docker-publish IMG=localhost:5001/elasti-operator:v1alpha1
+make docker-build docker-publish IMG=localhost:5001/elasti-resolver:v1alpha1
 ```
 
 # Icon 
@@ -126,7 +124,7 @@ kubectl apply -f https://github.com/argoproj/argo-rollouts/releases/latest/downl
 ```
 
 ```
- helm upgrade --install promstack prometheus-community/kube-prometheus-stack -f prom-stack.yaml
+helm upgrade --install promstack prometheus-community/kube-prometheus-stack -f prom-stack.yaml
 
 
 helm upgrade --install prometheus prometheus-community/prometheus --version 25.24.0 -f prometheus.yaml -n prometheus  
@@ -134,9 +132,9 @@ helm upgrade --install prometheus prometheus-community/prometheus --version 25.2
 helm upgrade --install grafana grafana/grafana -n prometheus
 
 
- kubectl get secret --namespace prometheus grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+kubectl get secret --namespace prometheus grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 
- kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_alertmanagers.yaml
+kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_alertmanagers.yaml
 kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
 kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_probes.yaml
 kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_prometheuses.yaml
@@ -146,36 +144,5 @@ kubectl apply -f example/prometheus-operator-crd/monitoring.coreos.com_thanosrul
 
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
