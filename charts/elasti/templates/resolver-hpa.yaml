@@ -22,12 +22,4 @@ spec:
         type: Utilization
         averageUtilization: {{ .Values.elastiResolver.autoscaling.targetCPUUtilizationPercentage }}
   {{- end }}
-  {{- if .Values.elastiResolver.autoscaling.targetMemoryUtilizationPercentage }}
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: {{ .Values.elastiResolver.autoscaling.targetMemoryUtilizationPercentage }}
-  {{- end }}
 {{- end }}

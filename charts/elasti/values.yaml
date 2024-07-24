@@ -16,7 +16,7 @@ elastiController:
     image:
       repository: public.ecr.aws/truefoundrycloud/elasti-operator
       tag: 189cb16a46af8fb559ee727c63917672e72a9192
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
     resources:
       limits:
         cpu: 500m
@@ -50,7 +50,7 @@ elastiResolver:
     image:
       repository: public.ecr.aws/truefoundrycloud/elasti-resolver
       tag: 189cb16a46af8fb559ee727c63917672e72a9192
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
     resources:
       limits:
         cpu: 750m
@@ -60,11 +60,10 @@ elastiResolver:
         memory: 500Mi
   replicas: 1
   autoscaling:
-    enabled: true
+    enabled: false
     minReplicas: 1
     maxReplicas: 4
     targetCPUUtilizationPercentage: 70
-    # targetMemoryUtilizationPercentage: 80
   service:
     port: 8012
     type: LoadBalancer
