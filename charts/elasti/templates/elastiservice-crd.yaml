@@ -5,7 +5,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
   labels:
-  {{- include "elasti.labels" . | nindent 4 }}
+    {{- include "elasti.labels" . | nindent 4 }}
 spec:
   group: elasti.truefoundry.com
   names:

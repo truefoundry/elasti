@@ -1,0 +1,25 @@
+{{- if .Values.elastiResolver.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "elasti.fullname" . }}-resolver
+  namespace: '{{ .Release.Namespace }}'
+  labels:
+    {{- include "elasti.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "elasti.fullname" . }}-resolver
+  minReplicas: {{ .Values.elastiResolver.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.elastiResolver.autoscaling.maxReplicas }}
+  metrics:
+  {{- if .Values.elastiResolver.autoscaling.targetCPUUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.elastiResolver.autoscaling.targetCPUUtilizationPercentage }}
+  {{- end }}
+{{- end }}

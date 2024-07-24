@@ -7,9 +7,9 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: '{{ include "elasti.fullname" . }}-operator-apiserver-node-access'
+  name: {{ include "elasti.fullname" . }}-operator-apiserver-node-access
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: User
   name: kube-apiserver-kubelet-client
-  namespace: '{{ .Release.Namespace }}'
+  namespace: system

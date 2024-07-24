@@ -2,12 +2,16 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "elasti.fullname" . }}-resolver-service
+  namespace: '{{ .Release.Namespace }}'
   labels:
-  {{- include "elasti.labels" . | nindent 4 }}
+    {{- include "elasti.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.resolverService.type }}
+  type: {{ .Values.elastiResolver.service.type }}
   selector:
     app: elasti-resolver
-  {{- include "elasti.selectorLabels" . | nindent 4 }}
+    {{- include "elasti.selectorLabels" . | nindent 4 }}
   ports:
-	{{- .Values.resolverService.ports | toYaml | nindent 2 }}
+  - port: {{ .Values.elastiResolver.service.port }}
+    targetPort: {{ .Values.elastiResolver.service.port }}
+    protocol: TCP
+    name: http-resolver

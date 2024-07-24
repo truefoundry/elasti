@@ -1,5 +1,8 @@
-kubernetesClusterDomain: cluster.local
-operatorControllerManager:
+global:
+  kubernetesClusterDomain: cluster.local
+  nameOverride: ""
+  fullnameOverride: ""
+elastiController:
   manager:
     args:
     - --leader-elect
@@ -11,9 +14,9 @@ operatorControllerManager:
         drop:
         - ALL
     image:
-      repository: localhost:5001/elasti-operator
-      tag: v1alpha1
-    imagePullPolicy: Always
+      repository: public.ecr.aws/truefoundrycloud/elasti-operator
+      tag: 189cb16a46af8fb559ee727c63917672e72a9192
+    imagePullPolicy: IfNotPresent
     resources:
       limits:
         cpu: 500m
@@ -24,21 +27,14 @@ operatorControllerManager:
   replicas: 1
   serviceAccount:
     annotations: {}
-operatorControllerManagerMetricsService:
-  ports:
-  - name: http
+  metricsService:
     port: 8080
-    protocol: TCP
-    targetPort: 8080
-  type: ClusterIP
-operatorControllerService:
-  ports:
-  - name: custom-port
+    type: ClusterIP
+  service:
     port: 8013
-    protocol: TCP
-    targetPort: 8013
-  type: ClusterIP
-resolver:
+    type: ClusterIP
+
+elastiResolver:
   proxy:
     env:
       headerForHost: X-Envoy-Decorator-Operation
@@ -52,9 +48,9 @@ resolver:
       reqTimeout: "120"
       trafficReEnableDuration: "10"
     image:
-      repository: localhost:5001/elasti-resolver
-      tag: v1alpha1
-    imagePullPolicy: Always
+      repository: public.ecr.aws/truefoundrycloud/elasti-resolver
+      tag: 189cb16a46af8fb559ee727c63917672e72a9192
+    imagePullPolicy: IfNotPresent
     resources:
       limits:
         cpu: 750m
@@ -63,10 +59,11 @@ resolver:
         cpu: 250m
         memory: 500Mi
   replicas: 1
-resolverService:
-  ports:
-  - name: http-resolver
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  service:
     port: 8012
-    protocol: TCP
-    targetPort: 0
-  type: LoadBalancer
+    type: LoadBalancer
