@@ -66,4 +66,4 @@ elastiResolver:
     targetCPUUtilizationPercentage: 70
   service:
     port: 8012
-    type: LoadBalancer
+    type: ClusterIP
