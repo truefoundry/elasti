@@ -22,13 +22,14 @@ Kubernetes clusters can become costly, especially when running multiple services
 >  The name Elasti comes from a superhero "Elasti-Girl" from DC Comics. Her supower is to expand or shrink her body at will—from hundreds of feet tall to mere inches in height. 
 
 
+<div align="center"> <b> Demo </b></div>
 <div align="center">
     <a href="https://www.loom.com/share/6dae33a27a5847f081f7381f8d9510e6">
       <img style="max-width:640px;" src="https://cdn.loom.com/sessions/thumbnails/6dae33a27a5847f081f7381f8d9510e6-adf9e85a899f85fd-full-play.gif">
     </a>
   </div>
 
-Refer to the [Docs](./docs/README.md) to know how it works.
+
 
 # Contents
 
@@ -122,6 +123,8 @@ With Elasti, you can easily manage and scale your Kubernetes services by using a
    helm install <release-name> elasti/elasti --namespace <namespace>
    ```
 
+   Check out [docs](./docs/README.md#5-helm-values) to see config in the helm value file.
+
 ### 3. Verify the Installation
    
    Check the status of your Helm release and ensure that the elasti components are running:
@@ -134,6 +137,8 @@ With Elasti, you can easily manage and scale your Kubernetes services by using a
    
    1. **Controller/Operator:** `elasti-operator-controller-manager-...` is to switch the traffic, watch resources, scale etc.
    2. **Resolver:** `elasti-resolver-...` is to proxy the requests.
+
+Refer to the [Docs](./docs/README.md) to know how it works.
 
 ## Configuration
 
@@ -288,6 +293,7 @@ or
 kind create cluster
 ```
 or
+
 Enable it in Docker-Desktop
 
 ### 2. Start a Local Docker Registry
@@ -420,7 +426,7 @@ Testing is crucial to ensure the reliability and performance of Elasti. This sec
    # Port-forward to access the dashboard 
    kubectl port-forward -n prometheus services/prometheus-stack-grafana 3000:80
 
-   # Get the admin password.
+   # Get the admin user.
    kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="{.data.admin-user}" | base64 --decode ; echo
    # Get the admin password.
    kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
@@ -474,7 +480,7 @@ Follows the steps mentioned in [development](#development) section. Post that fo
    Your pull request will be reviewed by project maintainers. Be responsive to feedback and make necessary changes. Post review, it will be merged!
 
 
-> **You just contributed to Elasti!**
+<div align="center"> <b> You just contributed to Elasti! </b></div>
 <div align="center">
 
 <img src="./docs/assets/awesome.gif" width="400px">
