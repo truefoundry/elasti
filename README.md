@@ -21,9 +21,12 @@ Kubernetes clusters can become costly, especially when running multiple services
 
 >  The name Elasti comes from a superhero "Elasti-Girl" from DC Comics. Her supower is to expand or shrink her body at will—from hundreds of feet tall to mere inches in height. 
 
+
 <div align="center">
-<iframe width="640" height="360" src="https://www.loom.com/embed/6dae33a27a5847f081f7381f8d9510e6?sid=4036299e-402e-4e87-a943-fa0f442674db" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
-</div>
+    <a href="https://www.loom.com/share/6dae33a27a5847f081f7381f8d9510e6">
+      <img style="max-width:640px;" src="https://cdn.loom.com/sessions/thumbnails/6dae33a27a5847f081f7381f8d9510e6-adf9e85a899f85fd-full-play.gif">
+    </a>
+  </div>
 
 Refer to the [Docs](./docs/README.md) to know how it works.
 
@@ -471,9 +474,9 @@ Follows the steps mentioned in [development](#development) section. Post that fo
    Your pull request will be reviewed by project maintainers. Be responsive to feedback and make necessary changes. Post review, it will be merged!
 
 
-
+> **You just contributed to Elasti!**
 <div align="center">
-<b> You just contributed to Elasti! </b>
+
 <img src="./docs/assets/awesome.gif" width="400px">
 </div>
 
