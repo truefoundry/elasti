@@ -5,10 +5,12 @@ import { SharedArray } from 'k6/data';
 
 export const options = {
         stages: [
-                { duration: '5s', target: 5000},
+                { duration: '5s', target: 50000},
+                { duration: '5s', target: 50000},
+                { duration: '5s', target: 20000},
                 { duration: '5s', target: 10000},
-                { duration: '10s', target: 10000},
-                { duration: '10s', target: 0},
+                { duration: '5s', target: 5000},
+                { duration: '5s', target: 0},
         ],
 }
 
@@ -17,9 +19,9 @@ failureRate[0] = new Rate('failed_requests_1');
 failureRate[1] = new Rate('failed_requests_2');
 failureRate[2] = new Rate('failed_requests_3');
 
-const load_url = "https://httpbin-hello-raman-ws-80.zurichlabs-cluster.truefoundry.tfy.app/headers"
-const load_url_1 = "https://httpbin-hello-1-raman-ws-80.zurichlabs-cluster.truefoundry.tfy.app/headers"
-const load_url_2 = "https://httpbin-hello-2-raman-ws-80.zurichlabs-cluster.truefoundry.tfy.app/headers"
+const load_url = "http://localhost/headers"
+const load_url_1 = "http://localhost/headers"
+const load_url_2 = "http://localhost/headers"
 const params = {
     headers: {
       "Content-Type": "application/json"

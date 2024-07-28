@@ -4,13 +4,12 @@ metadata:
   labels:
     app.kubernetes.io/name: elasti-operator
     app.kubernetes.io/managed-by: kustomize
-  name: emotion-class-elasti-service
-  namespace: raman-ws
+  name: httpbin
 spec:
-  minTargetReplicas: 2
-  service: emotion-class-svc
+  service: httpbin
+  minTargetReplicas: 1
   scaleTargetRef:
-    apiVersion: argoproj.io/v1alpha1
-    kind: rollouts
-    name: emotion-class-svc
+    apiVersion: apps/v1
+    kind: Deployments
+    name: httpbin
 
