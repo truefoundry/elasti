@@ -387,6 +387,8 @@ Make sure you have configured the local context in kubectl, post that follow bel
    helm upgrade --install elasti ./charts/elasti -n elasti -f ./playground/infra/elasti-demo-values.yaml
    ```
 
+If you want to enable monitoring, please make `enableMonitroing` true in the values file.
+
 ### 3. Create ElastiService Resource
    
    Using the [ElastiService Defination](#1-define-a-elastiservice), create a manifest file for your service and apply it. For demo, we use the below manifest.
@@ -421,7 +423,7 @@ Testing is crucial to ensure the reliability and performance of Elasti. This sec
    
    # Install the kube-prometheus-stack chart. This chart includes Prometheus and Grafana.
    kubectl create namespace prometheus
-   helm install prometheus-stack prometheus-community/kube-prometheus-stack -n prometheus -f ./playground/infra/prom-stack-values.yaml
+   helm install prometheus-stack prometheus-community/kube-prometheus-stack -n prometheus
 
    # Port-forward to access the dashboard 
    kubectl port-forward -n prometheus services/prometheus-stack-grafana 3000:80
