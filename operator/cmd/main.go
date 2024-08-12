@@ -74,7 +74,7 @@ func init() {
 
 const (
 	elastiServerPort = ":8013"
-	flushTimeout 		= 2 * time.Second
+	flushTimeout     = 2 * time.Second
 )
 
 func main() {

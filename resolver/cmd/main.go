@@ -14,9 +14,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
 	"github.com/truefoundry/elasti/pkg/logger"
+	"github.com/truefoundry/elasti/pkg/utils"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
-	"github.com/truefoundry/elasti/pkg/utils"
 )
 
 type config struct {
@@ -47,8 +47,8 @@ type config struct {
 }
 
 const (
-	port = ":8012"
-	flushTimeout 		= 2 * time.Second
+	port         = ":8012"
+	flushTimeout = 2 * time.Second
 )
 
 func main() {
