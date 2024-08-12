@@ -28,6 +28,7 @@ import (
 	"truefoundry/elasti/operator/internal/crdDirectory"
 	"truefoundry/elasti/operator/internal/informer"
 
+	"github.com/getsentry/sentry-go"
 	tfLogger "github.com/truefoundry/elasti/pkg/logger"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -45,9 +46,10 @@ import (
 
 	elastiv1alpha1 "truefoundry/elasti/operator/api/v1alpha1"
 	"truefoundry/elasti/operator/internal/controller"
+
+	"github.com/kelseyhightower/envconfig"
 	"github.com/truefoundry/elasti/pkg/utils"
 	zapLog "go.uber.org/zap"
-	"github.com/kelseyhightower/envconfig"
 	//+kubebuilder:scaffold:imports
 )
 
