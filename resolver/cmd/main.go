@@ -15,6 +15,7 @@ import (
 	"github.com/truefoundry/elasti/pkg/logger"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
+	"github.com/truefoundry/elasti/pkg/utils"
 )
 
 type config struct {
@@ -38,6 +39,10 @@ type config struct {
 	InitialCapacity int `split_words:"true" default:"100"`
 	// HeaderForHost is the header to look for to get the host
 	HeaderForHost string `split_words:"true" default:"Host"`
+	// AUTH_SERVER_URL is the URL of the auth server
+	AuthServerURL string `split_words:"true" required:"true"`
+	// TENANT_NAME is the tenant name
+	TenantName string `split_words:"true"`
 }
 
 const (
@@ -57,6 +62,13 @@ func main() {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		logger.Fatal("Error fetching cluster config", zap.Error(err))
+	}
+
+	authData, err := utils.GetSentryAuthData(env.AuthServerURL, env.TenantName)
+	if err != nil {
+		logger.Error("Error fetching sentry auth data", zap.Error(err))
+	} else {
+		utils.InitializeSentry(logger, authData, "resolver", env.TenantName)
 	}
 
 	// Get components required for the handler

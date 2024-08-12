@@ -4,7 +4,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
+
+	"github.com/getsentry/sentry-go"
+	"github.com/truefoundry/elasti/pkg/authserver"
+	"go.uber.org/zap"
 )
 
 const (
@@ -45,4 +50,29 @@ func ParseAPIVersion(apiVersion string) (group, version string, err error) {
 		return "", "", errInvalidAPIVersion
 	}
 	return split[0], split[1], nil
+}
+
+func GetSentryAuthData(authServerURL, tenantName string) (*authserver.SentryAuthInfo, error) {
+	authServerClient := authserver.GetAuthServerClient()
+	authData, err := authServerClient.GetSentryAuthData(authServerURL, tenantName)
+	if err != nil {
+		return nil, fmt.Errorf("GetSentryAuthData: %w", err)
+	}
+	return authData, nil
+}
+
+
+func InitializeSentry(logger *zap.Logger, authData *authserver.SentryAuthInfo, component string, tenantName string) {
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn:         authData.Dsn,
+		Environment: authData.Environment,
+	}); err != nil {
+		logger.Error("initializeSentry: Sentry initialization failed", zap.Error(err))
+		return
+	}
+	sentry.ConfigureScope(func(scope *sentry.Scope) {
+		scope.SetTag("tenant", tenantName)
+		scope.SetTag("component", component)
+	})
+	logger.Info("initializeSentry: Sentry initialized")
 }

@@ -19,6 +19,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"log"
 	"os"
 	"time"
 
@@ -44,8 +45,18 @@ import (
 
 	elastiv1alpha1 "truefoundry/elasti/operator/api/v1alpha1"
 	"truefoundry/elasti/operator/internal/controller"
+	"github.com/truefoundry/elasti/pkg/utils"
+	zapLog "go.uber.org/zap"
+	"github.com/kelseyhightower/envconfig"
 	//+kubebuilder:scaffold:imports
 )
+
+type config struct {
+	// AUTH_SERVER_URL is the URL of the auth server
+	AuthServerURL string `split_words:"true" required:"true"`
+	// TENANT_NAME is the tenant name
+	TenantName string `split_words:"true"`
+}
 
 var (
 	scheme   = runtime.NewScheme()
@@ -68,6 +79,19 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "unable to create logger")
 	}
+	var env config
+	if err := envconfig.Process("", &env); err != nil {
+		log.Fatal("Failed to process env: ", err)
+	}
+	zapLogger.Info("config", zapLog.Any("env", env))
+
+	authData, err := utils.GetSentryAuthData(env.AuthServerURL, env.TenantName)
+	if err != nil {
+		zapLogger.Error("Error fetching sentry auth data", zapLog.Error(err))
+	} else {
+		utils.InitializeSentry(zapLogger, authData, "operator", env.TenantName)
+	}
+
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
