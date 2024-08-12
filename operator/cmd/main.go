@@ -72,6 +72,7 @@ func init() {
 
 const (
 	elastiServerPort = ":8013"
+	flushTimeout 		= 2 * time.Second
 )
 
 func main() {
@@ -90,6 +91,7 @@ func main() {
 		zapLogger.Error("Error fetching sentry auth data", zapLog.Error(err))
 	} else {
 		utils.InitializeSentry(zapLogger, authData, "operator", env.TenantName)
+		defer sentry.Flush(flushTimeout)
 	}
 
 	var metricsAddr string
