@@ -1,2 +1,0 @@
-- Create 3 deployments using TrueFoundry 
-- 
