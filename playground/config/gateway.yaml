@@ -1,35 +1,15 @@
-apiVersion: networking.istio.io/v1alpha3
+apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
-  name: target-gateway
-  namespace: default
+  name: gateway
+  namespace: istio-system
 spec:
   selector:
-    istio: ingressgateway
+    istio: ingressgateway  
   servers:
   - port:
       number: 80
-      name: http2
-      protocol: HTTP2
+      name: http
+      protocol: HTTP
     hosts:
-    - "*"
----
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
-  name: target-virtual-service
-  namespace: default
-spec:
-  hosts:
-  - "*"
-  gateways:
-  - target-gateway
-  http:
-  - match:
-    - uri:
-        prefix: /
-    route:
-    - destination:
-        host: target-service
-        port:
-          number: 8014
+    - "*"   

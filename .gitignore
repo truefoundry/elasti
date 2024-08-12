@@ -6,3 +6,4 @@ playground/target
 .idea
 .vscode
 namespace.yaml
+install.yaml

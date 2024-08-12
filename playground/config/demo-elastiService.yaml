@@ -4,13 +4,11 @@ metadata:
   labels:
     app.kubernetes.io/name: elasti-operator
     app.kubernetes.io/managed-by: kustomize
-  name: ishaan-elasti-test
-  namespace: ishaan-ws
+  name: httpbin
 spec:
-  minTargetReplicas: 2
-  service: ishaan-elasti-test
+  service: httpbin
+  minTargetReplicas: 1
   scaleTargetRef:
-    apiVersion: argoproj.io/v1alpha1
-    kind: rollouts
-    name: ishaan-elasti-test
-
+    apiVersion: apps/v1
+    kind: Deployments
+    name: httpbin
