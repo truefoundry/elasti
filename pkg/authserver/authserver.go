@@ -37,7 +37,7 @@ var GetAuthServerClient = func() AuthServer {
 }
 
 func (as authServerImpl) GetSentryAuthData(authServerURL, tenantName string) (*SentryAuthInfo, error) {
-	queryParams := map[string]string{"serviceName": "tfy-controller"}
+	queryParams := map[string]string{"serviceName": "elasti"}
 	if tenantName != "" {
 		queryParams["tenantName"] = tenantName
 	}

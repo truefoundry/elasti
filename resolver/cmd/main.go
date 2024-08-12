@@ -9,6 +9,7 @@ import (
 	"truefoundry/elasti/resolver/internal/operator"
 	"truefoundry/elasti/resolver/internal/throttler"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/truefoundry/elasti/pkg/k8sHelper"
@@ -47,6 +48,7 @@ type config struct {
 
 const (
 	port = ":8012"
+	flushTimeout 		= 2 * time.Second
 )
 
 func main() {
@@ -69,6 +71,7 @@ func main() {
 		logger.Error("Error fetching sentry auth data", zap.Error(err))
 	} else {
 		utils.InitializeSentry(logger, authData, "resolver", env.TenantName)
+		defer sentry.Flush(flushTimeout)
 	}
 
 	// Get components required for the handler
