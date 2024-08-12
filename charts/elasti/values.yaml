@@ -14,6 +14,9 @@ elastiController:
       capabilities:
         drop:
         - ALL
+    env:
+      AuthServerURL: ""
+      TenantName: ""
     image:
       repository: public.ecr.aws/truefoundrycloud/elasti-operator
       tag: 189cb16a46af8fb559ee727c63917672e72a9192
@@ -48,6 +51,8 @@ elastiResolver:
       queueSize: "50000"
       reqTimeout: "120"
       trafficReEnableDuration: "5"
+      AuthServerURL: ""
+      TenantName: ""
     image:
       repository: public.ecr.aws/truefoundrycloud/elasti-resolver
       tag: 189cb16a46af8fb559ee727c63917672e72a9192

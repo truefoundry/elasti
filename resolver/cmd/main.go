@@ -40,9 +40,9 @@ type config struct {
 	InitialCapacity int `split_words:"true" default:"100"`
 	// HeaderForHost is the header to look for to get the host
 	HeaderForHost string `split_words:"true" default:"Host"`
-	// AUTH_SERVER_URL is the URL of the auth server
-	AuthServerURL string `split_words:"true" required:"true"`
-	// TENANT_NAME is the tenant name
+	// AuthServerURL is the URL of the auth server
+	AuthServerURL string `split_words:"true" required:"false"`
+	// TenantName is the tenant name
 	TenantName string `split_words:"true"`
 }
 

@@ -53,6 +53,9 @@ func ParseAPIVersion(apiVersion string) (group, version string, err error) {
 }
 
 func GetSentryAuthData(authServerURL, tenantName string) (*authserver.SentryAuthInfo, error) {
+	if authServerURL == "" {
+		return nil, fmt.Errorf("GetSentryAuthData: authServerURL is empty")
+	}
 	authServerClient := authserver.GetAuthServerClient()
 	authData, err := authServerClient.GetSentryAuthData(authServerURL, tenantName)
 	if err != nil {

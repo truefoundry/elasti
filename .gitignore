@@ -1,4 +1,5 @@
 resolver/resolver
+operator/manager
 operator/bin
 playground/load-generator
 playground/target

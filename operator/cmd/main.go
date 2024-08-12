@@ -54,9 +54,9 @@ import (
 )
 
 type config struct {
-	// AUTH_SERVER_URL is the URL of the auth server
-	AuthServerURL string `split_words:"true" required:"true"`
-	// TENANT_NAME is the tenant name
+	// AuthServerURL is the URL of the auth server
+	AuthServerURL string `split_words:"true" required:"false"`
+	// TenantName is the tenant name
 	TenantName string `split_words:"true"`
 }
 
