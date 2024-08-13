@@ -78,7 +78,7 @@ const (
 )
 
 func main() {
-	zapLogger, err := tfLogger.NewLogger("dev")
+	logger, err := tfLogger.NewLogger("dev")
 	if err != nil {
 		setupLog.Error(err, "unable to create logger")
 	}
@@ -86,13 +86,13 @@ func main() {
 	if err := envconfig.Process("", &env); err != nil {
 		log.Fatal("Failed to process env: ", err)
 	}
-	zapLogger.Info("config", zapLog.Any("env", env))
+	logger.Info("config", zapLog.Any("env", env))
 
 	authData, err := utils.GetSentryAuthData(env.AuthServerURL, env.TenantName)
 	if err != nil {
-		zapLogger.Error("Error fetching sentry auth data", zapLog.Error(err))
+		logger.Error("Error fetching sentry auth data", zapLog.Error(err))
 	} else {
-		utils.InitializeSentry(zapLogger, authData, "operator", env.TenantName)
+		utils.InitializeSentry(logger, authData, "operator", env.TenantName)
 		defer sentry.Flush(flushTimeout)
 	}
 
@@ -167,16 +167,16 @@ func main() {
 	}
 
 	// Start the shared CRD Directory
-	crdDirectory.INITDirectory(zapLogger)
+	crdDirectory.INITDirectory(logger)
 	// Initiate and start the shared Informer manager
-	Informer := informer.NewInformerManager(zapLogger, mgr.GetConfig())
+	Informer := informer.NewInformerManager(logger, mgr.GetConfig())
 	Informer.Start()
 
 	// Set up the ElastiService controller
 	if err = (&controller.ElastiServiceReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
-		Logger:   zapLogger,
+		Logger:   logger,
 		Informer: Informer,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
@@ -184,7 +184,7 @@ func main() {
 	}
 
 	// Start the elasti server
-	eServer := elastiServer.NewServer(zapLogger, mgr.GetConfig(), 30*time.Second)
+	eServer := elastiServer.NewServer(logger, mgr.GetConfig(), 30*time.Second)
 	go eServer.Start(elastiServerPort)
 
 	//+kubebuilder:scaffold:builder
