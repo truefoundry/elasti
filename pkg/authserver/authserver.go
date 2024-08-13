@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/imroc/req/v3"
-	"go.uber.org/zap"
 )
 
 type authServerImpl struct {
@@ -47,7 +46,7 @@ func (as authServerImpl) GetSentryAuthData(authServerURL, tenantName string) (*S
 		Get(fmt.Sprintf("%s/api/v1/tenants/sentry-auth-data", authServerURL))
 
 	if err != nil {
-		return nil, zap.Error(err)
+		return nil, fmt.Errorf("GetSentryAuthData: %w", err)
 	}
 
 	defer resp.Body.Close()
