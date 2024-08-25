@@ -45,4 +45,4 @@ jobs:
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: ${{ matrix.modules }}
-          timeout: 5m
+          args: -v --timeout 5m
