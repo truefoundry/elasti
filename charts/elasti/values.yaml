@@ -2,7 +2,7 @@ global:
   kubernetesClusterDomain: cluster.local
   nameOverride: ""
   fullnameOverride: ""
-  enableMonitroing: false
+  enableMonitoring: false
 elastiController:
   manager:
     args:

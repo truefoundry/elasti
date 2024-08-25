@@ -2,7 +2,7 @@ global:
   kubernetesClusterDomain: cluster.local
   nameOverride: ""
   fullnameOverride: ""
-  enableMonitroing: true
+  enableMonitoring: false
 elastiController:
   manager:
     args:
@@ -15,9 +15,9 @@ elastiController:
         drop:
         - ALL
     image:
-      repository: localhost:5000/elasti-operator
+      repository: elasti-operator
       tag: v1alpha1
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
     resources:
       limits:
         cpu: 500m
@@ -49,9 +49,9 @@ elastiResolver:
       reqTimeout: "120"
       trafficReEnableDuration: "5"
     image:
-      repository: localhost:5000/elasti-resolver
+      repository: elasti-resolver
       tag: v1alpha1
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
     resources:
       limits:
         cpu: 750m
