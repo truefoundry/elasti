@@ -2,6 +2,7 @@ run:
   tests: false
   timeout: 5m
   go: 1.22
+  modules-download-mode: readonly
 linters:
   # Enable specific linter
   # https://golangci-lint.run/usage/linters/#enabled-by-default
