@@ -1,8 +1,7 @@
 go 1.22.3
 
 use (
-	./playground
-	./operator
-	./resolver
-	./pkg
+	./operator/
+	./pkg/
+	./resolver/
 )

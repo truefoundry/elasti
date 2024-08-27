@@ -1,4 +1,4 @@
-package k8sHelper
+package k8shelper
 
 import "errors"
 

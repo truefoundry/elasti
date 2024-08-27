@@ -15,7 +15,7 @@ import (
 	"truefoundry/elasti/operator/internal/prom"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
 )
@@ -30,7 +30,7 @@ type (
 	// for a service, that service is scaled up if it's at 0 replicas
 	Server struct {
 		logger     *zap.Logger
-		k8sHelper  *k8sHelper.Ops
+		k8shelper  *k8shelper.Ops
 		scaleLocks sync.Map
 		// rescaleDuration is the duration to wait before checking to rescaling the target
 		rescaleDuration time.Duration
@@ -39,10 +39,10 @@ type (
 
 func NewServer(logger *zap.Logger, config *rest.Config, rescaleDuration time.Duration) *Server {
 	// Get Ops client
-	k8sUtil := k8sHelper.NewOps(logger, config)
+	k8sUtil := k8shelper.NewOps(logger, config)
 	return &Server{
 		logger:          logger.Named("elastiServer"),
-		k8sHelper:       k8sUtil,
+		k8shelper:       k8sUtil,
 		rescaleDuration: rescaleDuration,
 	}
 }
@@ -124,7 +124,7 @@ func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace
 		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, serviceName: %s", serviceName)
 	}
 
-	if err := s.k8sHelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
+	if err := s.k8shelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
 		s.releaseMutexForServiceScale(serviceName)
 		prom.TargetScaleCounter.WithLabelValues(serviceName, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, err.Error()).Inc()
 		return fmt.Errorf("scaleTargetForService - error: %w, targetRefKind: %s, targetRefName: %s", err, crd.Spec.ScaleTargetRef.Kind, crd.Spec.ScaleTargetRef.Name)

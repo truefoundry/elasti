@@ -6,7 +6,7 @@ import (
 
 	"truefoundry/elasti/operator/api/v1alpha1"
 
-	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
@@ -17,7 +17,7 @@ import (
 
 func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Context, obj interface{}, _ *v1alpha1.ElastiService, req ctrl.Request) error {
 	targetDeployment := &appsv1.Deployment{}
-	err := k8sHelper.UnstructuredToResource(obj, targetDeployment)
+	err := k8shelper.UnstructuredToResource(obj, targetDeployment)
 	if err != nil {
 		return fmt.Errorf("failed to convert unstructured to deployment: %w", err)
 	}
@@ -38,7 +38,7 @@ func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Cont
 
 func (r *ElastiServiceReconciler) handleResolverChanges(ctx context.Context, obj interface{}, serviceName, namespace string) error {
 	resolverDeployment := &appsv1.Deployment{}
-	err := k8sHelper.UnstructuredToResource(obj, resolverDeployment)
+	err := k8shelper.UnstructuredToResource(obj, resolverDeployment)
 	if err != nil {
 		return fmt.Errorf("failed to convert unstructured to deployment: %w", err)
 	}

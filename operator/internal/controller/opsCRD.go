@@ -11,7 +11,7 @@ import (
 	"truefoundry/elasti/operator/internal/informer"
 	"truefoundry/elasti/operator/internal/prom"
 
-	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/utils"
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
@@ -125,7 +125,7 @@ func (r *ElastiServiceReconciler) watchScaleTargetRef(ctx context.Context, es *v
 	if es.Spec.ScaleTargetRef.Name == "" ||
 		es.Spec.ScaleTargetRef.Kind == "" ||
 		es.Spec.ScaleTargetRef.APIVersion == "" {
-		return fmt.Errorf("scaleTargetRef is incomplete: %w", k8sHelper.ErrNoScaleTargetFound)
+		return fmt.Errorf("scaleTargetRef is incomplete: %w", k8shelper.ErrNoScaleTargetFound)
 	}
 
 	crd, found := crdDirectory.CRDDirectory.GetCRD(es.Spec.Service)
@@ -180,7 +180,7 @@ func (r *ElastiServiceReconciler) watchScaleTargetRef(ctx context.Context, es *v
 // watchPublicService checks if the Public Service has changed, and makes sure it's not null
 func (r *ElastiServiceReconciler) watchPublicService(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) error {
 	if es.Spec.Service == "" {
-		return fmt.Errorf("null value for public service: %w", k8sHelper.ErrNoPublicServiceFound)
+		return fmt.Errorf("null value for public service: %w", k8shelper.ErrNoPublicServiceFound)
 	}
 	var informerErr error
 	r.getMutexForInformerStart(r.getMutexKeyForPublicSVC(req)).Do(func() {

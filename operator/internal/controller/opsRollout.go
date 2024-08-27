@@ -7,7 +7,7 @@ import (
 	"truefoundry/elasti/operator/api/v1alpha1"
 
 	argo "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
-	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -15,7 +15,7 @@ import (
 
 func (r *ElastiServiceReconciler) handleTargetRolloutChanges(ctx context.Context, obj interface{}, es *v1alpha1.ElastiService, req ctrl.Request) error {
 	newRollout := &argo.Rollout{}
-	err := k8sHelper.UnstructuredToResource(obj, newRollout)
+	err := k8shelper.UnstructuredToResource(obj, newRollout)
 	if err != nil {
 		return fmt.Errorf("failed to convert unstructured to rollout: %w", err)
 	}

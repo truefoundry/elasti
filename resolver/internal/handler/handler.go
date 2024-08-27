@@ -9,8 +9,9 @@ import (
 	"net/url"
 	"sync"
 	"time"
-	"truefoundry/elasti/resolver/internal/prom"
-	"truefoundry/elasti/resolver/internal/throttler"
+
+	"github.com/truefoundry/elasti/resolver/internal/prom"
+	"github.com/truefoundry/elasti/resolver/internal/throttler"
 
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
@@ -88,7 +89,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		responseStatus,
 		errorMessage,
 	).Observe(duration)
-
 }
 
 // handleAnyRequest handles any incoming request
