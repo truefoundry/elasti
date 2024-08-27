@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
 )
@@ -15,7 +15,7 @@ type (
 	Throttler struct {
 		logger                  *zap.Logger
 		breaker                 *Breaker
-		k8sUtil                 *k8sHelper.Ops
+		k8sUtil                 *k8shelper.Ops
 		retryDuration           time.Duration
 		TrafficReEnableDuration time.Duration
 		serviceReadyMap         sync.Map
@@ -24,7 +24,7 @@ type (
 	ThrottlerParams struct {
 		QueueRetryDuration      time.Duration
 		TrafficReEnableDuration time.Duration
-		K8sUtil                 *k8sHelper.Ops
+		K8sUtil                 *k8shelper.Ops
 		QueueDepth              int
 		MaxConcurrency          int
 		InitialCapacity         int

@@ -1,4 +1,4 @@
-module truefoundry/elasti/resolver
+module github.com/truefoundry/elasti/resolver
 
 go 1.22.3
 
