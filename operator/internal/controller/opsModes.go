@@ -37,21 +37,17 @@ func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Reque
 	defer r.updateCRDStatus(ctx, req.NamespacedName, mode)
 	switch mode {
 	case values.ServeMode:
-		if es.Status.Mode != values.ServeMode {
-			if err = r.enableServeMode(ctx, req, es); err != nil {
-				r.Logger.Error("Failed to enable SERVE mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
-				return res, err
-			}
-			r.Logger.Info("[SERVE mode enabled]", zap.String("es", req.NamespacedName.String()))
+		if err = r.enableServeMode(ctx, req, es); err != nil {
+			r.Logger.Error("Failed to enable SERVE mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
+			return res, err
 		}
+		r.Logger.Info("[SERVE mode enabled]", zap.String("es", req.NamespacedName.String()))
 	case values.ProxyMode:
-		if es.Status.Mode != values.ProxyMode {
-			if err = r.enableProxyMode(ctx, req, es); err != nil {
-				r.Logger.Error("Failed to enable PROXY mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
-				return res, err
-			}
-			r.Logger.Info("[PROXY mode enabled]", zap.String("es", req.NamespacedName.String()))
+		if err = r.enableProxyMode(ctx, req, es); err != nil {
+			r.Logger.Error("Failed to enable PROXY mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
+			return res, err
 		}
+		r.Logger.Info("[PROXY mode enabled]", zap.String("es", req.NamespacedName.String()))
 	default:
 		r.Logger.Error("Invalid mode", zap.String("mode", mode), zap.String("es", req.NamespacedName.String()))
 	}
