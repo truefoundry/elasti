@@ -23,7 +23,7 @@ func GetPrivateSerivceName(publicSVCName string) string {
 	hash := sha256.New()
 	hash.Write([]byte(publicSVCName))
 	hashed := hex.EncodeToString(hash.Sum(nil))
-	pvtName := prefix + publicSVCName + privateServicePostfix + "-" + string(hashed)[:10]
+	pvtName := prefix + publicSVCName + privateServicePostfix + "-" + hashed[:10]
 	return pvtName
 }
 
@@ -32,11 +32,11 @@ func GetEndpointSliceToResolverName(serviceName string) string {
 	hash := sha256.New()
 	hash.Write([]byte(serviceName))
 	hashed := hex.EncodeToString(hash.Sum(nil))
-	return prefix + serviceName + endpointSlicePostfix + "-" + string(hashed)[:10]
+	return prefix + serviceName + endpointSlicePostfix + "-" + hashed[:10]
 }
 
 // ParseAPIVersion returns the group, version
-func ParseAPIVersion(apiVersion string) (group, version string, err error) {
+func ParseAPIVersion(apiVersion string) (string, string, error) {
 	if apiVersion == "" {
 		return "", "", errInvalidAPIVersion
 	}

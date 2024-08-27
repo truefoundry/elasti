@@ -1,4 +1,4 @@
-package k8sHelper
+package k8shelper
 
 import (
 	"context"
@@ -41,11 +41,11 @@ func NewOps(logger *zap.Logger, config *rest.Config) *Ops {
 func (k *Ops) CheckIfServiceEnpointActive(ns, svc string) (bool, error) {
 	endpoint, err := k.kClient.CoreV1().Endpoints(ns).Get(context.TODO(), svc, metav1.GetOptions{})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("CheckIfServiceEnpointActive - GET: %w", err)
 	}
 
-	if endpoint.Subsets != nil && len(endpoint.Subsets) > 0 {
-		if endpoint.Subsets[0].Addresses != nil && len(endpoint.Subsets[0].Addresses) != 0 {
+	if len(endpoint.Subsets) > 0 {
+		if len(endpoint.Subsets[0].Addresses) != 0 {
 			k.logger.Debug("Service endpoint is active", zap.String("service", svc), zap.String("namespace", ns))
 			return true, nil
 		}
