@@ -6,7 +6,7 @@ import (
 
 	"truefoundry/elasti/operator/api/v1alpha1"
 
-	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/utils"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
@@ -71,7 +71,7 @@ func (r *ElastiServiceReconciler) checkAndCreatePrivateService(ctx context.Conte
 // handlePublicServiceChanges handles the changes in the public service, and sync those changes in the private service
 func (r *ElastiServiceReconciler) handlePublicServiceChanges(ctx context.Context, obj interface{}, serviceName, _ string) error {
 	publicSVC := &v1.Service{}
-	err := k8sHelper.UnstructuredToResource(obj, publicSVC)
+	err := k8shelper.UnstructuredToResource(obj, publicSVC)
 	if err != nil {
 		return fmt.Errorf("failed to convert unstructured to service: %w", err)
 	}

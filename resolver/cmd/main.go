@@ -4,14 +4,14 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"truefoundry/elasti/resolver/internal/handler"
-	"truefoundry/elasti/resolver/internal/hostManager"
-	"truefoundry/elasti/resolver/internal/operator"
-	"truefoundry/elasti/resolver/internal/throttler"
+	"github.com/truefoundry/elasti/resolver/internal/handler"
+	"github.com/truefoundry/elasti/resolver/internal/hostManager"
+	"github.com/truefoundry/elasti/resolver/internal/operator"
+	"github.com/truefoundry/elasti/resolver/internal/throttler"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/truefoundry/elasti/pkg/k8sHelper"
+	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/logger"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
@@ -60,7 +60,7 @@ func main() {
 	}
 
 	// Get components required for the handler
-	k8sUtil := k8sHelper.NewOps(logger, config)
+	k8sUtil := k8shelper.NewOps(logger, config)
 	newOperatorRPC := operator.NewOperatorClient(logger, time.Duration(env.OperatorRetryDuration)*time.Second)
 	newHostManager := hostManager.NewHostManager(logger, time.Duration(env.TrafficReEnableDuration)*time.Second, env.HeaderForHost)
 	newTransport := throttler.NewProxyAutoTransport(logger, env.MaxIdleProxyConns, env.MaxIdleProxyConnsPerHost)

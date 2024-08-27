@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"truefoundry/elasti/resolver/internal/prom"
+	"github.com/truefoundry/elasti/resolver/internal/prom"
 
 	"github.com/truefoundry/elasti/pkg/utils"
 
