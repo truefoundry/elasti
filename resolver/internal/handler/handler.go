@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
 	"github.com/truefoundry/elasti/resolver/internal/prom"
 	"github.com/truefoundry/elasti/resolver/internal/throttler"
 
@@ -88,7 +89,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		responseStatus,
 		errorMessage,
 	).Observe(duration)
-
 }
 
 // handleAnyRequest handles any incoming request

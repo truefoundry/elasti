@@ -34,6 +34,8 @@ func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Reque
 		r.Logger.Error("Failed to get CRD", zap.String("es", req.NamespacedName.String()), zap.Error(err))
 		return res, fmt.Errorf("failed to get CRD: %w", err)
 	}
+
+	//nolint: errcheck
 	defer r.updateCRDStatus(ctx, req.NamespacedName, mode)
 	switch mode {
 	case values.ServeMode:

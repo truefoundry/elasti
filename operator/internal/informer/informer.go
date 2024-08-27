@@ -165,7 +165,10 @@ func (m *Manager) monitorInformers() {
 				if err != nil {
 					m.logger.Error("Error in stopping informer", zap.Error(err))
 				}
-				m.enableInformer(info.Req)
+				err = m.enableInformer(info.Req)
+				if err != nil {
+					m.logger.Error("Error in enabling informer", zap.Error(err))
+				}
 			}
 		}
 		return true

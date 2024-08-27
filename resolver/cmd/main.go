@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+
 	"github.com/truefoundry/elasti/resolver/internal/handler"
 	"github.com/truefoundry/elasti/resolver/internal/hostManager"
 	"github.com/truefoundry/elasti/resolver/internal/operator"

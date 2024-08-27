@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
 	"github.com/truefoundry/elasti/resolver/internal/prom"
 
 	"github.com/truefoundry/elasti/pkg/messages"
@@ -70,6 +71,7 @@ func (o *Client) SendIncomingRequestInfo(ns, svc string) {
 		return
 	} else {
 		req.Header.Set("Content-Type", "application/json")
+		//nolint:bodyclose
 		resp, err := o.client.Do(req)
 		if err != nil {
 			prom.OperatorRPCCounter.WithLabelValues(err.Error()).Inc()

@@ -16,7 +16,7 @@ type BreakerParams struct {
 }
 
 // Breaker enforces a concurrency limit on the execution of a function.
-// Function call attempts beyond the limit of the max-concurrency are failed immediatly.
+// Function call attempts beyond the limit of the max-concurrency are failed immediately.
 type Breaker struct {
 	logger         *zap.Logger
 	inFlight       atomic.Int64
