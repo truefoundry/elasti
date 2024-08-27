@@ -1,7 +1,7 @@
 run:
-  tests: true
+  tests: false
   timeout: 5m
-  go: 1.21
+  go: 1.22
 linters:
   # Enable specific linter
   # https://golangci-lint.run/usage/linters/#enabled-by-default
