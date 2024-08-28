@@ -32,7 +32,7 @@ func (r *ElastiServiceReconciler) getCRD(ctx context.Context, crdNamespacedName 
 
 func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamespacedName types.NamespacedName, mode string) (err error) {
 	defer func() {
-		errStr := "success"
+		errStr := values.Success
 		if err != nil {
 			errStr = err.Error()
 		}
@@ -205,7 +205,7 @@ func (r *ElastiServiceReconciler) finalizeCRDIfDeleted(ctx context.Context, es *
 	// If the ElastiService is being deleted, we need to clean up the resources
 	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
 		defer func() {
-			e := "success"
+			e := values.Success
 			if err != nil {
 				e = err.Error()
 			}

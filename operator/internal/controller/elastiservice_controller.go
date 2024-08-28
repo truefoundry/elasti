@@ -9,6 +9,7 @@ import (
 	"truefoundry/elasti/operator/internal/informer"
 	"truefoundry/elasti/operator/internal/prom"
 
+	"github.com/truefoundry/elasti/pkg/values"
 	"k8s.io/apimachinery/pkg/api/errors"
 	kRuntime "k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -63,7 +64,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	start := time.Now()
 
 	defer func() {
-		e := "success"
+		e := values.Success
 		if err != nil {
 			e = err.Error()
 		}

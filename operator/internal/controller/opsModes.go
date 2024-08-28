@@ -21,7 +21,7 @@ func (r *ElastiServiceReconciler) getMutexForSwitchMode(key string) *sync.Mutex 
 	return l.(*sync.Mutex)
 }
 
-func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error) {
+func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Request, mode string) error {
 	{
 		r.Logger.Debug(fmt.Sprintf("[Switching to %s Mode]", strings.ToUpper(mode)), zap.String("es", req.NamespacedName.String()))
 		mutex := r.getMutexForSwitchMode(req.NamespacedName.String())
@@ -32,7 +32,7 @@ func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Reque
 	es, err := r.getCRD(ctx, req.NamespacedName)
 	if err != nil {
 		r.Logger.Error("Failed to get CRD", zap.String("es", req.NamespacedName.String()), zap.Error(err))
-		return res, fmt.Errorf("failed to get CRD: %w", err)
+		return fmt.Errorf("failed to get CRD: %w", err)
 	}
 
 	//nolint: errcheck
@@ -41,19 +41,19 @@ func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Reque
 	case values.ServeMode:
 		if err = r.enableServeMode(ctx, req, es); err != nil {
 			r.Logger.Error("Failed to enable SERVE mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
-			return res, err
+			return err
 		}
 		r.Logger.Info("[SERVE mode enabled]", zap.String("es", req.NamespacedName.String()))
 	case values.ProxyMode:
 		if err = r.enableProxyMode(ctx, req, es); err != nil {
 			r.Logger.Error("Failed to enable PROXY mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
-			return res, err
+			return err
 		}
 		r.Logger.Info("[PROXY mode enabled]", zap.String("es", req.NamespacedName.String()))
 	default:
 		r.Logger.Error("Invalid mode", zap.String("mode", mode), zap.String("es", req.NamespacedName.String()))
 	}
-	return res, nil
+	return nil
 }
 
 func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService) error {

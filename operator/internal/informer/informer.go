@@ -12,6 +12,7 @@ import (
 	"time"
 	"truefoundry/elasti/operator/internal/prom"
 
+	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -131,7 +132,7 @@ func (m *Manager) StopForCRD(crdName string) {
 // It closes the shared informer for it and deletes it from the map
 func (m *Manager) StopInformer(key string) (err error) {
 	defer func() {
-		errStr := "success"
+		errStr := values.Success
 		if err != nil {
 			errStr = err.Error()
 		}
@@ -195,7 +196,7 @@ func (m *Manager) WatchDeployment(req ctrl.Request, deploymentName, namespace st
 func (m *Manager) Add(req *RequestWatch) (err error) {
 	key := m.getKeyFromRequestWatch(req)
 	defer func() {
-		errStr := "success"
+		errStr := values.Success
 		if err != nil {
 			errStr = err.Error()
 		}

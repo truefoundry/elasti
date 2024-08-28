@@ -13,6 +13,8 @@ const (
 	ServeMode = "serve"
 	ProxyMode = "proxy"
 	NullMode  = ""
+
+	Success = "success"
 )
 
 var (

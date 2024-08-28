@@ -48,7 +48,7 @@ func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, 
 	})
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			errStr := "success"
+			errStr := values.Success
 			err := r.handleResolverChanges(ctx, obj, es.Spec.Service, req.Namespace)
 			if err != nil {
 				errStr = err.Error()
@@ -59,7 +59,7 @@ func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, 
 			prom.InformerHandlerCounter.WithLabelValues(req.String(), key, errStr).Inc()
 		},
 		UpdateFunc: func(old, new interface{}) {
-			errStr := "success"
+			errStr := values.Success
 			err := r.handleResolverChanges(ctx, new, es.Spec.Service, req.Namespace)
 			if err != nil {
 				errStr = err.Error()
@@ -93,7 +93,7 @@ func (r *ElastiServiceReconciler) getPublicServiceChangeHandler(ctx context.Cont
 
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			errStr := "success"
+			errStr := values.Success
 			err := r.handlePublicServiceChanges(ctx, obj, es.Spec.Service, req.Namespace)
 			if err != nil {
 				errStr = err.Error()
@@ -104,7 +104,7 @@ func (r *ElastiServiceReconciler) getPublicServiceChangeHandler(ctx context.Cont
 			prom.InformerHandlerCounter.WithLabelValues(req.String(), key, errStr).Inc()
 		},
 		UpdateFunc: func(old, new interface{}) {
-			errStr := "success"
+			errStr := values.Success
 			err := r.handlePublicServiceChanges(ctx, new, es.Spec.Service, req.Namespace)
 			if err != nil {
 				errStr = err.Error()
@@ -131,7 +131,7 @@ func (r *ElastiServiceReconciler) getScaleTargetRefChangeHandler(ctx context.Con
 	})
 	return cache.ResourceEventHandlerFuncs{
 		UpdateFunc: func(old, new interface{}) {
-			errStr := "success"
+			errStr := values.Success
 			err := r.handleScaleTargetRefChanges(ctx, new, es, req)
 			if err != nil {
 				errStr = err.Error()

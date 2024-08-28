@@ -23,12 +23,12 @@ func (r *ElastiServiceReconciler) handleTargetRolloutChanges(ctx context.Context
 	condition := newRollout.Status.Phase
 	if replicas == 0 {
 		r.Logger.Debug("ScaleTargetRef Rollout has 0 replicas", zap.String("rollout_name", es.Spec.ScaleTargetRef.Name), zap.String("es", req.String()))
-		if _, err := r.switchMode(ctx, req, values.ProxyMode); err != nil {
+		if err := r.switchMode(ctx, req, values.ProxyMode); err != nil {
 			return fmt.Errorf("failed to switch mode: %w", err)
 		}
 	} else if replicas > 0 && condition == values.ArgoPhaseHealthy {
 		r.Logger.Debug("ScaleTargetRef Deployment has ready replicas", zap.String("rollout_name", es.Spec.ScaleTargetRef.Name), zap.String("es", req.String()))
-		if _, err := r.switchMode(ctx, req, values.ServeMode); err != nil {
+		if err := r.switchMode(ctx, req, values.ServeMode); err != nil {
 			return fmt.Errorf("failed to switch mode: %w", err)
 		}
 	}

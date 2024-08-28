@@ -24,12 +24,12 @@ func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Cont
 	condition := targetDeployment.Status.Conditions
 	if targetDeployment.Status.Replicas == 0 {
 		r.Logger.Info("ScaleTargetRef Deployment has 0 replicas", zap.String("deployment_name", targetDeployment.Name), zap.String("es", req.String()))
-		if _, err := r.switchMode(ctx, req, values.ProxyMode); err != nil {
+		if err := r.switchMode(ctx, req, values.ProxyMode); err != nil {
 			return fmt.Errorf("failed to switch mode: %w", err)
 		}
 	} else if targetDeployment.Status.Replicas > 0 && condition[1].Status == values.DeploymentConditionStatusTrue {
 		r.Logger.Info("ScaleTargetRef Deployment has ready replicas", zap.String("deployment_name", targetDeployment.Name), zap.String("es", req.String()))
-		if _, err := r.switchMode(ctx, req, values.ServeMode); err != nil {
+		if err := r.switchMode(ctx, req, values.ServeMode); err != nil {
 			return fmt.Errorf("failed to switch mode: %w", err)
 		}
 	}
