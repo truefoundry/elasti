@@ -27,6 +27,7 @@ import (
 // Run e2e tests using the Ginkgo runner.
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
+	//nolint:errcheck
 	fmt.Fprintf(GinkgoWriter, "Starting elasti-operator suite\n")
 	RunSpecs(t, "e2e suite")
 }
