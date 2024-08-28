@@ -73,6 +73,7 @@ func (k *Ops) ScaleTargetWhenAtZero(ns, targetName, targetKind string, replicas 
 	return nil
 }
 
+// ScaleDeployment scales the deployment to the provided replicas
 func (k *Ops) ScaleDeployment(ns, targetName string, replicas int32) error {
 	deploymentClient := k.kClient.AppsV1().Deployments(ns)
 	deploy, err := deploymentClient.Get(context.TODO(), targetName, metav1.GetOptions{})
@@ -94,6 +95,7 @@ func (k *Ops) ScaleDeployment(ns, targetName string, replicas int32) error {
 	return nil
 }
 
+// ScaleArgoRollout scales the rollout to the provided replicas
 func (k *Ops) ScaleArgoRollout(ns, targetName string, replicas int32) error {
 	rollout, err := k.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Get(context.TODO(), targetName, metav1.GetOptions{})
 	if err != nil {
