@@ -1,4 +1,4 @@
-name: Push image to to ECR
+name: Push image to to JFROG Public
 
 on:
   push:
