@@ -132,9 +132,9 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 		}
 		h.hostManager.DisableTrafficForHost(host.IncomingHost)
 		return nil
-	}, func() {
-		h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
-	}); tryErr != nil {
+		}, func() {
+			h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
+		}); tryErr != nil {
 		h.logger.Error("throttler try error: ", zap.Error(tryErr))
 		if errors.Is(tryErr, context.DeadlineExceeded) {
 			http.Error(w, "request timeout", http.StatusRequestTimeout)
