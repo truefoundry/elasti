@@ -49,7 +49,7 @@ func NewThrottler(param *ThrottlerParams) *Throttler {
 	}
 }
 
-func (t *Throttler) Try(ctx context.Context, host *messages.Host, resolve func(int) error) error {
+func (t *Throttler) Try(ctx context.Context, host *messages.Host, resolve func(int) error, tryErrCallback func()) error {
 	reenqueue := true
 	tryCount := 1
 	var tryErr error
@@ -59,6 +59,7 @@ func (t *Throttler) Try(ctx context.Context, host *messages.Host, resolve func(i
 		breakErr := t.breaker.Maybe(ctx, func() {
 			if isPodActive, err := t.checkIfServiceReady(host.Namespace, host.TargetService); err != nil {
 				tryErr = err
+				go tryErrCallback()
 			} else if isPodActive {
 				if res := resolve(tryCount); res != nil {
 					tryErr = fmt.Errorf("resolve error: %w", res)
