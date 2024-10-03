@@ -16,7 +16,7 @@ elastiController:
         - ALL
     image:
       repository: public.ecr.aws/truefoundrycloud/elasti-operator
-      tag: d849aede280112dea35ffcb2efab6f65608b1396
+      tag: 217acd40832764e32f75775bd72ea329990b0b67
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -50,7 +50,7 @@ elastiResolver:
       trafficReEnableDuration: "5"
     image:
       repository: public.ecr.aws/truefoundrycloud/elasti-resolver
-      tag: d849aede280112dea35ffcb2efab6f65608b1396
+      tag: 217acd40832764e32f75775bd72ea329990b0b67
     imagePullPolicy: IfNotPresent
     resources:
       limits:
