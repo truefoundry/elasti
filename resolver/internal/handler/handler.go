@@ -123,7 +123,8 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 	// Send request to throttler
 	ctx, cancel := context.WithTimeout(context.Background(), h.timeout)
 	defer cancel()
-	if tryErr := h.throttler.Try(ctx, host, func(count int) error {
+	if tryErr := h.throttler.Try(ctx, host, 
+		func(count int) error {
 		err := h.ProxyRequest(w, req, host.TargetHost, count)
 		if err != nil {
 			h.logger.Error("Error proxying request", zap.Error(err))
@@ -131,7 +132,9 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 		}
 		h.hostManager.DisableTrafficForHost(host.IncomingHost)
 		return nil
-	}); tryErr != nil {
+		}, func() {
+			h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
+		}); tryErr != nil {
 		h.logger.Error("throttler try error: ", zap.Error(tryErr))
 		if errors.Is(tryErr, context.DeadlineExceeded) {
 			http.Error(w, "request timeout", http.StatusRequestTimeout)
