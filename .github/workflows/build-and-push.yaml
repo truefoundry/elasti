@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - 'main'
-      - 'elasti_retry_on_try_failure'
     paths:
       - 'operator/**'
       - 'resolver/**'
