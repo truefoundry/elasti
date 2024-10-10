@@ -15,8 +15,6 @@ permissions:
 
 jobs:
   build:
-    uses: truefoundry/workflows/.github/workflows/build.yml@main
-    secrets: inherit
     name: Build and Push Docker Images
     strategy:
       matrix:
@@ -24,4 +22,9 @@ jobs:
           - directory: operator
             repository: elasti-operator
           - directory: resolver
-            repository: elasti-resolver
+            repository: elasti-resolver build
+    uses: truefoundry/workflows/.github/workflows/build.yml@main
+    with:
+      target: ${{ matrix.directory}}
+      repository: ${{ matrix.repository}}
+    secrets: inherit
