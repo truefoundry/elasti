@@ -14,6 +14,7 @@ permissions:
 
 env:
   IMAGE_TAG: ${{ github.sha }}
+  ARTIFACTORY_REGISTRY: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
   ARTIFACTORY_USERNAME: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
   ARTIFACTORY_PASSWORD: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
   ARTIFACTORY_REPOSITORY_URL: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}/${{ matrix.repository }}
@@ -41,7 +42,7 @@ jobs:
         with:
           username: ${{ env.ARTIFACTORY_USERNAME }}
           password: ${{ env.ARTIFACTORY_PASSWORD }}
-          registry: tfy.jfrog.io
+          registry: ${{ env.ARTIFACTORY_REGISTRY }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
