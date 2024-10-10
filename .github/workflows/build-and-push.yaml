@@ -25,6 +25,6 @@ jobs:
             repository: elasti-resolver build
     uses: truefoundry/workflows/.github/workflows/build.yml@main
     with:
-      target: ${{ matrix.directory}}
+      directory: ${{ matrix.directory}}
       repository: ${{ matrix.repository}}
     secrets: inherit
