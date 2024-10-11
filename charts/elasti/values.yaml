@@ -15,8 +15,8 @@ elastiController:
         drop:
         - ALL
     image:
-      repository: public.ecr.aws/truefoundrycloud/elasti-operator
-      tag: 217acd40832764e32f75775bd72ea329990b0b67
+      repository: tfy.jfrog.io/tfy-images/elasti-operator
+      tag: be16dfda260e479be4a7d48bc8e214b956b3b42d
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -49,8 +49,8 @@ elastiResolver:
       reqTimeout: "120"
       trafficReEnableDuration: "5"
     image:
-      repository: public.ecr.aws/truefoundrycloud/elasti-resolver
-      tag: 217acd40832764e32f75775bd72ea329990b0b67
+      repository: tfy.jfrog.io/tfy-images/elasti-resolver
+      tag: be16dfda260e479be4a7d48bc8e214b956b3b42d
     imagePullPolicy: IfNotPresent
     resources:
       limits:
