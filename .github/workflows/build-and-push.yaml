@@ -23,7 +23,7 @@ jobs:
             repository: elasti-operator
           - directory: resolver
             repository: elasti-resolver
-    uses: truefoundry/workflows/.github/workflows/build.yml@main
+    uses: truefoundry/workflows/.github/workflows/build-elasti.yml@main
     with:
       directory: ${{ matrix.directory}}
       repository: ${{ matrix.repository}}
