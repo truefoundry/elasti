@@ -4,10 +4,9 @@ on:
   push:
     branches:
       - 'main'
-      - feat/arm-build
-    # paths:
-    #   - 'operator/**'
-    #   - 'resolver/**'
+  paths:
+   - 'operator/**'
+   - 'resolver/**'
 
 permissions:
   id-token: write
