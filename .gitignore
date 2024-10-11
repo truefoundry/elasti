@@ -2,6 +2,7 @@ resolver/resolver
 operator/bin
 playground/load-generator
 playground/target
+.DS_Store
 
 .idea
 .vscode
