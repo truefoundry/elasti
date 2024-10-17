@@ -18,7 +18,7 @@ jobs:
   build-operator:
     name: Build and Push Operator Docker Images
     if: contains(github.event.head_commit.message, 'operator/')
-    uses: truefoundry/workflows/.github/workflows/build.yml@main
+    uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
     with:
       image_tag: ${{ github.sha }}
       repository: 'elasti-operator'
@@ -32,7 +32,7 @@ jobs:
   build-resolver:
     name: Build and Push Resolver Docker Images
     if: contains(github.event.head_commit.message, 'resolver/')
-    uses: truefoundry/workflows/.github/workflows/build.yml@main
+    uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
     with:
       image_tag: ${{ github.sha }}
       repository: 'elasti-resolver'
