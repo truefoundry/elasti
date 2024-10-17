@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - 'main'
-      - update-build-workflow
 
 permissions:
   id-token: write
@@ -13,10 +12,10 @@ permissions:
 jobs:
   build-operator:
     name: Build and Push Operator Docker Images
-    uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
+    uses: truefoundry/workflows/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}
-      repository: 'operator'
+      repository: 'elasti-operator'
       dockerfile_path: 'operator/Dockerfile'
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
@@ -26,10 +25,10 @@ jobs:
 
   build-resolver:
     name: Build and Push Resolver Docker Images
-    uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
+    uses: truefoundry/workflows/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}
-      repository: 'resolver'
+      repository: 'elasti-resolver'
       dockerfile_path: 'resolver/Dockerfile'
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
