@@ -23,7 +23,7 @@ func TestGetHost(t *testing.T) {
 		{
 			name: "Host in header",
 			req: &http.Request{
-				Host: "example.com",
+				Host: "target.com",
 				Header: http.Header{
 					"X-Envoy-Decorator-Operation": []string{"service.namespace.svc.cluster.local:8080/test/*"},
 				},
