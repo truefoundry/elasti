@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - 'main'
-      - 'update-workflow'
+      - 'update-build-workflow'
 
 permissions:
   id-token: write
