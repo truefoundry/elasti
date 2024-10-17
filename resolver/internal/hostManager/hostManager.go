@@ -51,6 +51,7 @@ func (hm *HostManager) GetHost(req *http.Request) (*messages.Host, error) {
 		}
 		targetService := utils.GetPrivateSerivceName(sourceService)
 		sourceHost := hm.removeTrailingWildcardIfNeeded(incomingHost)
+		sourceHost = hm.removeTrailingPathIfNeeded(sourceHost)
 		sourceHost = hm.addHTTPIfNeeded(sourceHost)
 		targetHost := hm.replaceServiceName(sourceHost, targetService)
 		targetHost = hm.addHTTPIfNeeded(targetHost)
@@ -145,6 +146,13 @@ func (hm *HostManager) addHTTPIfNeeded(serviceURL string) string {
 func (hm *HostManager) removeTrailingWildcardIfNeeded(serviceURL string) string {
 	if strings.HasSuffix(serviceURL, "/*") {
 		return strings.TrimSuffix(serviceURL, "/*")
+	}
+	return serviceURL
+}
+
+func (hm *HostManager) removeTrailingPathIfNeeded(serviceURL string) string {
+	if idx := strings.Index(serviceURL, "/"); idx != -1 {
+		return serviceURL[:idx]
 	}
 	return serviceURL
 }
