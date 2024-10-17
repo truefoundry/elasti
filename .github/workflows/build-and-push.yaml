@@ -51,16 +51,17 @@ jobs:
       artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
       artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
 
-  name: Build and Push Resolver Docker Images
-  if: steps.get_changed_files.outputs.resolver_changed == 'true'
-  needs: get_changed_files
-  uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
-  with:
-    image_tag: ${{ github.sha }}
-    repository: 'elasti-resolver'
-    dockerfile_path: 'resolver/Dockerfile'
-    artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
-    artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
-  secrets:
-    artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
-    artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+  build-resolver:
+    name: Build and Push Resolver Docker Images
+    if: steps.get_changed_files.outputs.resolver_changed == 'true'
+    needs: get_changed_files
+    uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
+    with:
+      image_tag: ${{ github.sha }}
+      repository: 'elasti-resolver'
+      dockerfile_path: 'resolver/Dockerfile'
+      artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
+      artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
+    secrets:
+      artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
+      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
