@@ -27,4 +27,6 @@ jobs:
     with:
       directory: ${{ matrix.directory}}
       repository: ${{ matrix.repository}}
+      internal: false
+      private: false
     secrets: inherit
