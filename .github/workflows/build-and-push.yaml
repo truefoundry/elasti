@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - 'main'
-      - added_scrapping_path_for_istio
     paths:
       - 'operator/**'
       - 'resolver/**'
