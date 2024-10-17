@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - 'main'
-      - feat/arm-build
+      - added_scrapping_path_for_istio
     # paths:
     #   - 'operator/**'
     #   - 'resolver/**'
