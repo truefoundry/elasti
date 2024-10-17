@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - 'main'
+      - update-build-workflow
+
+    paths:
+      - 'operator/**'
+      - 'resolver/**'
 
 permissions:
   id-token: write
@@ -12,6 +17,7 @@ permissions:
 jobs:
   build-operator:
     name: Build and Push Operator Docker Images
+    if: contains(github.event.head_commit.message, 'operator/')
     uses: truefoundry/workflows/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}
@@ -25,6 +31,7 @@ jobs:
 
   build-resolver:
     name: Build and Push Resolver Docker Images
+    if: contains(github.event.head_commit.message, 'resolver/')
     uses: truefoundry/workflows/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}
