@@ -63,6 +63,7 @@ const (
 	elastiServerPort = ":8013"
 )
 
+// main is the entrypoint for the operator
 func main() {
 	zapLogger, err := tfLogger.NewLogger("dev")
 	if err != nil {

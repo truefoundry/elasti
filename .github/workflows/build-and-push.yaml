@@ -26,7 +26,10 @@ jobs:
 
       - name: Get the changed files
         id: get_changed_files
-        run: echo "files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})" >> $GITHUB_OUTPUT
+        run: |
+          git diff --name-only ${{ github.event.before }} ${{ github.sha }} > changed_files.txt
+          echo "files=$(cat changed_files.txt)" >> $GITHUB_ENV
+
 
       - name: Check if operator files changed
         id: check_operator_files
