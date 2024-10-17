@@ -12,6 +12,8 @@ permissions:
 
 env:
   ARTIFACTORY_USERNAME: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
+  ARTIFACTORY_PASSWORD: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+  ARTIFACTORY_REGISTRY: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
 
 jobs:
   build-operator:
@@ -19,8 +21,8 @@ jobs:
     uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
     with:
       artifactory_username: ${{ env.ARTIFACTORY_USERNAME }}
-      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
-      artifactory_registry: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
+      artifactory_password: ${{ env.ARTIFACTORY_PASSWORD }}
+      artifactory_registry: ${{ env.ARTIFACTORY_REGISTRY }}
       image_tag: ${{ github.sha }}
       repository: 'operator'
       dockerfile_path: 'operator/Dockerfile'
@@ -29,9 +31,9 @@ jobs:
     name: Build and Push Resolver Docker Images
     uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
     with:
-      artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
-      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
-      artifactory_registry: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
+      artifactory_username: ${{ env.ARTIFACTORY_USERNAME }}
+      artifactory_password: ${{ env.ARTIFACTORY_PASSWORD }}
+      artifactory_registry: ${{ env.ARTIFACTORY_REGISTRY }}
       image_tag: ${{ github.sha }}
       repository: 'resolver'
       dockerfile_path: 'resolver/Dockerfile'
