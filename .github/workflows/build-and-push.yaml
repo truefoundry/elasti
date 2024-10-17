@@ -1,4 +1,4 @@
-name: Push image to to JFROG Public
+name: Push image to JFROG Public
 
 on:
   push:
@@ -26,19 +26,19 @@ jobs:
 
       - name: Get the changed files
         id: get_changed_files
-        run: echo "::set-output name=files::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
+        run: echo "files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})" >> $GITHUB_OUTPUT
 
       - name: Check if operator files changed
         id: check_operator_files
-        run: echo "::set-output name=operator_changed::${{ contains(steps.get_changed_files.outputs.files, 'operator/') }}"
+        run: echo "operator_changed=${{ contains(steps.get_changed_files.outputs.files, 'operator/') }}" >> $GITHUB_OUTPUT
 
       - name: Check if resolver files changed
         id: check_resolver_files
-        run: echo "::set-output name=resolver_changed::${{ contains(steps.get_changed_files.outputs.files, 'resolver/') }}"
+        run: echo "resolver_changed=${{ contains(steps.get_changed_files.outputs.files, 'resolver/') }}" >> $GITHUB_OUTPUT
 
   build-operator:
     name: Build and Push Operator Docker Images
-    if: steps.get_changed_files.outputs.operator_changed == 'true'
+    if: needs.get_changed_files.outputs.operator_changed == 'true'
     needs: get_changed_files
     uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
     with:
@@ -53,7 +53,7 @@ jobs:
 
   build-resolver:
     name: Build and Push Resolver Docker Images
-    if: steps.get_changed_files.outputs.resolver_changed == 'true'
+    if: needs.get_changed_files.outputs.resolver_changed == 'true'
     needs: get_changed_files
     uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
     with:
