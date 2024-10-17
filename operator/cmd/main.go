@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package main is the entrypoint for the Elasti Operator
-// The Elasti Operator is a Kubernetes operator that manages the lifecycle of
 package main
 
 import (
