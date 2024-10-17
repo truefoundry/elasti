@@ -27,9 +27,10 @@ jobs:
     name: Build and Push Resolver Docker Images
     uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
     with:
-      artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
-      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
       artifactory_registry: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       image_tag: ${{ github.sha }}
       repository: 'resolver'
       dockerfile_path: 'resolver/Dockerfile'
+    secrets:
+      artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
+      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
