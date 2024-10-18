@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - elasti-helm-v*
+
+env:
+  HELM_REGISTRY_URL: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
+  HELM_REGISTRY_USERNAME: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
+  HELM_REGISTRY_PASSWORD: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+  HELM_CHART_REPOSITORY: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_HELM_REPOSITORY }}
     
 jobs:
   release:
@@ -22,7 +28,7 @@ jobs:
 
       - name: Helm registry login
         run: |
-          helm registry login -u ${{ secrets.OCI_REGISTRY_USERNAME}} -p ${{ secrets.OCI_REGISTRY_PASSWORD }} quay.io
+          helm registry login -u ${{ env.HELM_REGISTRY_USERNAME}} -p ${{ env.HELM_REGISTRY_PASSWORD }} ${{ env.HELM_REGISTRY_URL }}
      
       - name: Helm push 
         run: |
@@ -42,6 +48,6 @@ jobs:
                 # pushing the helm charts
                 echo "Pushing Chart: $CHART_NAME"
                 echo "Version: $CHART_NAME-$CHART_VERSION.tgz"
-                helm push $CHART_NAME-$CHART_VERSION.tgz oci://quay.io/truefoundrycharts
+                helm push $CHART_NAME-$CHART_VERSION.tgz oci://${{ env.HELM_CHART_REPOSITORY}}
                 echo "Successfully pushed chart: $CHART_NAME"
             done
