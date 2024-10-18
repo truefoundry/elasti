@@ -2,8 +2,8 @@ name: Release Elasti Helm Chart
 
 on:
   push:
-    # tags:
-    #   - elasti-helm-v*
+    tags:
+      - elasti-helm-v*
 
 env:
   HELM_REGISTRY_URL: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
@@ -48,6 +48,6 @@ jobs:
                 # pushing the helm charts
                 echo "Pushing Chart: $CHART_NAME"
                 echo "Version: $CHART_NAME-$CHART_VERSION.tgz"
-                echo "helm push $CHART_NAME-$CHART_VERSION.tgz oci://${{ env.HELM_CHART_REPOSITORY}}"
+                helm push $CHART_NAME-$CHART_VERSION.tgz oci://${{ env.HELM_CHART_REPOSITORY}}
                 echo "Successfully pushed chart: $CHART_NAME"
             done
