@@ -45,6 +45,7 @@ const (
 	port = ":8012"
 )
 
+// main is the entrypoint for the resolver
 func main() {
 	logger, err := logger.NewLogger("dev")
 	if err != nil {
