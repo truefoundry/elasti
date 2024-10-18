@@ -3,4 +3,4 @@ name: elasti
 description: Helm chart for Elasti application
 type: application
 version: 0.1.6
-appVersion: "0.1.5"
+appVersion: "0.1.6"
