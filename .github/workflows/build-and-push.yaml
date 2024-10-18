@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - 'main'
-      - update-build-workflow
-
     paths:
       - 'operator/**'
       - 'resolver/**'
@@ -45,7 +43,7 @@ jobs:
     name: Build and Push Operator Docker Images
     if: needs.get_changed_files.outputs.operator_changed == 'true'
     needs: get_changed_files
-    uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
+    uses: truefoundry/workflows/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}
       repository: 'elasti-operator'
@@ -60,7 +58,7 @@ jobs:
     name: Build and Push Resolver Docker Images
     if: needs.get_changed_files.outputs.resolver_changed == 'true'
     needs: get_changed_files
-    uses: truefoundry/workflows/.github/workflows/build.yml@update-build-workflow
+    uses: truefoundry/workflows/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}
       repository: 'elasti-resolver'
