@@ -27,13 +27,18 @@ jobs:
       - name: Get the changed files
         id: get_changed_files
         run: |
-          git diff --name-only ${{ github.event.before }} ${{ github.sha }} > changed_files.txt
-          echo "files=$(cat changed_files.txt)" >> $GITHUB_ENV
-
+          files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+          echo "files=$files" >> $GITHUB_OUTPUT
 
       - name: Check if operator files changed
         id: check_operator_files
-        run: echo "operator_changed=${{ contains(steps.get_changed_files.outputs.files, 'operator/') }}" >> $GITHUB_OUTPUT
+        run: |
+          if echo "${{ steps.get_changed_files.outputs.files }}" | grep -q '^operator/'; then
+            echo "operator_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "operator_changed=false" >> $GITHUB_OUTPUT
+        outputs:
+          operator_changed: ${{ steps.check_operator_files.outputs.operator_changed }}
 
       - name: Check if resolver files changed
         id: check_resolver_files
