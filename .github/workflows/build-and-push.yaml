@@ -38,8 +38,6 @@ jobs:
             echo "operator_changed=true" >> $GITHUB_OUTPUT
           else
             echo "operator_changed=false" >> $GITHUB_OUTPUT
-        outputs:
-          operator_changed: ${{ steps.check_operator_files.outputs.operator_changed }}
 
       - name: Check if resolver files changed
         id: check_resolver_files
