@@ -35,12 +35,7 @@ jobs:
 
       - name: Check if operator files changed
         id: check_operator_files
-        run: |
-          if echo "${{ steps.get_changed_files.outputs.files }}" | grep '^operator/'; then
-            echo "operator_changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "operator_changed=false" >> $GITHUB_OUTPUT
-          fi
+        run: echo "operator_changed=${{ contains(steps.get_changed_files.outputs.files, 'operator/') }}" >> $GITHUB_OUTPUT
 
       - name: Check if resolver files changed
         id: check_resolver_files
