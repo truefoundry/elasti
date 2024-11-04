@@ -43,7 +43,7 @@ jobs:
     name: Build and Push Operator Docker Images
     if: needs.get_changed_files.outputs.operator_changed == 'true'
     needs: get_changed_files
-    uses: truefoundry/workflows/.github/workflows/build.yml@main
+    uses: truefoundry/workflows/.github/workflows/build.yml@v0.1.0
     with:
       image_tag: ${{ github.sha }}
       image_artifact_name: 'elasti-operator'
