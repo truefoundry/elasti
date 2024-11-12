@@ -43,7 +43,7 @@ jobs:
     name: Build and Push Operator Docker Images
     if: needs.get_changed_files.outputs.operator_changed == 'true'
     needs: get_changed_files
-    uses: truefoundry/workflows/.github/workflows/build.yml@v0.1.0
+    uses: truefoundry/workflows/.github/workflows/build.yml@v0.2.1
     with:
       image_tag: ${{ github.sha }}
       image_artifact_name: 'elasti-operator'
@@ -58,13 +58,15 @@ jobs:
     name: Build and Push Resolver Docker Images
     if: needs.get_changed_files.outputs.resolver_changed == 'true'
     needs: get_changed_files
-    uses: truefoundry/workflows/.github/workflows/build.yml@main
+    uses: truefoundry/workflows/.github/workflows/build.yml@v0.2.1
     with:
       image_tag: ${{ github.sha }}
       image_artifact_name: 'elasti-resolver'
       dockerfile_path: 'resolver/Dockerfile'
+      depot_project_id: ${{ vars.DEPOT_PROJECT_ID }}
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
     secrets:
+      depot_token: ${{ secrets.DEPOT_API_KEY }}
       artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
       artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
