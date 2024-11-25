@@ -24,7 +24,10 @@ var (
 			Name: "elasti_resolver_queued_count",
 			Help: "Gauge for queued requests",
 		},
-		[]string{},
+		[]string{
+			"source",
+			"namespace",
+		},
 	)
 
 	IncomingRequestHistogram = promauto.NewHistogramVec(

@@ -93,8 +93,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 // handleAnyRequest handles any incoming request
 func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*messages.Host, error) {
-	prom.QueuedRequestGague.WithLabelValues().Inc()
-	defer prom.QueuedRequestGague.WithLabelValues().Dec()
 	host, err := h.hostManager.GetHost(req)
 	if err != nil {
 		http.Error(w, "Error getting host", http.StatusInternalServerError)
@@ -102,6 +100,9 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 		return host, fmt.Errorf("error getting host: %w", err)
 	}
 	h.logger.Debug("request received", zap.Any("host", host))
+
+	prom.QueuedRequestGague.WithLabelValues(host.SourceService, host.Namespace).Inc()
+	defer prom.QueuedRequestGague.WithLabelValues(host.SourceService, host.Namespace).Dec()
 
 	// This closes the connections, in case the host is scaled up by the controller.
 	if !host.TrafficAllowed {
