@@ -101,8 +101,8 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 	}
 	h.logger.Debug("request received", zap.Any("host", host))
 
-	prom.QueuedRequestGague.WithLabelValues(host.SourceService, host.Namespace).Inc()
-	defer prom.QueuedRequestGague.WithLabelValues(host.SourceService, host.Namespace).Dec()
+	prom.QueuedRequestGauge.WithLabelValues(host.SourceService, host.Namespace).Inc()
+	defer prom.QueuedRequestGauge.WithLabelValues(host.SourceService, host.Namespace).Dec()
 
 	// This closes the connections, in case the host is scaled up by the controller.
 	if !host.TrafficAllowed {
@@ -124,15 +124,15 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 	// Send request to throttler
 	ctx, cancel := context.WithTimeout(context.Background(), h.timeout)
 	defer cancel()
-	if tryErr := h.throttler.Try(ctx, host, 
+	if tryErr := h.throttler.Try(ctx, host,
 		func(count int) error {
-		err := h.ProxyRequest(w, req, host.TargetHost, count)
-		if err != nil {
-			h.logger.Error("Error proxying request", zap.Error(err))
-			return err
-		}
-		h.hostManager.DisableTrafficForHost(host.IncomingHost)
-		return nil
+			err := h.ProxyRequest(w, req, host.TargetHost, count)
+			if err != nil {
+				h.logger.Error("Error proxying request", zap.Error(err))
+				return err
+			}
+			h.hostManager.DisableTrafficForHost(host.IncomingHost)
+			return nil
 		}, func() {
 			h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
 		}); tryErr != nil {

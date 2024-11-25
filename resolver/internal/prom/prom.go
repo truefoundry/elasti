@@ -19,7 +19,7 @@ var (
 		},
 	)
 
-	QueuedRequestGague = promauto.NewGaugeVec(
+	QueuedRequestGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "elasti_resolver_queued_count",
 			Help: "Gauge for queued requests",
