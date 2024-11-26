@@ -30,7 +30,7 @@ func (r *ElastiServiceReconciler) getCRD(ctx context.Context, crdNamespacedName 
 	return es, nil
 }
 
-func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamespacedName types.NamespacedName, mode string) (err error) {
+func (r *ElastiServiceReconciler) updateCRDStatus(esExisting *v1alpha1.ElastiService, ctx context.Context, crdNamespacedName types.NamespacedName, mode string) (err error) {
 	defer func() {
 		errStr := values.Success
 		if err != nil {
@@ -43,6 +43,7 @@ func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamesp
 			modeGauge = 1
 		}
 		prom.ModeGauge.WithLabelValues(crdNamespacedName.String()).Set(modeGauge)
+		prom.RequestInQueueGauge.WithLabelValues(esExisting.Namespace, esExisting.Spec.Service).Set(0)
 	}()
 	es := &v1alpha1.ElastiService{}
 	if err = r.Client.Get(ctx, crdNamespacedName, es); err != nil {

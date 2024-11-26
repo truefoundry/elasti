@@ -39,6 +39,14 @@ var (
 		[]string{"crd_name"},
 	)
 
+	RequestInQueueGauge = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "elasti_operator_request_in_queue",
+			Help: "Gauge for checking if a request is in queue",
+		},
+		[]string{"namespace", "service_name"},
+	)
+
 	InformerGauge = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "elasti_operator_informer_count",

@@ -124,6 +124,7 @@ func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace
 		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, serviceName: %s", serviceName)
 	}
 
+	prom.RequestInQueueGauge.WithLabelValues(namespace, serviceName).Set(1)
 	if err := s.k8shelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
 		s.releaseMutexForServiceScale(serviceName)
 		prom.TargetScaleCounter.WithLabelValues(serviceName, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, err.Error()).Inc()

@@ -36,7 +36,7 @@ func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Reque
 	}
 
 	//nolint: errcheck
-	defer r.updateCRDStatus(ctx, req.NamespacedName, mode)
+	defer r.updateCRDStatus(es, ctx, req.NamespacedName, mode)
 	switch mode {
 	case values.ServeMode:
 		if err = r.enableServeMode(ctx, req, es); err != nil {
