@@ -30,7 +30,7 @@ func (r *ElastiServiceReconciler) getCRD(ctx context.Context, crdNamespacedName 
 	return es, nil
 }
 
-func (r *ElastiServiceReconciler) updateCRDStatus(esExisting *v1alpha1.ElastiService, ctx context.Context, crdNamespacedName types.NamespacedName, mode string) (err error) {
+func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamespacedName types.NamespacedName, mode string) (err error) {
 	defer func() {
 		errStr := values.Success
 		if err != nil {
@@ -43,7 +43,6 @@ func (r *ElastiServiceReconciler) updateCRDStatus(esExisting *v1alpha1.ElastiSer
 			modeGauge = 1
 		}
 		prom.ModeGauge.WithLabelValues(crdNamespacedName.String()).Set(modeGauge)
-		prom.RequestInQueueGauge.WithLabelValues(esExisting.Namespace, esExisting.Spec.Service).Set(0)
 	}()
 	es := &v1alpha1.ElastiService{}
 	if err = r.Client.Get(ctx, crdNamespacedName, es); err != nil {
@@ -52,6 +51,12 @@ func (r *ElastiServiceReconciler) updateCRDStatus(esExisting *v1alpha1.ElastiSer
 	}
 	es.Status.LastReconciledTime = metav1.Now()
 	es.Status.Mode = mode
+
+	requestInQueueGauge := prom.RequestInQueueGauge.WithLabelValues(es.Namespace, es.Spec.Service)
+	if requestInQueueGauge == nil || mode == values.ServeMode {
+		prom.RequestInQueueGauge.WithLabelValues(es.Namespace, es.Spec.Service).Set(0)
+	}
+
 	if err = r.Status().Update(ctx, es); err != nil {
 		r.Logger.Error("Failed to update status", zap.String("es", crdNamespacedName.String()), zap.Error(err))
 		return fmt.Errorf("failed to update CRD status")
