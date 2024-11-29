@@ -19,6 +19,7 @@ type (
 		retryDuration           time.Duration
 		TrafficReEnableDuration time.Duration
 		serviceReadyMap         sync.Map
+		queueSizeMap            sync.Map
 	}
 
 	ThrottlerParams struct {
@@ -53,6 +54,9 @@ func (t *Throttler) Try(ctx context.Context, host *messages.Host, resolve func(i
 	reenqueue := true
 	tryCount := 1
 	var tryErr error
+
+	t.incrementQueueSize(host.Namespace, host.SourceService)
+	defer t.decrementQueueSize(host.Namespace, host.SourceService)
 
 	for reenqueue {
 		tryErr = nil
@@ -109,4 +113,22 @@ func (t *Throttler) checkIfServiceReady(namespace, service string) (bool, error)
 		t.serviceReadyMap.Delete(key)
 	})
 	return true, nil
+}
+
+func (t *Throttler) GetQueueSize(namespace, service string) int {
+	key := fmt.Sprintf("%s/%s", namespace, service)
+	if size, ok := t.queueSizeMap.Load(key); ok {
+		return size.(int)
+	}
+	return 0
+}
+
+func (t *Throttler) incrementQueueSize(namespace, service string) {
+	key := fmt.Sprintf("%s/%s", namespace, service)
+	t.queueSizeMap.Store(key, t.GetQueueSize(namespace, service)+1)
+}
+
+func (t *Throttler) decrementQueueSize(namespace, service string) {
+	key := fmt.Sprintf("%s/%s", namespace, service)
+	t.queueSizeMap.Store(key, t.GetQueueSize(namespace, service)-1)
 }

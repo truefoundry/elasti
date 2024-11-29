@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -66,6 +67,10 @@ func NewHandler(hc *HandlerParams) *Handler {
 
 type Response struct {
 	Message string `json:"message"`
+}
+
+type QueueSizeResponse struct {
+	QueueSize int `json:"queueSize"`
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -185,6 +190,20 @@ func (h *Handler) NewHeaderPruningReverseProxy(target *url.URL, hostOverride boo
 			}
 		},
 	}
+}
+
+func (h *Handler) GetQueueSize(w http.ResponseWriter, r *http.Request) {
+	namespace := r.URL.Query().Get("namespace")
+	service := r.URL.Query().Get("service")
+
+	queueSize := h.throttler.GetQueueSize(namespace, service)
+	response := QueueSizeResponse{
+		QueueSize: queueSize,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
 
 type bufferPool struct {
