@@ -202,8 +202,16 @@ func (h *Handler) GetQueueSize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	err := json.NewEncoder(w).Encode(response)
+	if err != nil {
+		h.logger.Error("Failed to encode queue size response",
+			zap.Error(err),
+			zap.String("namespace", namespace),
+			zap.String("service", service),
+		)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
 type bufferPool struct {
