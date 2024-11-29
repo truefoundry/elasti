@@ -69,8 +69,8 @@ type Response struct {
 	Message string `json:"message"`
 }
 
-type QueueSizeResponse struct {
-	QueueSize int `json:"queueSize"`
+type QueueStatusResponse struct {
+	QueueStatus int `json:"queueSize"`
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -192,13 +192,17 @@ func (h *Handler) NewHeaderPruningReverseProxy(target *url.URL, hostOverride boo
 	}
 }
 
-func (h *Handler) GetQueueSize(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetQueueStatus(w http.ResponseWriter, r *http.Request) {
 	namespace := r.URL.Query().Get("namespace")
 	service := r.URL.Query().Get("service")
 
 	queueSize := h.throttler.GetQueueSize(namespace, service)
-	response := QueueSizeResponse{
-		QueueSize: queueSize,
+	response := QueueStatusResponse{}
+
+	if queueSize > 0 {
+		response.QueueStatus = 1
+	} else {
+		response.QueueStatus = 0
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -88,7 +88,7 @@ func main() {
 	// Handle all the incoming requests
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", requestHandler.ServeHTTP)
-	http.HandleFunc("/queue-size", requestHandler.GetQueueSize)
+	http.HandleFunc("/queue-status", requestHandler.GetQueueStatus)
 
 	logger.Info("Reverse Proxy Server starting at ", zap.String("port", port))
 	if err := http.ListenAndServe(port, nil); err != nil {
