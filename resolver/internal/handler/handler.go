@@ -70,7 +70,7 @@ type Response struct {
 }
 
 type QueueStatusResponse struct {
-	QueueStatus int `json:"queueSize"`
+	QueueStatus int `json:"queueStatus"`
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
