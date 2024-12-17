@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -66,6 +67,10 @@ func NewHandler(hc *HandlerParams) *Handler {
 
 type Response struct {
 	Message string `json:"message"`
+}
+
+type QueueStatusResponse struct {
+	QueueStatus int `json:"queueStatus"`
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -184,6 +189,32 @@ func (h *Handler) NewHeaderPruningReverseProxy(target *url.URL, hostOverride boo
 				req.Host = target.Host
 			}
 		},
+	}
+}
+
+func (h *Handler) GetQueueStatus(w http.ResponseWriter, r *http.Request) {
+	namespace := r.URL.Query().Get("namespace")
+	service := r.URL.Query().Get("service")
+
+	queueSize := h.throttler.GetQueueSize(namespace, service)
+	response := QueueStatusResponse{}
+
+	if queueSize > 0 {
+		response.QueueStatus = 1
+	} else {
+		response.QueueStatus = 0
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(response)
+	if err != nil {
+		h.logger.Error("Failed to encode queue size response",
+			zap.Error(err),
+			zap.String("namespace", namespace),
+			zap.String("service", service),
+		)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }
 
