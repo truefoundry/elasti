@@ -94,7 +94,7 @@ func (t *Throttler) Try(ctx context.Context, host *messages.Host, resolve func(i
 }
 
 func (t *Throttler) checkIfServiceReady(namespace, service string) (bool, error) {
-	key := fmt.Sprintf("%s-%s", namespace, service)
+	key := fmt.Sprintf("%s/%s", namespace, service)
 	if ready, ok := t.serviceReadyMap.Load(key); ok {
 		return ready.(bool), nil
 	}
