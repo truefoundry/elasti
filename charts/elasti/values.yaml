@@ -50,7 +50,7 @@ elastiResolver:
       trafficReEnableDuration: "5"
     image:
       repository: tfy.jfrog.io/tfy-images/elasti-resolver
-      tag: 8ea1d02cc57fe9b187b4c86ff619ffe932e8f6c8
+      tag: 98d5c3ef0ea7d9045fdb038d89bd05c5a0880149
     imagePullPolicy: IfNotPresent
     resources:
       limits:
