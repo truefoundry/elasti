@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	sentryhttp "github.com/getsentry/sentry-go/http"
 	"io"
 	"net/http"
 	"sync"
@@ -56,8 +57,10 @@ func (s *Server) Start(port string) {
 		}
 	}()
 
-	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/informer/incoming-request", s.resolverReqHandler)
+	sentryHandler := sentryhttp.New(sentryhttp.Options{})
+	http.Handle("/metrics", sentryHandler.Handle(promhttp.Handler()))
+	http.Handle("/informer/incoming-request", sentryHandler.HandleFunc(s.resolverReqHandler))
+
 	s.logger.Info("Starting ElastiServer", zap.String("port", port))
 	if err := http.ListenAndServe(port, nil); err != nil {
 		s.logger.Fatal("Failed to start StartElastiServer", zap.Error(err))
