@@ -1,9 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/getsentry/sentry-go"
+	sentryhttp "github.com/getsentry/sentry-go/http"
 
 	"github.com/truefoundry/elasti/resolver/internal/handler"
 	"github.com/truefoundry/elasti/resolver/internal/hostManager"
@@ -39,6 +43,8 @@ type config struct {
 	InitialCapacity int `split_words:"true" default:"100"`
 	// HeaderForHost is the header to look for to get the host
 	HeaderForHost string `split_words:"true" default:"Host"`
+	// Sentry DSN
+	SentryDsn string `split_words:"true" default:"Not Found"`
 }
 
 const (
@@ -60,6 +66,19 @@ func main() {
 		logger.Fatal("Error fetching cluster config", zap.Error(err))
 	}
 
+	fmt.Println("Sentry DSN", env.SentryDsn)
+	if err = sentry.Init(sentry.ClientOptions{
+		Dsn:           env.SentryDsn,
+		EnableTracing: true,
+		// Set TracesSampleRate to 1.0 to capture 100%
+		// of transactions for tracing.
+		// We recommend adjusting this value in production,
+		TracesSampleRate: 1.0,
+	}); err != nil {
+		logger.Error("Sentry initialization failed:", zap.Error(err))
+	}
+	defer sentry.Flush(2 * time.Second)
+
 	// Get components required for the handler
 	k8sUtil := k8shelper.NewOps(logger, config)
 	newOperatorRPC := operator.NewOperatorClient(logger, time.Duration(env.OperatorRetryDuration)*time.Second)
@@ -75,6 +94,9 @@ func main() {
 		Logger:                  logger,
 	})
 
+	// Create an instance of sentryhttp
+	sentryHandler := sentryhttp.New(sentryhttp.Options{})
+
 	// Create a handler
 	requestHandler := handler.NewHandler(&handler.HandlerParams{
 		Logger:      logger,
@@ -86,9 +108,9 @@ func main() {
 	})
 
 	// Handle all the incoming requests
+	http.Handle("/", sentryHandler.HandleFunc(requestHandler.ServeHTTP))
 	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/", requestHandler.ServeHTTP)
-	http.HandleFunc("/queue-status", requestHandler.GetQueueStatus)
+	http.Handle("/queue-status", sentryHandler.HandleFunc(requestHandler.GetQueueStatus))
 
 	logger.Info("Reverse Proxy Server starting at ", zap.String("port", port))
 	if err := http.ListenAndServe(port, nil); err != nil {

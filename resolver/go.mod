@@ -12,7 +12,10 @@ require (
 	k8s.io/client-go v0.31.0
 )
 
-require github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+require (
+	github.com/getsentry/sentry-go v0.30.0 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+)
 
 replace github.com/truefoundry/elasti/pkg v0.0.0 => ../pkg
 
