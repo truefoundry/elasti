@@ -70,13 +70,6 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		if err != nil {
 			e = err.Error()
 			sentry.CaptureException(err)
-			sentry.AddBreadcrumb(&sentry.Breadcrumb{
-				Message: "Error in Reconcile",
-				Data: map[string]interface{}{
-					"es": req.NamespacedName.String(),
-				},
-				Level: sentry.LevelError,
-			})
 		}
 		duration := time.Since(start).Seconds()
 		prom.CRDReconcileHistogram.WithLabelValues(req.String(), e).Observe(duration)
