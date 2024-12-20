@@ -37,6 +37,8 @@ spec:
             secretKeyRef:
               name: {{ .Values.global.secretName }}
               key: operatorSentryDsn
+        - name: SENTRY_ENVIRONMENT
+          value: {{ .Values.elastiController.manager.sentry.environment }}
         {{- end }}
         image: {{ .Values.elastiController.manager.image.repository }}:{{ .Values.elastiController.manager.image.tag | default .Chart.AppVersion }}
         imagePullPolicy: {{ .Values.elastiController.manager.imagePullPolicy }}
@@ -119,6 +121,8 @@ spec:
             secretKeyRef:
               name: {{ .Values.global.secretName }}
               key: resolverSentryDsn
+        - name: SENTRY_ENVIRONMENT
+          value: {{ .Values.elastiResolver.proxy.sentry.environment }}
         {{- end }}
         image: {{ .Values.elastiResolver.proxy.image.repository }}:{{ .Values.elastiResolver.proxy.image.tag | default .Chart.AppVersion }}
         imagePullPolicy: {{ .Values.elastiResolver.proxy.imagePullPolicy }}

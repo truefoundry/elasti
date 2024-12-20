@@ -29,6 +29,7 @@ elastiController:
         memory: 64Mi
     sentry:
       enabled: false
+      environment: ""
   replicas: 1
   serviceAccount:
     annotations: {}
@@ -65,6 +66,7 @@ elastiResolver:
         memory: 500Mi
     sentry:
       enabled: false
+      environment: ""
   replicas: 1
   autoscaling:
     enabled: false

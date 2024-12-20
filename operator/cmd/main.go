@@ -80,6 +80,7 @@ func main() {
 			Dsn:              sentryDsn,
 			EnableTracing:    true,
 			TracesSampleRate: 1.0,
+			Environment:      os.Getenv("SENTRY_ENVIRONMENT"),
 		}); err != nil {
 			zapLogger.Error("Sentry initialization failed")
 		}

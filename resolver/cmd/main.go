@@ -42,8 +42,9 @@ type config struct {
 	InitialCapacity int `split_words:"true" default:"100"`
 	// HeaderForHost is the header to look for to get the host
 	HeaderForHost string `split_words:"true" default:"Host"`
-	// Sentry DSN
+	// Sentry config
 	SentryDsn string `split_words:"true" default:""`
+	SentryEnv string `envconfig:"SENTRY_ENVIRONMENT" default:""`
 }
 
 const (
@@ -71,6 +72,7 @@ func main() {
 			Dsn:              env.SentryDsn,
 			EnableTracing:    true,
 			TracesSampleRate: 1.0,
+			Environment:      env.SentryEnv,
 		}); err != nil {
 			logger.Error("Sentry initialization failed:", zap.Error(err))
 		}
