@@ -43,7 +43,7 @@ type config struct {
 	// HeaderForHost is the header to look for to get the host
 	HeaderForHost string `split_words:"true" default:"Host"`
 	// Sentry DSN
-	SentryDsn string `split_words:"true" default:"Not Found"`
+	SentryDsn string `split_words:"true" default:""`
 }
 
 const (
