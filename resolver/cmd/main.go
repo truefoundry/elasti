@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -66,18 +65,17 @@ func main() {
 		logger.Fatal("Error fetching cluster config", zap.Error(err))
 	}
 
-	fmt.Println("Sentry DSN", env.SentryDsn)
-	if err = sentry.Init(sentry.ClientOptions{
-		Dsn:           env.SentryDsn,
-		EnableTracing: true,
-		// Set TracesSampleRate to 1.0 to capture 100%
-		// of transactions for tracing.
-		// We recommend adjusting this value in production,
-		TracesSampleRate: 1.0,
-	}); err != nil {
-		logger.Error("Sentry initialization failed:", zap.Error(err))
+	if env.SentryDsn != "" {
+		logger.Info("Initializing Sentry")
+		if err = sentry.Init(sentry.ClientOptions{
+			Dsn:              env.SentryDsn,
+			EnableTracing:    true,
+			TracesSampleRate: 1.0,
+		}); err != nil {
+			logger.Error("Sentry initialization failed:", zap.Error(err))
+		}
+		defer sentry.Flush(2 * time.Second)
 	}
-	defer sentry.Flush(2 * time.Second)
 
 	// Get components required for the handler
 	k8sUtil := k8shelper.NewOps(logger, config)

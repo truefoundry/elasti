@@ -73,21 +73,18 @@ func main() {
 
 	// Initialize Sentry
 	sentryDsn := os.Getenv("SENTRY_DSN")
-	if sentryDsn == "" {
-		setupLog.Error(nil, "SENTRY_DSN environment variable not set")
-	}
 
-	if err = sentry.Init(sentry.ClientOptions{
-		Dsn:           sentryDsn,
-		EnableTracing: true,
-		// Set TracesSampleRate to 1.0 to capture 100%
-		// of transactions for tracing.
-		// We recommend adjusting this value in production,
-		TracesSampleRate: 1.0,
-	}); err != nil {
-		zapLogger.Error("Sentry initialization failed")
+	if sentryDsn != "" {
+		zapLogger.Info("Initializing Sentry")
+		if err = sentry.Init(sentry.ClientOptions{
+			Dsn:              sentryDsn,
+			EnableTracing:    true,
+			TracesSampleRate: 1.0,
+		}); err != nil {
+			zapLogger.Error("Sentry initialization failed")
+		}
+		defer sentry.Flush(2 * time.Second)
 	}
-	defer sentry.Flush(2 * time.Second)
 
 	var metricsAddr string
 	var enableLeaderElection bool
