@@ -2,9 +2,10 @@ package controller
 
 import (
 	"context"
-	"github.com/getsentry/sentry-go"
 	"sync"
 	"time"
+
+	"github.com/getsentry/sentry-go"
 
 	"truefoundry/elasti/operator/internal/crdDirectory"
 	"truefoundry/elasti/operator/internal/informer"

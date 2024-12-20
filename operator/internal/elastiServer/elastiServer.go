@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	sentryhttp "github.com/getsentry/sentry-go/http"
 	"io"
 	"net/http"
 	"sync"
 	"time"
+
+	sentryhttp "github.com/getsentry/sentry-go/http"
 
 	"k8s.io/client-go/rest"
 
