@@ -10,36 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  get_changed_files:
-    name: Get the changed files
-    runs-on: ubuntu-latest
-    outputs:
-      operator_changed: ${{ steps.check_operator_files.outputs.operator_changed }}
-      resolver_changed: ${{ steps.check_resolver_files.outputs.resolver_changed }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Get the changed files
-        id: get_changed_files
-        run: |
-          files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | tr '\n' ' ')
-          echo "files=$files" >> $GITHUB_OUTPUT
-
-      - name: Check if operator files changed
-        id: check_operator_files
-        run: echo "operator_changed=${{ contains(steps.get_changed_files.outputs.files, 'operator/') }}" >> $GITHUB_OUTPUT
-
-      - name: Check if resolver files changed
-        id: check_resolver_files
-        run: echo "resolver_changed=${{ contains(steps.get_changed_files.outputs.files, 'resolver/') }}" >> $GITHUB_OUTPUT
-
   build-operator:
     name: Build and Push Operator Docker Images
-    if: needs.get_changed_files.outputs.operator_changed == 'true'
-    needs: get_changed_files
     uses: truefoundry/workflows/.github/workflows/build.yml@v0.2.4
     with:
       image_tag: ${{ github.sha }}
@@ -54,8 +26,6 @@ jobs:
 
   build-resolver:
     name: Build and Push Resolver Docker Images
-    if: needs.get_changed_files.outputs.resolver_changed == 'true'
-    needs: get_changed_files
     uses: truefoundry/workflows/.github/workflows/build.yml@v0.2.4
     with:
       image_tag: ${{ github.sha }}
