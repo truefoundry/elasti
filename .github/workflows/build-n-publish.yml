@@ -17,6 +17,7 @@ jobs:
       image_tag: ${{ github.sha }}
       image_artifact_name: 'elasti-operator'
       dockerfile_path: 'operator/Dockerfile'
+      depot_project_id: ${{ vars.DEPOT_PROJECT_ID }}
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
     secrets:
