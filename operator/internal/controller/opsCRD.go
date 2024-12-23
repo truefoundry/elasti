@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"truefoundry/elasti/operator/api/v1alpha1"
-	"truefoundry/elasti/operator/internal/crdDirectory"
+	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/informer"
 	"truefoundry/elasti/operator/internal/prom"
 
@@ -109,7 +109,7 @@ func (r *ElastiServiceReconciler) finalizeCRD(ctx context.Context, es *v1alpha1.
 	}()
 	wg.Wait()
 	// Remove CRD details from service directory
-	crdDirectory.CRDDirectory.RemoveCRD(es.Spec.Service)
+	crddirectory.CRDDirectory.RemoveCRD(es.Spec.Service)
 	r.Logger.Info("[Done] CRD removed from service directory", zap.String("es", req.String()))
 
 	if err1 != nil || err2 != nil {
@@ -128,7 +128,7 @@ func (r *ElastiServiceReconciler) watchScaleTargetRef(ctx context.Context, es *v
 		return fmt.Errorf("scaleTargetRef is incomplete: %w", k8shelper.ErrNoScaleTargetFound)
 	}
 
-	crd, found := crdDirectory.CRDDirectory.GetCRD(es.Spec.Service)
+	crd, found := crddirectory.CRDDirectory.GetCRD(es.Spec.Service)
 	if found {
 		if es.Spec.ScaleTargetRef.Name != crd.Spec.ScaleTargetRef.Name ||
 			es.Spec.ScaleTargetRef.Kind != crd.Spec.ScaleTargetRef.Kind ||
@@ -201,7 +201,7 @@ func (r *ElastiServiceReconciler) watchPublicService(ctx context.Context, es *v1
 	return nil
 }
 
-func (r *ElastiServiceReconciler) finalizeCRDIfDeleted(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) (delete bool, err error) {
+func (r *ElastiServiceReconciler) finalizeCRDIfDeleted(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) (isDeleted bool, err error) {
 	// If the ElastiService is being deleted, we need to clean up the resources
 	if !es.ObjectMeta.DeletionTimestamp.IsZero() {
 		defer func() {

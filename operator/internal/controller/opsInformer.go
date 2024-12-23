@@ -58,9 +58,9 @@ func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, 
 			}
 			prom.InformerHandlerCounter.WithLabelValues(req.String(), key, errStr).Inc()
 		},
-		UpdateFunc: func(old, new interface{}) {
+		UpdateFunc: func(_, newObj interface{}) {
 			errStr := values.Success
-			err := r.handleResolverChanges(ctx, new, es.Spec.Service, req.Namespace)
+			err := r.handleResolverChanges(ctx, newObj, es.Spec.Service, req.Namespace)
 			if err != nil {
 				errStr = err.Error()
 				r.Logger.Error("Failed to handle resolver changes", zap.Error(err))
@@ -69,7 +69,7 @@ func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, 
 			}
 			prom.InformerHandlerCounter.WithLabelValues(req.String(), key, errStr).Inc()
 		},
-		DeleteFunc: func(obj interface{}) {
+		DeleteFunc: func(_ interface{}) {
 			// TODO: Handle deletion of resolver deployment
 			// We can do two things here
 			// 1. We can move to the serve mode
@@ -103,9 +103,9 @@ func (r *ElastiServiceReconciler) getPublicServiceChangeHandler(ctx context.Cont
 			}
 			prom.InformerHandlerCounter.WithLabelValues(req.String(), key, errStr).Inc()
 		},
-		UpdateFunc: func(old, new interface{}) {
+		UpdateFunc: func(_, newObj interface{}) {
 			errStr := values.Success
-			err := r.handlePublicServiceChanges(ctx, new, es.Spec.Service, req.Namespace)
+			err := r.handlePublicServiceChanges(ctx, newObj, es.Spec.Service, req.Namespace)
 			if err != nil {
 				errStr = err.Error()
 				r.Logger.Error("Failed to handle public service changes", zap.Error(err))
@@ -114,7 +114,7 @@ func (r *ElastiServiceReconciler) getPublicServiceChangeHandler(ctx context.Cont
 			}
 			prom.InformerHandlerCounter.WithLabelValues(req.String(), key, errStr).Inc()
 		},
-		DeleteFunc: func(obj interface{}) {
+		DeleteFunc: func(_ interface{}) {
 			r.Logger.Debug("public deployment deleted",
 				zap.String("es", req.String()),
 				zap.String("service", es.Spec.Service))
@@ -130,9 +130,9 @@ func (r *ElastiServiceReconciler) getScaleTargetRefChangeHandler(ctx context.Con
 		Resource:     es.Spec.ScaleTargetRef.Name,
 	})
 	return cache.ResourceEventHandlerFuncs{
-		UpdateFunc: func(old, new interface{}) {
+		UpdateFunc: func(_, newObj interface{}) {
 			errStr := values.Success
-			err := r.handleScaleTargetRefChanges(ctx, new, es, req)
+			err := r.handleScaleTargetRefChanges(ctx, newObj, es, req)
 			if err != nil {
 				errStr = err.Error()
 				r.Logger.Error("Failed to handle ScaleTargetRef changes", zap.Error(err))

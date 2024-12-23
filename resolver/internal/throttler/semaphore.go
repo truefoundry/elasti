@@ -2,6 +2,7 @@ package throttler
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 )
 
@@ -27,7 +28,7 @@ func (s *semaphore) acquire(ctx context.Context) error {
 		if in >= capacity {
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				return fmt.Errorf("acquire: %w", ctx.Err())
 			case <-s.queue:
 			}
 			// Force reload state.
@@ -73,7 +74,7 @@ func (s *semaphore) release() {
 
 // updateCapacity updates the capacity of the semaphore to the desired size.
 func (s *semaphore) updateCapacity(size int) {
-	s64 := uint64(size)
+	s64 := uint64(size) //nolint: gosec
 	for {
 		old := s.state.Load()
 		capacity, in := unpack(old)
@@ -101,7 +102,7 @@ func (s *semaphore) updateCapacity(size int) {
 // Capacity is the capacity of the semaphore.
 func (s *semaphore) Capacity() int {
 	capacity, _ := unpack(s.state.Load())
-	return int(capacity)
+	return int(capacity) //nolint: gosec
 }
 
 // unpack takes an uint64 and returns two uint32 (as uint64) comprised of the leftmost

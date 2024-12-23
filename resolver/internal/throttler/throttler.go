@@ -22,7 +22,7 @@ type (
 		queueSizeMap            sync.Map
 	}
 
-	ThrottlerParams struct {
+	Params struct {
 		QueueRetryDuration      time.Duration
 		TrafficReEnableDuration time.Duration
 		K8sUtil                 *k8shelper.Ops
@@ -33,7 +33,7 @@ type (
 	}
 )
 
-func NewThrottler(param *ThrottlerParams) *Throttler {
+func NewThrottler(param *Params) *Throttler {
 	breaker := NewBreaker(BreakerParams{
 		QueueDepth:      param.QueueDepth,
 		MaxConcurrency:  param.MaxConcurrency,

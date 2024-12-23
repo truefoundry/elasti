@@ -65,34 +65,34 @@ func (o *Client) SendIncomingRequestInfo(ns, svc string) {
 		return
 	}
 	url := o.operatorURL + o.incomingRequestEndpoint
-	if req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData)); err != nil {
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
 		prom.OperatorRPCCounter.WithLabelValues(err.Error()).Inc()
 		o.logger.Error("Error creating request", zap.Error(err))
 		return
-	} else {
-		req.Header.Set("Content-Type", "application/json")
-		//nolint:bodyclose
-		resp, err := o.client.Do(req)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	//nolint:bodyclose
+	resp, err := o.client.Do(req)
+	if err != nil {
+		prom.OperatorRPCCounter.WithLabelValues(err.Error()).Inc()
+		o.logger.Error("Error sending request", zap.Error(err))
+		return
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
 		if err != nil {
 			prom.OperatorRPCCounter.WithLabelValues(err.Error()).Inc()
-			o.logger.Error("Error sending request", zap.Error(err))
-			return
+			o.logger.Error("Error closing body", zap.Error(err))
 		}
-		defer func(Body io.ReadCloser) {
-			err := Body.Close()
-			if err != nil {
-				prom.OperatorRPCCounter.WithLabelValues(err.Error()).Inc()
-				o.logger.Error("Error closing body", zap.Error(err))
-			}
-		}(resp.Body)
-		if resp.StatusCode != http.StatusOK {
-			prom.OperatorRPCCounter.WithLabelValues(strconv.Itoa(resp.StatusCode)).Inc()
-			o.logger.Error("Request failed with status code", zap.Int("status_code", resp.StatusCode))
-			return
-		}
-		prom.OperatorRPCCounter.WithLabelValues("").Inc()
-		o.logger.Info("Request sent to controller", zap.Int("statusCode", resp.StatusCode), zap.Any("body", resp.Body))
+	}(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		prom.OperatorRPCCounter.WithLabelValues(strconv.Itoa(resp.StatusCode)).Inc()
+		o.logger.Error("Request failed with status code", zap.Int("status_code", resp.StatusCode))
+		return
 	}
+	prom.OperatorRPCCounter.WithLabelValues("").Inc()
+	o.logger.Info("Request sent to controller", zap.Int("statusCode", resp.StatusCode), zap.Any("body", resp.Body))
 }
 
 func (o *Client) releaseMutexForServiceRPC(service string) {

@@ -9,7 +9,7 @@ import (
 	sentryhttp "github.com/getsentry/sentry-go/http"
 
 	"github.com/truefoundry/elasti/resolver/internal/handler"
-	"github.com/truefoundry/elasti/resolver/internal/hostManager"
+	"github.com/truefoundry/elasti/resolver/internal/hostmanager"
 	"github.com/truefoundry/elasti/resolver/internal/operator"
 	"github.com/truefoundry/elasti/resolver/internal/throttler"
 
@@ -82,9 +82,9 @@ func main() {
 	// Get components required for the handler
 	k8sUtil := k8shelper.NewOps(logger, config)
 	newOperatorRPC := operator.NewOperatorClient(logger, time.Duration(env.OperatorRetryDuration)*time.Second)
-	newHostManager := hostManager.NewHostManager(logger, time.Duration(env.TrafficReEnableDuration)*time.Second, env.HeaderForHost)
-	newTransport := throttler.NewProxyAutoTransport(logger, env.MaxIdleProxyConns, env.MaxIdleProxyConnsPerHost)
-	newThrottler := throttler.NewThrottler(&throttler.ThrottlerParams{
+	newHostManager := hostmanager.NewHostManager(logger, time.Duration(env.TrafficReEnableDuration)*time.Second, env.HeaderForHost)
+	newTransport := throttler.NewProxyAutoTransport(env.MaxIdleProxyConns, env.MaxIdleProxyConnsPerHost)
+	newThrottler := throttler.NewThrottler(&throttler.Params{
 		QueueRetryDuration:      time.Duration(env.QueueRetryDuration) * time.Second,
 		K8sUtil:                 k8sUtil,
 		QueueDepth:              env.QueueSize,
@@ -98,7 +98,7 @@ func main() {
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})
 
 	// Create a handler
-	requestHandler := handler.NewHandler(&handler.HandlerParams{
+	requestHandler := handler.NewHandler(&handler.Params{
 		Logger:      logger,
 		ReqTimeout:  time.Duration(env.ReqTimeout) * time.Second,
 		OperatorRPC: newOperatorRPC,
@@ -112,8 +112,13 @@ func main() {
 	http.Handle("/metrics", promhttp.Handler())
 	http.Handle("/queue-status", sentryHandler.HandleFunc(requestHandler.GetQueueStatus))
 
+	server := &http.Server{
+		Addr:              port,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
 	logger.Info("Reverse Proxy Server starting at ", zap.String("port", port))
-	if err := http.ListenAndServe(port, nil); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		logger.Fatal("ListenAndServe Failed: ", zap.Error(err))
 	}
 }

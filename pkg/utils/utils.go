@@ -15,11 +15,11 @@ const (
 
 var errInvalidAPIVersion = errors.New("invalid API version")
 
-// GetPrivateSerivceName returns a private service name for a given public service name
+// GetPrivateServiceName returns a private service name for a given public service name
 // This generates a hash of the public service name and appends it to the private service name
 // This way it decrease the chances of user having a same name, however, to be noted, the has will always be the same
 // if the public service name is same
-func GetPrivateSerivceName(publicSVCName string) string {
+func GetPrivateServiceName(publicSVCName string) string {
 	hash := sha256.New()
 	hash.Write([]byte(publicSVCName))
 	hashed := hex.EncodeToString(hash.Sum(nil))

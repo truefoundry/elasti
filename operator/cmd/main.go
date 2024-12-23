@@ -24,9 +24,9 @@ import (
 
 	"github.com/getsentry/sentry-go"
 
-	"truefoundry/elasti/operator/internal/elastiServer"
+	"truefoundry/elasti/operator/internal/elastiserver"
 
-	"truefoundry/elasti/operator/internal/crdDirectory"
+	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/informer"
 
 	tfLogger "github.com/truefoundry/elasti/pkg/logger"
@@ -66,6 +66,13 @@ const (
 )
 
 func main() {
+	err := mainWithError()
+	if err != nil {
+		os.Exit(1)
+	}
+}
+
+func mainWithError() error {
 	zapLogger, err := tfLogger.NewLogger("dev")
 	if err != nil {
 		setupLog.Error(err, "unable to create logger")
@@ -158,7 +165,7 @@ func main() {
 	}
 
 	// Start the shared CRD Directory
-	crdDirectory.INITDirectory(zapLogger)
+	crddirectory.INITDirectory(zapLogger)
 	// Initiate and start the shared Informer manager
 	Informer := informer.NewInformerManager(zapLogger, mgr.GetConfig())
 	Informer.Start()
@@ -175,22 +182,27 @@ func main() {
 	}
 
 	// Start the elasti server
-	eServer := elastiServer.NewServer(zapLogger, mgr.GetConfig(), 30*time.Second)
+	eServer := elastiserver.NewServer(zapLogger, mgr.GetConfig(), 30*time.Second)
 	go eServer.Start(elastiServerPort)
 
 	//+kubebuilder:scaffold:builder
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
-		os.Exit(1)
+		sentry.CaptureException(err)
+		return err
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
-		os.Exit(1)
+		sentry.CaptureException(err)
+		return err
 	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
+		sentry.CaptureException(err)
+		return err
 	}
+
+	return nil
 }
