@@ -1,4 +1,4 @@
-package elastiServer
+package elastiserver
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 
 	"k8s.io/client-go/rest"
 
-	"truefoundry/elasti/operator/internal/crdDirectory"
+	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/prom"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -62,8 +62,13 @@ func (s *Server) Start(port string) {
 	http.Handle("/metrics", sentryHandler.Handle(promhttp.Handler()))
 	http.Handle("/informer/incoming-request", sentryHandler.HandleFunc(s.resolverReqHandler))
 
+	server := &http.Server{
+		Addr:              port,
+		ReadHeaderTimeout: 2 * time.Second,
+	}
+
 	s.logger.Info("Starting ElastiServer", zap.String("port", port))
-	if err := http.ListenAndServe(port, nil); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		s.logger.Fatal("Failed to start StartElastiServer", zap.Error(err))
 	}
 }
@@ -122,7 +127,7 @@ func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace
 	scaleMutex.Lock()
 	defer s.logger.Debug("Scale target lock released")
 	s.logger.Debug("Scale target lock taken")
-	crd, found := crdDirectory.CRDDirectory.GetCRD(serviceName)
+	crd, found := crddirectory.CRDDirectory.GetCRD(serviceName)
 	if !found {
 		s.releaseMutexForServiceScale(serviceName)
 		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, serviceName: %s", serviceName)

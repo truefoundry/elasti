@@ -31,8 +31,8 @@ type (
 		hostManager HostManager
 	}
 
-	// HandlerParams is the configuration for the handler
-	HandlerParams struct {
+	// Params is the configuration for the handler
+	Params struct {
 		Logger      *zap.Logger
 		ReqTimeout  time.Duration
 		OperatorRPC Operator
@@ -54,7 +54,7 @@ type (
 )
 
 // NewHandler returns a new Handler
-func NewHandler(hc *HandlerParams) *Handler {
+func NewHandler(hc *Params) *Handler {
 	return &Handler{
 		throttler:   hc.Throttler,
 		logger:      hc.Logger.With(zap.String("component", "handler")),
@@ -144,7 +144,6 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 		}, func() {
 			h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
 		}); tryErr != nil {
-
 		h.logger.Error("throttler try error: ", zap.Error(tryErr))
 		hub := sentry.GetHubFromContext(req.Context())
 		if hub != nil {
@@ -154,10 +153,9 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 		if errors.Is(tryErr, context.DeadlineExceeded) {
 			http.Error(w, "request timeout", http.StatusRequestTimeout)
 			return host, fmt.Errorf("throttler try error: %w", tryErr)
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
-			return host, fmt.Errorf("throttler try error: %w", tryErr)
 		}
+		w.WriteHeader(http.StatusInternalServerError)
+		return host, fmt.Errorf("throttler try error: %w", tryErr)
 	}
 	return host, nil
 }
@@ -176,7 +174,7 @@ func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetH
 	proxy := h.NewHeaderPruningReverseProxy(targetURL, true)
 	proxy.BufferPool = h.bufferPool
 	proxy.Transport = h.transport
-	proxy.ErrorHandler = func(w http.ResponseWriter, req *http.Request, err error) {
+	proxy.ErrorHandler = func(_ http.ResponseWriter, _ *http.Request, err error) {
 		panic(fmt.Errorf("serveHTTP error: %w", err))
 	}
 	h.logger.Debug("Request sent to proxy", zap.Int("Retry Count", count))

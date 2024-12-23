@@ -1,6 +1,9 @@
 package handler
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 type responseWriter struct {
 	http.ResponseWriter
@@ -19,7 +22,8 @@ func (rw *responseWriter) WriteHeader(statusCode int) {
 
 func (rw *responseWriter) Write(b []byte) (int, error) {
 	rw.body = append(rw.body, b...)
-	return rw.ResponseWriter.Write(b)
+	res, err := rw.ResponseWriter.Write(b)
+	return res, fmt.Errorf("Write: %w", err)
 }
 
 func (rw *responseWriter) Header() http.Header {
