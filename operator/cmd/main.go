@@ -19,6 +19,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -161,7 +162,8 @@ func mainWithError() error {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
+		sentry.CaptureException(err)
+		return fmt.Errorf("main: %w", err)
 	}
 
 	// Start the shared CRD Directory
@@ -172,13 +174,13 @@ func mainWithError() error {
 
 	// Set up the ElastiService controller
 	if err = (&controller.ElastiServiceReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Logger:   zapLogger,
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(), Logger: zapLogger,
 		Informer: Informer,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
-		os.Exit(1)
+		sentry.CaptureException(err)
+		return fmt.Errorf("main: %w", err)
 	}
 
 	// Start the elasti server
@@ -189,19 +191,19 @@ func mainWithError() error {
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		sentry.CaptureException(err)
-		return err
+		return fmt.Errorf("main: %w", err)
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
 		sentry.CaptureException(err)
-		return err
+		return fmt.Errorf("main: %w", err)
 	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		sentry.CaptureException(err)
-		return err
+		return fmt.Errorf("main: %w", err)
 	}
 
 	return nil
