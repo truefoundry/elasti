@@ -12,7 +12,7 @@
 
 </p>
 
-> This project is in Alpha right now.
+> This project is in Alpha right now
 
 # Why use Elasti?
 
