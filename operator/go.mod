@@ -15,6 +15,8 @@ require (
 
 )
 
+require github.com/getsentry/sentry-go v0.30.0 // indirect
+
 replace github.com/truefoundry/elasti/pkg v0.0.0 => ../pkg
 
 require (

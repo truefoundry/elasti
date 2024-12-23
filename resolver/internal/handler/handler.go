@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/truefoundry/elasti/resolver/internal/prom"
 	"github.com/truefoundry/elasti/resolver/internal/throttler"
 
@@ -134,6 +135,8 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 			err := h.ProxyRequest(w, req, host.TargetHost, count)
 			if err != nil {
 				h.logger.Error("Error proxying request", zap.Error(err))
+				hub := sentry.GetHubFromContext(req.Context())
+				hub.CaptureException(err)
 				return err
 			}
 			h.hostManager.DisableTrafficForHost(host.IncomingHost)
@@ -141,7 +144,13 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 		}, func() {
 			h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
 		}); tryErr != nil {
+
 		h.logger.Error("throttler try error: ", zap.Error(tryErr))
+		hub := sentry.GetHubFromContext(req.Context())
+		if hub != nil {
+			hub.CaptureException(tryErr)
+		}
+
 		if errors.Is(tryErr, context.DeadlineExceeded) {
 			http.Error(w, "request timeout", http.StatusRequestTimeout)
 			return host, fmt.Errorf("throttler try error: %w", tryErr)
