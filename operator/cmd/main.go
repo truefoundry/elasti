@@ -74,25 +74,26 @@ func main() {
 }
 
 func mainWithError() error {
-	zapLogger, err := tfLogger.NewLogger("dev")
-	if err != nil {
-		setupLog.Error(err, "unable to create logger")
-	}
-
 	// Initialize Sentry
 	sentryDsn := os.Getenv("SENTRY_DSN")
+	sentryEnabled := sentryDsn != ""
 
-	if sentryDsn != "" {
-		zapLogger.Info("Initializing Sentry")
-		if err = sentry.Init(sentry.ClientOptions{
+	if sentryEnabled {
+		fmt.Println("Initializing Sentry")
+		if err := sentry.Init(sentry.ClientOptions{
 			Dsn:              sentryDsn,
 			EnableTracing:    true,
 			TracesSampleRate: 1.0,
 			Environment:      os.Getenv("SENTRY_ENVIRONMENT"),
 		}); err != nil {
-			zapLogger.Error("Sentry initialization failed")
+			fmt.Println("ERROR: Sentry initialization failed")
 		}
 		defer sentry.Flush(2 * time.Second)
+	}
+
+	zapLogger, err := tfLogger.NewLogger("dev", sentryEnabled)
+	if err != nil {
+		setupLog.Error(err, "unable to create logger")
 	}
 
 	var metricsAddr string

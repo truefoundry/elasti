@@ -90,7 +90,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// If the ElastiService is being deleted, we need to clean up the resources
 	if isDeleted, err := r.finalizeCRDIfDeleted(ctx, es, req); err != nil {
 		r.Logger.Error("Failed to check if CRD is deleted", zap.String("es", req.String()), zap.Error(err))
-		sentry.CaptureException(esErr)
+		sentry.CaptureException(err)
 		return res, err
 	} else if isDeleted {
 		r.Logger.Info("[CRD is deleted successfully]", zap.String("es", req.String()))
@@ -100,7 +100,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// We also check if the CRD has finalizer, and if not, we add the finalizer
 	if err := r.addCRDFinalizer(ctx, es); err != nil {
 		r.Logger.Error("Failed to finalize CRD", zap.String("es", req.String()), zap.Error(err))
-		sentry.CaptureException(esErr)
+		sentry.CaptureException(err)
 		return res, err
 	}
 	r.Logger.Info("Finalizer added to CRD", zap.String("es", req.String()))
@@ -108,7 +108,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Add watch for public service, so when the public service is modified, we can update the private service
 	if err := r.watchScaleTargetRef(ctx, es, req); err != nil {
 		r.Logger.Error("Failed to add watch for ScaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef), zap.Error(err))
-		sentry.CaptureException(esErr)
+		sentry.CaptureException(err)
 		return res, err
 	}
 	r.Logger.Info("Watch added for ScaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
@@ -127,7 +127,10 @@ func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.ElastiService{}).
 		Complete(r)
-	return fmt.Errorf("SetupWithManager: %w", err)
+	if err != nil {
+		return fmt.Errorf("SetupWithManager: %w", err)
+	}
+	return nil
 }
 
 func (r *ElastiServiceReconciler) getMutexForReconcile(key string) *sync.Mutex {
