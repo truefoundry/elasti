@@ -1,4 +1,4 @@
-package hostManager
+package hostmanager
 
 import (
 	"net/http"

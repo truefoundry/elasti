@@ -13,15 +13,15 @@ linters:
     - dogsled
     - dupl
     - durationcheck
-    # - errcheck
+    - errcheck
     - errchkjson
     - errname
-    # - errorlint
+    - errorlint
     - exhaustive
     # - forcetypeassert
     - gocognit
-    # - goconst
-    # - gocritic
+    - goconst
+    - gocritic
     - gocyclo
     - gofmt
     - goheader
@@ -29,7 +29,7 @@ linters:
     # - gomoddirectives
     - gomodguard
     - goprintffuncname
-    # - gosec
+    - gosec
     - gosimple
     - govet
     - grouper
@@ -46,17 +46,17 @@ linters:
     - nolintlint
     # - nonamedreturns
     - nosprintfhostport
-    # - predeclared
+    - predeclared
     # - promlinter
-    # - revive
+    - revive
     - staticcheck
-    # - stylecheck
+    - stylecheck
     - tenv
     - thelper
     - tparallel
     - typecheck
     - unconvert
-    # - unparam
+    - unparam
     - unused
     - whitespace
-    # - wrapcheck
+    - wrapcheck

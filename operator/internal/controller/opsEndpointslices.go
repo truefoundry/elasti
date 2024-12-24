@@ -21,7 +21,7 @@ func (r *ElastiServiceReconciler) getIPsForResolver(ctx context.Context) ([]stri
 		"kubernetes.io/service-name": resolverServiceName,
 	}); err != nil {
 		r.Logger.Error("Failed to get Resolver endpoint slices", zap.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("getIPsForResolver: %w", err)
 	}
 	var resolverPodIPs []string
 	for _, endpointSlice := range resolverSlices.Items {
@@ -70,7 +70,7 @@ func (r *ElastiServiceReconciler) createOrUpdateEndpointsliceToResolver(ctx cont
 	sliceToResolver := &networkingv1.EndpointSlice{}
 	if err := r.Get(ctx, EndpointsliceNamespacedName, sliceToResolver); err != nil && !errors.IsNotFound(err) {
 		r.Logger.Debug("Error getting a endpoint slice to Resolver", zap.String("endpointslice", EndpointsliceNamespacedName.String()), zap.Error(err))
-		return err
+		return fmt.Errorf("createOrUpdateEndpointsliceToResolver: %w", err)
 	} else if errors.IsNotFound(err) {
 		// TODO: This can be handled better
 		// This is a similar case as seen in resolver informer
@@ -101,7 +101,7 @@ func (r *ElastiServiceReconciler) createOrUpdateEndpointsliceToResolver(ctx cont
 		},
 	}
 
-	//sliceToResolver.DeepCopy()
+	// sliceToResolver.DeepCopy()
 
 	for _, ip := range resolverPodIPs {
 		newEndpointSlice.Endpoints = append(newEndpointSlice.Endpoints, networkingv1.Endpoint{
@@ -112,14 +112,14 @@ func (r *ElastiServiceReconciler) createOrUpdateEndpointsliceToResolver(ctx cont
 	if isResolverSliceFound {
 		if err := r.Update(ctx, newEndpointSlice); err != nil {
 			r.Logger.Error("failed to update sliceToResolver", zap.String("endpointslice", EndpointsliceNamespacedName.String()), zap.Error(err))
-			return err
+			return fmt.Errorf("createOrUpdateEndpointsliceToResolver: %w", err)
 		}
 		r.Logger.Info("EndpointSlice updated successfully", zap.String("endpointslice", EndpointsliceNamespacedName.String()))
 	} else {
 		// TODOS: Make sure the private service is owned by the ElastiService
 		if err := r.Create(ctx, newEndpointSlice); err != nil {
 			r.Logger.Error("failed to create sliceToResolver", zap.String("endpointslice", EndpointsliceNamespacedName.String()), zap.Error(err))
-			return err
+			return fmt.Errorf("createOrUpdateEndpointsliceToResolver: %w", err)
 		}
 		r.Logger.Info("EndpointSlice created successfully", zap.String("endpointslice", EndpointsliceNamespacedName.String()))
 	}
