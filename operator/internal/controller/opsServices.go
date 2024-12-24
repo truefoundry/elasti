@@ -17,7 +17,7 @@ import (
 
 func (r *ElastiServiceReconciler) deletePrivateService(ctx context.Context, publichServiceNamespacedName types.NamespacedName) (err error) {
 	privateServiceNamespacedName := publichServiceNamespacedName
-	privateServiceNamespacedName.Name = utils.GetPrivateSerivceName(publichServiceNamespacedName.Name)
+	privateServiceNamespacedName.Name = utils.GetPrivateServiceName(publichServiceNamespacedName.Name)
 	privateSVC := &v1.Service{}
 	if err := r.Get(ctx, privateServiceNamespacedName, privateSVC); err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("failed to get private service: %w", err)
@@ -31,9 +31,9 @@ func (r *ElastiServiceReconciler) deletePrivateService(ctx context.Context, publ
 	return nil
 }
 
-func (r *ElastiServiceReconciler) checkAndCreatePrivateService(ctx context.Context, publicSVC *v1.Service, es *v1alpha1.ElastiService) (PVTName string, err error) {
-	PVTName = utils.GetPrivateSerivceName(publicSVC.Name)
-	privateServiceNamespacedName := types.NamespacedName{Name: PVTName, Namespace: publicSVC.Namespace}
+func (r *ElastiServiceReconciler) checkAndCreatePrivateService(ctx context.Context, publicSVC *v1.Service, es *v1alpha1.ElastiService) (privateServiceName string, err error) {
+	privateServiceName = utils.GetPrivateServiceName(publicSVC.Name)
+	privateServiceNamespacedName := types.NamespacedName{Name: privateServiceName, Namespace: publicSVC.Namespace}
 	// See if private service already exist
 	privateSVC := &v1.Service{}
 	if err := r.Get(ctx, privateServiceNamespacedName, privateSVC); err != nil && !errors.IsNotFound(err) {
@@ -42,11 +42,11 @@ func (r *ElastiServiceReconciler) checkAndCreatePrivateService(ctx context.Conte
 		r.Logger.Info("Private service not found, creating one", zap.String("private-service", privateServiceNamespacedName.String()))
 	} else {
 		r.Logger.Info("Private service already exists", zap.String("private-service", privateServiceNamespacedName.String()))
-		return PVTName, nil
+		return privateServiceName, nil
 	}
 
 	privateSVC = publicSVC.DeepCopy()
-	privateSVC.SetName(PVTName)
+	privateSVC.SetName(privateServiceName)
 	// We must remove the cluster IP and node port, as it already exists for the public service
 	privateSVC.Spec.ClusterIP = ""
 	privateSVC.Spec.ClusterIPs = nil
@@ -58,14 +58,14 @@ func (r *ElastiServiceReconciler) checkAndCreatePrivateService(ctx context.Conte
 
 	// Make sure the private service is owned by the ElastiService
 	if err := controllerutil.SetControllerReference(es, privateSVC, r.Scheme); err != nil {
-		return PVTName, err
+		return privateServiceName, fmt.Errorf("checkAndCreatePrivateService: %w", err)
 	}
 	err = r.Create(ctx, privateSVC)
 	if err != nil {
 		r.Logger.Error("Failed to create private service", zap.String("private-service", privateServiceNamespacedName.String()), zap.Error(err))
-		return PVTName, err
+		return privateServiceName, fmt.Errorf("checkAndCreatePrivateService: %w", err)
 	}
-	return PVTName, nil
+	return privateServiceName, nil
 }
 
 // handlePublicServiceChanges handles the changes in the public service, and sync those changes in the private service
@@ -81,7 +81,7 @@ func (r *ElastiServiceReconciler) handlePublicServiceChanges(ctx context.Context
 		return fmt.Errorf("public service is not same as mentioned in CRD; informer misconfigured")
 	}
 	// Get Private Service
-	PVTName := utils.GetPrivateSerivceName(publicSVC.Name)
+	PVTName := utils.GetPrivateServiceName(publicSVC.Name)
 	privateServiceNamespacedName := types.NamespacedName{Name: PVTName, Namespace: publicSVC.Namespace}
 	privateSVC := &v1.Service{}
 	if err := r.Get(ctx, privateServiceNamespacedName, privateSVC); err != nil && !errors.IsNotFound(err) {

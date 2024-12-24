@@ -89,7 +89,7 @@ func (m *Manager) Start() {
 func (m *Manager) Stop() {
 	m.logger.Info("Stopping InformerManager")
 	// Loop through all the informers and stop them
-	m.informers.Range(func(key, value interface{}) bool {
+	m.informers.Range(func(_, value interface{}) bool {
 		info, ok := value.(info)
 		if ok {
 			err := m.StopInformer(m.getKeyFromRequestWatch(info.Req))
@@ -244,12 +244,12 @@ func (m *Manager) enableInformer(req *RequestWatch) (err error) {
 	// Create an informer for the resource
 	informer := cache.NewSharedInformer(
 		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (kRuntime.Object, error) {
+			ListFunc: func(_ metav1.ListOptions) (kRuntime.Object, error) {
 				return m.dynamicClient.Resource(*req.GroupVersionResource).Namespace(req.ResourceNamespace).List(ctx, metav1.ListOptions{
 					FieldSelector: "metadata.name=" + req.ResourceName,
 				})
 			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(_ metav1.ListOptions) (watch.Interface, error) {
 				return m.dynamicClient.Resource(*req.GroupVersionResource).Namespace(req.ResourceNamespace).Watch(ctx, metav1.ListOptions{
 					FieldSelector: "metadata.name=" + req.ResourceName,
 				})
@@ -262,7 +262,7 @@ func (m *Manager) enableInformer(req *RequestWatch) (err error) {
 	_, err = informer.AddEventHandler(req.Handlers)
 	if err != nil {
 		m.logger.Error("Error creating informer handler", zap.Error(err))
-		return err
+		return fmt.Errorf("enableInformer: %w", err)
 	}
 	// This channel is used to stop the informer
 	// We add it in the informers map, so we can stop it when required

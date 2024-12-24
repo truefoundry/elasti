@@ -2,12 +2,13 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/getsentry/sentry-go"
 
-	"truefoundry/elasti/operator/internal/crdDirectory"
+	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/informer"
 	"truefoundry/elasti/operator/internal/prom"
 
@@ -114,7 +115,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// We add the CRD details to service directory, so when elasti server received a request,
 	// we can find the right resource to scale up
-	crdDirectory.CRDDirectory.AddCRD(es.Spec.Service, &crdDirectory.CRDDetails{
+	crddirectory.CRDDirectory.AddCRD(es.Spec.Service, &crddirectory.CRDDetails{
 		CRDName: es.Name,
 		Spec:    es.Spec,
 	})
@@ -123,9 +124,10 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.ElastiService{}).
 		Complete(r)
+	return fmt.Errorf("SetupWithManager: %w", err)
 }
 
 func (r *ElastiServiceReconciler) getMutexForReconcile(key string) *sync.Mutex {

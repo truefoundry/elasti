@@ -1,4 +1,4 @@
-package hostManager
+package hostmanager
 
 import (
 	"fmt"
@@ -49,7 +49,7 @@ func (hm *HostManager) GetHost(req *http.Request) (*messages.Host, error) {
 			prom.HostExtractionCounter.WithLabelValues("error", incomingHost, hm.headerForHost, err.Error()).Inc()
 			return &messages.Host{}, err
 		}
-		targetService := utils.GetPrivateSerivceName(sourceService)
+		targetService := utils.GetPrivateServiceName(sourceService)
 		sourceHost := hm.removeTrailingWildcardIfNeeded(incomingHost)
 		sourceHost = hm.removeTrailingPathIfNeeded(sourceHost)
 		sourceHost = hm.addHTTPIfNeeded(sourceHost)

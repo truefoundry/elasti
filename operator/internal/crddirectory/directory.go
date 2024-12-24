@@ -1,4 +1,4 @@
-package crdDirectory
+package crddirectory
 
 import (
 	"sync"

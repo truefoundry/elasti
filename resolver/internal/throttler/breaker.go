@@ -27,7 +27,7 @@ type Breaker struct {
 
 func NewBreaker(params BreakerParams) *Breaker {
 	return &Breaker{
-		maxConcurrency: uint16(params.MaxConcurrency),
+		maxConcurrency: uint16(params.MaxConcurrency), //nolint: gosec
 		totalSlots:     int64(params.QueueDepth + params.MaxConcurrency),
 		logger:         params.Logger,
 		sem:            newSemaphore(params.MaxConcurrency, params.InitialCapacity),
