@@ -49,6 +49,7 @@ type config struct {
 
 const (
 	port = ":8012"
+	internalPort = ":8013"
 )
 
 func main() {
@@ -108,12 +109,19 @@ func main() {
 	})
 
 	// Handle all the incoming requests
-	http.Handle("/", sentryHandler.HandleFunc(requestHandler.ServeHTTP))
-	http.Handle("/metrics", promhttp.Handler())
-	http.Handle("/queue-status", sentryHandler.HandleFunc(requestHandler.GetQueueStatus))
-
+	defaultServeMux := http.NewServeMux()
+	defaultServeMux.Handle("/", sentryHandler.HandleFunc(requestHandler.ServeHTTP))
 	logger.Info("Reverse Proxy Server starting at ", zap.String("port", port))
-	if err := http.ListenAndServe(port, nil); err != nil {
+	if err := http.ListenAndServe(port, defaultServeMux); err != nil {
+		logger.Fatal("ListenAndServe Failed: ", zap.Error(err))
+	}
+
+	// Handle all the incoming internal request like from prometheus that are not related to the reverse proxy
+	internalServeMux := http.NewServeMux()
+	internalServeMux.Handle("/metrics", promhttp.Handler())
+	internalServeMux.Handle("/queue-status", sentryHandler.HandleFunc(requestHandler.GetQueueStatus))
+	logger.Info("Internal Server starting at ", zap.String("port", internalPort))
+	if err := http.ListenAndServe(internalPort, internalServeMux); err != nil {
 		logger.Fatal("ListenAndServe Failed: ", zap.Error(err))
 	}
 }
