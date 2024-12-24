@@ -1,11 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"github.com/getsentry/sentry-go"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
 
 	"github.com/truefoundry/elasti/resolver/internal/handler"
@@ -52,31 +53,34 @@ const (
 )
 
 func main() {
-	logger, err := logger.NewLogger("dev")
-	if err != nil {
-		log.Fatal("Failed to get logger: ", err)
-	}
 	var env config
 	if err := envconfig.Process("", &env); err != nil {
 		log.Fatal("Failed to process env: ", err)
 	}
-	logger.Info("config", zap.Any("env", env))
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		logger.Fatal("Error fetching cluster config", zap.Error(err))
-	}
 
-	if env.SentryDsn != "" {
-		logger.Info("Initializing Sentry")
-		if err = sentry.Init(sentry.ClientOptions{
+	sentryEnabled := env.SentryDsn != ""
+
+	if sentryEnabled {
+		fmt.Println("Initializing Sentry")
+		if err := sentry.Init(sentry.ClientOptions{
 			Dsn:              env.SentryDsn,
 			EnableTracing:    true,
 			TracesSampleRate: 1.0,
 			Environment:      env.SentryEnv,
 		}); err != nil {
-			logger.Error("Sentry initialization failed:", zap.Error(err))
+			fmt.Println("Sentry initialization failed:", err)
 		}
 		defer sentry.Flush(2 * time.Second)
+	}
+
+	logger, err := logger.NewLogger("dev", sentryEnabled)
+	if err != nil {
+		log.Fatal("Failed to get logger: ", err)
+	}
+
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		logger.Fatal("Error fetching cluster config", zap.Error(err))
 	}
 
 	// Get components required for the handler
