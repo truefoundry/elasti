@@ -112,9 +112,11 @@ func main() {
 	defaultServeMux := http.NewServeMux()
 	defaultServeMux.Handle("/", sentryHandler.HandleFunc(requestHandler.ServeHTTP))
 	logger.Info("Reverse Proxy Server starting at ", zap.String("port", port))
-	if err := http.ListenAndServe(port, defaultServeMux); err != nil {
-		logger.Fatal("ListenAndServe Failed: ", zap.Error(err))
-	}
+	go func(){
+		if err := http.ListenAndServe(port, defaultServeMux); err != nil {
+			logger.Fatal("ListenAndServe Failed: ", zap.Error(err))
+		}	
+	}()
 
 	// Handle all the incoming internal request like from prometheus that are not related to the reverse proxy
 	internalServeMux := http.NewServeMux()
