@@ -129,5 +129,6 @@ spec:
         name: proxy
         ports:
         - containerPort: {{ .Values.elastiResolver.service.port }}
+        - containerPort: {{ .Values.elastiResolver.reverseProxyService.port }}
         resources: 
           {{- toYaml .Values.elastiResolver.proxy.resources | nindent 10 }}

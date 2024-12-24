@@ -73,6 +73,11 @@ elastiResolver:
     minReplicas: 1
     maxReplicas: 4
     targetCPUUtilizationPercentage: 70
-  service:
+  # Port for hitting the reverse proxy server
+  reverseProxyService:
     port: 8012
+    type: ClusterIP
+  # Port for hitting the internal server used for everything except reverse proxy
+  service:
+    port: 8013
     type: ClusterIP
