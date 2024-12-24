@@ -48,7 +48,7 @@ type config struct {
 }
 
 const (
-	port = ":8012"
+	reverseProxyPort = ":8012"
 	internalPort = ":8013"
 )
 
@@ -109,11 +109,16 @@ func main() {
 	})
 
 	// Handle all the incoming requests
-	defaultServeMux := http.NewServeMux()
-	defaultServeMux.Handle("/", sentryHandler.HandleFunc(requestHandler.ServeHTTP))
-	logger.Info("Reverse Proxy Server starting at ", zap.String("port", port))
+	reverseProxyServerMux := http.NewServeMux()
+	reverseProxyServerMux.Handle("/", sentryHandler.HandleFunc(requestHandler.ServeHTTP))
+	reverseProxyServer := &http.Server{
+		Addr:         reverseProxyPort,
+		Handler:      reverseProxyServerMux,
+		ReadHeaderTimeout:  5 * time.Second,
+	}
+	logger.Info("Reverse Proxy Server starting at ", zap.String("port", reverseProxyPort))
 	go func(){
-		if err := http.ListenAndServe(port, defaultServeMux); err != nil {
+		if err := reverseProxyServer.ListenAndServe(); err != nil {
 			logger.Fatal("ListenAndServe Failed: ", zap.Error(err))
 		}	
 	}()
@@ -122,8 +127,13 @@ func main() {
 	internalServeMux := http.NewServeMux()
 	internalServeMux.Handle("/metrics", promhttp.Handler())
 	internalServeMux.Handle("/queue-status", sentryHandler.HandleFunc(requestHandler.GetQueueStatus))
+	internalServer := &http.Server{
+		Addr:         internalPort,
+		Handler:      internalServeMux,
+		ReadHeaderTimeout:  5 * time.Second,
+	}
 	logger.Info("Internal Server starting at ", zap.String("port", internalPort))
-	if err := http.ListenAndServe(internalPort, internalServeMux); err != nil {
+	if err := internalServer.ListenAndServe(); err != nil {
 		logger.Fatal("ListenAndServe Failed: ", zap.Error(err))
 	}
 }
