@@ -130,7 +130,7 @@ func main() {
 	internalServer := &http.Server{
 		Addr:         internalPort,
 		Handler:      internalServeMux,
-		ReadHeaderTimeout:  5 * time.Second,
+		ReadHeaderTimeout:  2 * time.Second,
 	}
 	logger.Info("Internal Server starting at ", zap.String("port", internalPort))
 	if err := internalServer.ListenAndServe(); err != nil {
