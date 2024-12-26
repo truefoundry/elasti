@@ -15,3 +15,7 @@ spec:
     targetPort: {{ .Values.elastiResolver.service.port }}
     protocol: TCP
     name: http-resolver
+  - port: {{ .Values.elastiResolver.reverseProxyService.port }}
+    targetPort: {{ .Values.elastiResolver.reverseProxyService.port }}
+    protocol: TCP
+    name: http-resolver-reverse-proxy
