@@ -98,7 +98,11 @@ func (s *Server) Start(port string) error {
 }
 
 func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
-	defer req.Body.Close()
+	defer func() {
+		if err := req.Body.Close(); err != nil {
+			s.logger.Error("Failed to close request body", zap.Error(err))
+		}
+	}()
 
 	if req.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
