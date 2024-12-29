@@ -29,7 +29,7 @@ type (
 		client.Client
 		Scheme             *kRuntime.Scheme
 		Logger             *zap.Logger
-		Informer           *informer.Manager
+		InformerManager    *informer.Manager
 		SwitchModeLocks    sync.Map
 		InformerStartLocks sync.Map
 		ReconcileLocks     sync.Map

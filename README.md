@@ -376,6 +376,9 @@ docker push localhost:5000/elasti-resolver:v1alpha1
 We will build and publish our Operator changes.
 
 1. Go into the operator directory.
+```bash
+cd operator
+```
 2. Run the build and publish command.
 
 ```bash

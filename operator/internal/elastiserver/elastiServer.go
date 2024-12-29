@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"os/signal"
+	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
@@ -50,27 +54,47 @@ func NewServer(logger *zap.Logger, config *rest.Config, rescaleDuration time.Dur
 }
 
 // Start starts the ElastiServer and declares the endpoint and handlers for it
-func (s *Server) Start(port string) {
-	defer func() {
-		if rec := recover(); s != nil {
-			s.logger.Error("ElastiServer is recovering from panic", zap.Any("error", rec))
-			go s.Start(port)
-		}
-	}()
-
+func (s *Server) Start(port string) error {
+	mux := http.NewServeMux()
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})
-	http.Handle("/metrics", sentryHandler.Handle(promhttp.Handler()))
-	http.Handle("/informer/incoming-request", sentryHandler.HandleFunc(s.resolverReqHandler))
+	mux.Handle("/metrics", sentryHandler.Handle(promhttp.Handler()))
+	mux.Handle("/informer/incoming-request", sentryHandler.HandleFunc(s.resolverReqHandler))
 
 	server := &http.Server{
-		Addr:              port,
+		Addr:              fmt.Sprintf(":%s", strings.TrimPrefix(port, ":")),
+		Handler:           mux,
 		ReadHeaderTimeout: 2 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
 	}
 
+	// Graceful shutdown handling
+	done := make(chan bool)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-quit
+		s.logger.Info("Server is shutting down...")
+		
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			s.logger.Error("Could not gracefully shutdown the server", zap.Error(err))
+		}
+		close(done)
+	}()
+
 	s.logger.Info("Starting ElastiServer", zap.String("port", port))
-	if err := server.ListenAndServe(); err != nil {
-		s.logger.Fatal("Failed to start StartElastiServer", zap.Error(err))
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		s.logger.Error("Failed to start ElastiServer", zap.Error(err))
+		return err
 	}
+
+	<-done
+	s.logger.Info("Server stopped")
+	return nil
 }
 
 func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {

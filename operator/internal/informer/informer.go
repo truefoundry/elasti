@@ -46,6 +46,7 @@ type (
 		StopCh   chan struct{}
 		Req      *RequestWatch
 	}
+
 	// RequestWatch is the request body sent to the informer
 	RequestWatch struct {
 		Req                  ctrl.Request
@@ -72,7 +73,7 @@ func NewInformerManager(logger *zap.Logger, kConfig *rest.Config) *Manager {
 		dynamicClient: dynamicClient,
 		logger:        logger.Named("InformerManager"),
 		// ResyncPeriod is the proactive resync we do, even when no events are received by the informer.
-		resyncPeriod:        0,
+		resyncPeriod:        5 * time.Minute,
 		healthCheckDuration: 5 * time.Second,
 		healthCheckStopChan: make(chan struct{}),
 	}
@@ -230,16 +231,7 @@ func (m *Manager) Add(req *RequestWatch) (err error) {
 }
 
 // enableInformer is to enable the informer for a resource
-func (m *Manager) enableInformer(req *RequestWatch) (err error) {
-	defer func() {
-		if rErr := recover(); rErr != nil {
-			m.logger.Error("Recovered from panic", zap.Any("recovered", rErr))
-			buf := make([]byte, 4096)
-			n := runtime.Stack(buf, false)
-			m.logger.Error("Panic stack trace", zap.ByteString("stacktrace", buf[:n]))
-		}
-	}()
-
+func (m *Manager) enableInformer(req *RequestWatch) error {
 	ctx := context.Background()
 	// Create an informer for the resource
 	informer := cache.NewSharedInformer(
@@ -256,10 +248,10 @@ func (m *Manager) enableInformer(req *RequestWatch) (err error) {
 			},
 		},
 		&unstructured.Unstructured{},
-		0,
+		m.resyncPeriod,
 	)
 	// We pass the handlers we received as a parameter
-	_, err = informer.AddEventHandler(req.Handlers)
+	_, err := informer.AddEventHandler(req.Handlers)
 	if err != nil {
 		m.logger.Error("Error creating informer handler", zap.Error(err))
 		return fmt.Errorf("enableInformer: %w", err)

@@ -79,7 +79,7 @@ func (r *ElastiServiceReconciler) finalizeCRD(ctx context.Context, es *v1alpha1.
 	// Stop all active informers related to this CRD in background
 	go func() {
 		defer wg.Done()
-		r.Informer.StopForCRD(req.Name)
+		r.InformerManager.StopForCRD(req.Name)
 		r.Logger.Info("[Done] Informer stopped for CRD", zap.String("es", req.String()))
 		// Reset the informer start mutex, so if the ElastiService is recreated, we will need to reset the informer
 		r.resetMutexForInformer(r.getMutexKeyForTargetRef(req))
@@ -134,13 +134,13 @@ func (r *ElastiServiceReconciler) watchScaleTargetRef(ctx context.Context, es *v
 			es.Spec.ScaleTargetRef.Kind != crd.Spec.ScaleTargetRef.Kind ||
 			es.Spec.ScaleTargetRef.APIVersion != crd.Spec.ScaleTargetRef.APIVersion {
 			r.Logger.Debug("ScaleTargetRef has changed, stopping previous informer.", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
-			key := r.Informer.GetKey(informer.KeyParams{
+			key := r.InformerManager.GetKey(informer.KeyParams{
 				Namespace:    req.Namespace,
 				CRDName:      req.Name,
 				ResourceName: crd.Spec.ScaleTargetRef.Name,
 				Resource:     strings.ToLower(crd.Spec.ScaleTargetRef.Kind),
 			})
-			err := r.Informer.StopInformer(key)
+			err := r.InformerManager.StopInformer(key)
 			if err != nil {
 				r.Logger.Error("Failed to stop informer for old scaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef), zap.Error(err))
 			}
@@ -156,7 +156,7 @@ func (r *ElastiServiceReconciler) watchScaleTargetRef(ctx context.Context, es *v
 			informerErr = fmt.Errorf("failed to parse API version: %w", err)
 			return
 		}
-		if err := r.Informer.Add(&informer.RequestWatch{
+		if err := r.InformerManager.Add(&informer.RequestWatch{
 			Req:               req,
 			ResourceName:      es.Spec.ScaleTargetRef.Name,
 			ResourceNamespace: req.Namespace,
@@ -184,7 +184,7 @@ func (r *ElastiServiceReconciler) watchPublicService(ctx context.Context, es *v1
 	}
 	var informerErr error
 	r.getMutexForInformerStart(r.getMutexKeyForPublicSVC(req)).Do(func() {
-		if err := r.Informer.Add(&informer.RequestWatch{
+		if err := r.InformerManager.Add(&informer.RequestWatch{
 			Req:                  req,
 			ResourceName:         es.Spec.Service,
 			ResourceNamespace:    es.Namespace,
