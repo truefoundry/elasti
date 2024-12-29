@@ -76,7 +76,7 @@ func (s *Server) Start(port string) error {
 	go func() {
 		<-quit
 		s.logger.Info("Server is shutting down...")
-		
+
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
@@ -98,11 +98,6 @@ func (s *Server) Start(port string) error {
 }
 
 func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
-	defer func() {
-		if rec := recover(); rec != nil {
-			s.logger.Error("Recovered from panic", zap.Any("error", rec))
-		}
-	}()
 	ctx := context.Background()
 	if req.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -113,8 +108,8 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
+	defer func(b io.ReadCloser) {
+		err := b.Close()
 		if err != nil {
 			s.logger.Error("Failed to close Body", zap.Error(err))
 		}
