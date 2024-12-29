@@ -46,8 +46,8 @@ func NewServer(logger *zap.Logger, config *rest.Config, rescaleDuration time.Dur
 	// Get Ops client
 	k8sUtil := k8shelper.NewOps(logger, config)
 	return &Server{
-		logger:          logger.Named("elastiServer"),
-		k8shelper:       k8sUtil,
+		logger:    logger.Named("elastiServer"),
+		k8shelper: k8sUtil,
 		// rescaleDuration is the duration to wait before checking to rescaling the target
 		rescaleDuration: rescaleDuration,
 	}
