@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"os"
+	"os/signal"
+	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
@@ -43,90 +46,117 @@ func NewServer(logger *zap.Logger, config *rest.Config, rescaleDuration time.Dur
 	// Get Ops client
 	k8sUtil := k8shelper.NewOps(logger, config)
 	return &Server{
-		logger:          logger.Named("elastiServer"),
-		k8shelper:       k8sUtil,
+		logger:    logger.Named("elastiServer"),
+		k8shelper: k8sUtil,
+		// rescaleDuration is the duration to wait before checking to rescaling the target
 		rescaleDuration: rescaleDuration,
 	}
 }
 
 // Start starts the ElastiServer and declares the endpoint and handlers for it
-func (s *Server) Start(port string) {
-	defer func() {
-		if rec := recover(); s != nil {
-			s.logger.Error("ElastiServer is recovering from panic", zap.Any("error", rec))
-			go s.Start(port)
-		}
-	}()
-
+func (s *Server) Start(port string) error {
+	mux := http.NewServeMux()
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})
-	http.Handle("/metrics", sentryHandler.Handle(promhttp.Handler()))
-	http.Handle("/informer/incoming-request", sentryHandler.HandleFunc(s.resolverReqHandler))
+	mux.Handle("/metrics", sentryHandler.Handle(promhttp.Handler()))
+	mux.Handle("/informer/incoming-request", sentryHandler.HandleFunc(s.resolverReqHandler))
 
 	server := &http.Server{
-		Addr:              port,
+		Addr:              fmt.Sprintf(":%s", strings.TrimPrefix(port, ":")),
+		Handler:           mux,
 		ReadHeaderTimeout: 2 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
 	}
 
+	// Graceful shutdown handling
+	done := make(chan bool)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-quit
+		s.logger.Info("Server is shutting down...")
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			s.logger.Error("Could not gracefully shutdown the server", zap.Error(err))
+		}
+		close(done)
+	}()
+
 	s.logger.Info("Starting ElastiServer", zap.String("port", port))
-	if err := server.ListenAndServe(); err != nil {
-		s.logger.Fatal("Failed to start StartElastiServer", zap.Error(err))
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		s.logger.Error("Failed to start ElastiServer", zap.Error(err))
+		return err
 	}
+
+	<-done
+	s.logger.Info("Server stopped")
+	return nil
 }
 
 func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 	defer func() {
-		if rec := recover(); rec != nil {
-			s.logger.Error("Recovered from panic", zap.Any("error", rec))
+		if err := req.Body.Close(); err != nil {
+			s.logger.Error("Failed to close request body", zap.Error(err))
 		}
 	}()
-	ctx := context.Background()
+
 	if req.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 	var body messages.RequestCount
 	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		s.logger.Error("Failed to decode request body", zap.Error(err))
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			s.logger.Error("Failed to close Body", zap.Error(err))
-		}
-	}(req.Body)
-	s.logger.Info("-- Received request from Resolver", zap.Any("body", body))
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+
+	s.logger.Info("Received request from Resolver", zap.Any("body", body))
+
 	response := Response{
 		Message: "Request received successfully!",
 	}
 	jsonResponse, err := json.Marshal(response)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.logger.Error("Failed to marshal response", zap.Error(err))
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	_, err = w.Write(jsonResponse)
-	if err != nil {
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if _, err = w.Write(jsonResponse); err != nil {
 		s.logger.Error("Failed to write response", zap.Error(err))
 		return
 	}
-	err = s.scaleTargetForService(ctx, body.Svc, body.Namespace)
-	if err != nil {
-		s.logger.Error("Failed to compare and scale target", zap.Error(err))
+
+	if err = s.scaleTargetForService(req.Context(), body.Svc, body.Namespace); err != nil {
+		s.logger.Error("Failed to scale target",
+			zap.Error(err),
+			zap.String("service", body.Svc),
+			zap.String("namespace", body.Namespace))
 		return
 	}
-	s.logger.Info("-- Received fulfilled from Resolver", zap.Any("body", body))
+
+	s.logger.Info("Request fulfilled successfully",
+		zap.String("service", body.Svc),
+		zap.String("namespace", body.Namespace))
 }
 
 func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace string) error {
 	scaleMutex, loaded := s.getMutexForServiceScale(serviceName)
 	if loaded {
+		s.logger.Debug("Scale target lock already exists", zap.String("service", serviceName))
 		return nil
 	}
 	scaleMutex.Lock()
-	defer s.logger.Debug("Scale target lock released")
-	s.logger.Debug("Scale target lock taken")
+	defer s.logger.Debug("Scale target lock released", zap.String("service", serviceName))
+	s.logger.Debug("Scale target lock taken", zap.String("service", serviceName))
 	crd, found := crddirectory.CRDDirectory.GetCRD(serviceName)
 	if !found {
 		s.releaseMutexForServiceScale(serviceName)
@@ -141,6 +171,7 @@ func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace
 	prom.TargetScaleCounter.WithLabelValues(serviceName, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, "success").Inc()
 
 	// If the target is scaled up, we will hold the lock for longer, to not scale up again
+	// TODO: Is there a better way to do this and why is it even needed?
 	time.AfterFunc(s.rescaleDuration, func() {
 		s.releaseMutexForServiceScale(serviceName)
 	})

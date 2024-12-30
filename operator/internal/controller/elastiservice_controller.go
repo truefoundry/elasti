@@ -29,7 +29,7 @@ type (
 		client.Client
 		Scheme             *kRuntime.Scheme
 		Logger             *zap.Logger
-		Informer           *informer.Manager
+		InformerManager    *informer.Manager
 		SwitchModeLocks    sync.Map
 		InformerStartLocks sync.Map
 		ReconcileLocks     sync.Map
@@ -64,7 +64,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	mutex.Lock()
 	defer r.Logger.Debug("- Out of Reconcile", zap.String("es", req.NamespacedName.String()))
 	defer mutex.Unlock()
-	start := time.Now()
+	startTime := time.Now()
 
 	defer func() {
 		e := values.Success
@@ -72,7 +72,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			e = err.Error()
 			sentry.CaptureException(err)
 		}
-		duration := time.Since(start).Seconds()
+		duration := time.Since(startTime).Seconds()
 		prom.CRDReconcileHistogram.WithLabelValues(req.String(), e).Observe(duration)
 	}()
 

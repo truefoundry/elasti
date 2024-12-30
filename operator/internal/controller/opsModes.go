@@ -83,7 +83,7 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.
 	r.Logger.Info("3. Created or updated endpointslice to resolver", zap.String("service", targetSVC.Name))
 
 	// Watch for changes in resolver deployment, and update the endpointslice since we are in proxy mode
-	if err := r.Informer.WatchDeployment(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req)); err != nil {
+	if err := r.InformerManager.WatchDeployment(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req)); err != nil {
 		return fmt.Errorf("failed to add watch on resolver deployment: %w", err)
 	}
 	r.Logger.Info("4. Added watch on resolver deployment", zap.String("deployment", resolverDeploymentName))
@@ -92,14 +92,16 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.
 }
 
 func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService) error {
+	// TODO: Why are we stopping the watch on resolver deployment if a service moves to serve mode?
+	// Seems we are creating multiple informers for the resolver deployment when only one would suffice
 	// Stop the watch on resolver deployment, since we are in serve mode
-	key := r.Informer.GetKey(informer.KeyParams{
+	key := r.InformerManager.GetKey(informer.KeyParams{
 		Namespace:    resolverNamespace,
 		CRDName:      req.Name,
 		ResourceName: resolverDeploymentName,
 		Resource:     values.KindDeployments,
 	})
-	err := r.Informer.StopInformer(key)
+	err := r.InformerManager.StopInformer(key)
 	if err != nil {
 		r.Logger.Error("Failed to stop watch on resolver deployment", zap.String("deployment", resolverDeploymentName), zap.Error(err))
 	}

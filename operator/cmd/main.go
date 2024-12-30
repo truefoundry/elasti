@@ -169,15 +169,16 @@ func mainWithError() error {
 
 	// Start the shared CRD Directory
 	crddirectory.INITDirectory(zapLogger)
-	// Initiate and start the shared Informer manager
-	Informer := informer.NewInformerManager(zapLogger, mgr.GetConfig())
-	Informer.Start()
+	// Initiate and start the shared informerManager manager
+	informerManager := informer.NewInformerManager(zapLogger, mgr.GetConfig())
+	informerManager.Start()
 
 	// Set up the ElastiService controller
 	if err = (&controller.ElastiServiceReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(), Logger: zapLogger,
-		Informer: Informer,
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		Logger:          zapLogger,
+		InformerManager: informerManager,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
 		sentry.CaptureException(err)
@@ -186,7 +187,21 @@ func mainWithError() error {
 
 	// Start the elasti server
 	eServer := elastiserver.NewServer(zapLogger, mgr.GetConfig(), 30*time.Second)
-	go eServer.Start(elastiServerPort)
+	errChan := make(chan error, 1)
+	go func() {
+		if err := eServer.Start(elastiServerPort); err != nil {
+			setupLog.Error(err, "elasti server failed to start")
+			sentry.CaptureException(err)
+			errChan <- fmt.Errorf("elasti server: %w", err)
+		}
+	}()
+
+	// Add error channel check before manager start
+	select {
+	case err := <-errChan:
+		return fmt.Errorf("main: %w", err)
+	default:
+	}
 
 	//+kubebuilder:scaffold:builder
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

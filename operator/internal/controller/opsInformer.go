@@ -40,7 +40,7 @@ func (r *ElastiServiceReconciler) getMutexKeyForTargetRef(req ctrl.Request) stri
 }
 
 func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) cache.ResourceEventHandlerFuncs {
-	key := r.Informer.GetKey(informer.KeyParams{
+	key := r.InformerManager.GetKey(informer.KeyParams{
 		Namespace:    resolverNamespace,
 		CRDName:      req.Name,
 		ResourceName: resolverDeploymentName,
@@ -84,7 +84,7 @@ func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, 
 }
 
 func (r *ElastiServiceReconciler) getPublicServiceChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) cache.ResourceEventHandlerFuncs {
-	key := r.Informer.GetKey(informer.KeyParams{
+	key := r.InformerManager.GetKey(informer.KeyParams{
 		Namespace:    resolverNamespace,
 		CRDName:      req.Name,
 		ResourceName: es.Spec.Service,
@@ -123,7 +123,7 @@ func (r *ElastiServiceReconciler) getPublicServiceChangeHandler(ctx context.Cont
 }
 
 func (r *ElastiServiceReconciler) getScaleTargetRefChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) cache.ResourceEventHandlerFuncs {
-	key := r.Informer.GetKey(informer.KeyParams{
+	key := r.InformerManager.GetKey(informer.KeyParams{
 		Namespace:    req.Namespace,
 		CRDName:      req.Name,
 		ResourceName: es.Spec.ScaleTargetRef.Kind,
