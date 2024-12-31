@@ -212,12 +212,12 @@ func mainWithError() error {
 }
 
 func leaderReadinessCheck(mgr ctrl.Manager) healthz.Checker {
-    return func(req *http.Request) error {
-        select {
-        case <-mgr.Elected():
-            return nil
-        default:
-            return fmt.Errorf("controller is not the leader yet")
-        }
-    }
+	return func(req *http.Request) error {
+		select {
+		case <-mgr.Elected():
+			return nil
+		default:
+			return fmt.Errorf("controller is not the leader yet")
+		}
+	}
 }
