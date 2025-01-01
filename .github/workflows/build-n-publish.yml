@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'main'
+      - 'update_sha_on_release'
 
 permissions:
   id-token: write
@@ -39,3 +40,12 @@ jobs:
       depot_token: ${{ secrets.DEPOT_API_KEY }}
       artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
       artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+  update-helm-chart:
+    name: Update Helm values.yaml
+    run: |
+      cd charts/elasti
+      yq -i '.elastiController.manager.image.tag = "${{ github.sha }}' values.yaml
+      yq -i '.elastiResolver.proxy.image.tag = "${{ github.sha }}' values.yaml
+      git add values.yaml
+      git commit -m "Update Helm values.yaml"
+      git push
