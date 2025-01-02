@@ -4,21 +4,20 @@ global:
   fullnameOverride: ""
   enableMonitoring: false
   secretName: elasti-secret
-
 elastiController:
   manager:
     args:
-    - --leader-elect
-    - --health-probe-bind-address=:8081
-    - --metrics-bind-address=0
+      - --leader-elect
+      - --health-probe-bind-address=:8081
+      - --metrics-bind-address=0
     containerSecurityContext:
       allowPrivilegeEscalation: false
       capabilities:
         drop:
-        - ALL
+          - ALL
     image:
       repository: tfy.jfrog.io/tfy-images/elasti-operator
-      tag: ef0f9db6490338edd35c83c7d1a9deaf3a764cdf
+      tag: 7f566a665d04390e390fe58d3cd9f4ec82fcebfe
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -39,7 +38,6 @@ elastiController:
   service:
     port: 8013
     type: ClusterIP
-
 elastiResolver:
   proxy:
     env:
@@ -55,7 +53,7 @@ elastiResolver:
       trafficReEnableDuration: "5"
     image:
       repository: tfy.jfrog.io/tfy-images/elasti-resolver
-      tag: ef0f9db6490338edd35c83c7d1a9deaf3a764cdf
+      tag: 7f566a665d04390e390fe58d3cd9f4ec82fcebfe
     imagePullPolicy: IfNotPresent
     resources:
       limits:
