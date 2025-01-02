@@ -210,7 +210,12 @@ func mainWithError() error {
 		sentry.CaptureException(err)
 		return fmt.Errorf("main: %w", err)
 	}
-	if err := mgr.AddReadyzCheck("readyz", leaderReadinessCheck(mgr)); err != nil {
+	// if err := mgr.AddReadyzCheck("readyz", leaderReadinessCheck(mgr)); err != nil {
+	// 	setupLog.Error(err, "unable to set up ready check")
+	// 	sentry.CaptureException(err)
+	// 	return fmt.Errorf("main: %w", err)
+	// }
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
 		sentry.CaptureException(err)
 		return fmt.Errorf("main: %w", err)
@@ -226,7 +231,7 @@ func mainWithError() error {
 	return nil
 }
 
-func leaderReadinessCheck(mgr ctrl.Manager) healthz.Checker {
+func _(mgr ctrl.Manager) healthz.Checker {
 	return func(req *http.Request) error {
 		select {
 		case <-mgr.Elected():
