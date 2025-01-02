@@ -54,10 +54,12 @@ jobs:
         with:
           fetch-depth: "0"
           ref: helm-main
+      - name: Fetch main branch
+        run: git fetch origin main:main
       - name: Sync charts from main
         run: |
           # Removing charts directory and copying fresh from main
-          git checkout pushing_to -- charts/
+          git checkout main -- charts/
       - name: Update Helm values.yaml
         run: |
           cd charts/elasti
