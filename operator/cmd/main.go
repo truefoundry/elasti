@@ -175,19 +175,20 @@ func mainWithError() error {
 	informerManager.Start()
 
 	// Set up the ElastiService controller
-	if err = (&controller.ElastiServiceReconciler{
+	reconciler := &controller.ElastiServiceReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
 		Logger:          zapLogger,
 		InformerManager: informerManager,
-	}).SetupWithManager(mgr); err != nil {
+	}
+	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
 		sentry.CaptureException(err)
 		return fmt.Errorf("main: %w", err)
 	}
 
 	// Start the elasti server
-	eServer := elastiserver.NewServer(zapLogger, mgr.GetConfig(), 30*time.Second)
+	eServer := elastiserver.NewServer(zapLogger, mgr.GetConfig(), 30*time.Second, reconciler)
 	errChan := make(chan error, 1)
 	go func() {
 		if err := eServer.Start(elastiServerPort); err != nil {
