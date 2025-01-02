@@ -53,8 +53,8 @@ jobs:
       - name: Update Helm values.yaml
         run: |
           cd charts/elasti
-          yq -i '.elastiController.manager.image.tag=${{ github.sha }}' values.yaml
-          yq -i '.elastiResolver.proxy.image.tag=${{ github.sha }}' values.yaml
+          yq -i '.elastiController.manager.image.tag="${{ github.sha }}"' values.yaml
+          yq -i '.elastiResolver.proxy.image.tag="${{ github.sha }}"' values.yaml
           git add values.yaml
           git commit -m "Update Helm values.yaml"
           git push
