@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - 'main'
-      - 'pushing_to'
 
 permissions:
   id-token: write
@@ -18,11 +17,9 @@ jobs:
       image_tag: ${{ github.sha }}
       image_artifact_name: 'elasti-operator'
       dockerfile_path: 'operator/Dockerfile'
-      # depot_project_id: ${{ vars.DEPOT_PROJECT_ID }}
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
     secrets:
-      # depot_token: ${{ secrets.DEPOT_API_KEY }}
       artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
       artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
 
@@ -33,11 +30,9 @@ jobs:
       image_tag: ${{ github.sha }}
       image_artifact_name: 'elasti-resolver'
       dockerfile_path: 'resolver/Dockerfile'
-      # depot_project_id: ${{ vars.DEPOT_PROJECT_ID }}
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
     secrets:
-      # depot_token: ${{ secrets.DEPOT_API_KEY }}
       artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
       artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
 
@@ -47,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    # needs: [build-operator, build-resolver]
+    needs: [build-operator, build-resolver]
     steps:
       - name: Checkout helm-main branch
         uses: actions/checkout@v4
@@ -59,6 +54,8 @@ jobs:
       - name: Sync charts from main
         run: |
           # Removing charts directory and copying fresh from main
+          git fetch origin main:main
+          rm -rf charts/
           git checkout main -- charts/
       - name: Update Helm values.yaml
         run: |
@@ -68,5 +65,5 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
           git add values.yaml
-          git commit -m "Update Helm values.yaml" --signoff
+          git commit -m "Update Helm values.yaml on helm-main branch with sha: ${{ github.sha }}" --signoff
           git push --force origin helm-main
