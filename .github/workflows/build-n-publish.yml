@@ -13,7 +13,7 @@ permissions:
 jobs:
   build-operator:
     name: Build and Push Operator Docker Images
-    uses: truefoundry/workflows/.github/workflows/build.yml@v0.2.4
+    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@v0.1.6
     with:
       image_tag: ${{ github.sha }}
       image_artifact_name: 'elasti-operator'
@@ -28,7 +28,7 @@ jobs:
 
   build-resolver:
     name: Build and Push Resolver Docker Images
-    uses: truefoundry/workflows/.github/workflows/build.yml@v0.2.4
+    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@v0.1.6
     with:
       image_tag: ${{ github.sha }}
       image_artifact_name: 'elasti-resolver'
@@ -40,6 +40,7 @@ jobs:
       depot_token: ${{ secrets.DEPOT_API_KEY }}
       artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
       artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+
   update-helm-chart:
     name: Update Helm values.yaml
     runs-on: ubuntu-latest
