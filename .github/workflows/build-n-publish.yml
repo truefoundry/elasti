@@ -57,8 +57,7 @@ jobs:
       - name: Sync charts from main
         run: |
           # Removing charts directory and copying fresh from main
-          rm -rf charts/
-          git checkout ${{ github.ref }} -- charts/
+          git checkout pushing_to -- charts/
       - name: Update Helm values.yaml
         run: |
           cd charts/elasti
