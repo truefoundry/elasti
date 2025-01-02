@@ -7,13 +7,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
 
@@ -43,11 +41,11 @@ type (
 		scaleLocks sync.Map
 		// rescaleDuration is the duration to wait before checking to rescaling the target
 		rescaleDuration time.Duration
-		reconciler      *reconcile.TypedReconciler[ctrl.Request]
+		reconciler      reconcile.Reconciler
 	}
 )
 
-func NewServer(logger *zap.Logger, config *rest.Config, rescaleDuration time.Duration, reconciler *reconcile.TypedReconciler[ctrl.Request]) *Server {
+func NewServer(logger *zap.Logger, config *rest.Config, rescaleDuration time.Duration, reconciler reconcile.Reconciler) *Server {
 	// Get Ops client
 	k8sUtil := k8shelper.NewOps(logger, config)
 	return &Server{
@@ -163,15 +161,22 @@ func (s *Server) scaleTargetForService(ctx context.Context, serviceName, namespa
 	scaleMutex.Lock()
 	defer s.logger.Debug("Scale target lock released", zap.String("service", serviceName))
 	s.logger.Debug("Scale target lock taken", zap.String("service", serviceName))
+
 	crd, found := crddirectory.CRDDirectory.GetCRD(serviceName)
 	if !found {
-		_, err := s.reconciler.Reconcile(ctx, ctrl.Request{
+		_, err := s.reconciler.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      serviceName,
 				Namespace: namespace,
 			},
 		})
 		if err != nil {
+			s.releaseMutexForServiceScale(serviceName)
+			return fmt.Errorf("scaleTargetForService - error: failed to get CRD details, serviceName: %s", serviceName)
+		}
+
+		crd, found = crddirectory.CRDDirectory.GetCRD(serviceName)
+		if !found {
 			s.releaseMutexForServiceScale(serviceName)
 			return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, serviceName: %s", serviceName)
 		}
