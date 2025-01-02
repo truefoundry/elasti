@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    needs: [build-operator, build-resolver]
+    # needs: [build-operator, build-resolver]
     steps:
       - name: Checkout helm-main branch
         uses: actions/checkout@v4
