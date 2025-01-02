@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
 	"sync"
 	"syscall"
@@ -18,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/prom"
 
@@ -164,6 +164,7 @@ func (s *Server) scaleTargetForService(ctx context.Context, serviceName, namespa
 
 	crd, found := crddirectory.CRDDirectory.GetCRD(serviceName)
 	if !found {
+		s.logger.Debug("Failed to get CRD details from directory, running reconcile")
 		_, err := s.reconciler.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      serviceName,
@@ -172,13 +173,13 @@ func (s *Server) scaleTargetForService(ctx context.Context, serviceName, namespa
 		})
 		if err != nil {
 			s.releaseMutexForServiceScale(serviceName)
-			return fmt.Errorf("scaleTargetForService - error: failed to get CRD details, serviceName: %s", serviceName)
+			return fmt.Errorf("scaleTargetForService - error: reconcile failed, serviceName: %s, %w", serviceName, err)
 		}
 
 		crd, found = crddirectory.CRDDirectory.GetCRD(serviceName)
 		if !found {
 			s.releaseMutexForServiceScale(serviceName)
-			return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, serviceName: %s", serviceName)
+			return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory even after reconcile, serviceName: %s", serviceName)
 		}
 	}
 
