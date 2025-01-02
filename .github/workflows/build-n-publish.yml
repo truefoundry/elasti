@@ -58,7 +58,7 @@ jobs:
         run: |
           # Removing charts directory and copying fresh from main
           rm -rf charts/
-          git checkout main -- charts/
+          git checkout ${{ github.ref }} -- charts/
       - name: Update Helm values.yaml
         run: |
           cd charts/elasti
