@@ -12,8 +12,12 @@ import (
 	"syscall"
 	"time"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
 	sentryhttp "github.com/getsentry/sentry-go/http"
 
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 
 	"truefoundry/elasti/operator/internal/crddirectory"
@@ -39,10 +43,11 @@ type (
 		scaleLocks sync.Map
 		// rescaleDuration is the duration to wait before checking to rescaling the target
 		rescaleDuration time.Duration
+		reconciler      *reconcile.TypedReconciler[ctrl.Request]
 	}
 )
 
-func NewServer(logger *zap.Logger, config *rest.Config, rescaleDuration time.Duration) *Server {
+func NewServer(logger *zap.Logger, config *rest.Config, rescaleDuration time.Duration, reconciler *reconcile.TypedReconciler[ctrl.Request]) *Server {
 	// Get Ops client
 	k8sUtil := k8shelper.NewOps(logger, config)
 	return &Server{
@@ -50,6 +55,7 @@ func NewServer(logger *zap.Logger, config *rest.Config, rescaleDuration time.Dur
 		k8shelper: k8sUtil,
 		// rescaleDuration is the duration to wait before checking to rescaling the target
 		rescaleDuration: rescaleDuration,
+		reconciler:      reconciler,
 	}
 }
 
@@ -148,7 +154,7 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 		zap.String("namespace", body.Namespace))
 }
 
-func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace string) error {
+func (s *Server) scaleTargetForService(ctx context.Context, serviceName, namespace string) error {
 	scaleMutex, loaded := s.getMutexForServiceScale(serviceName)
 	if loaded {
 		s.logger.Debug("Scale target lock already exists", zap.String("service", serviceName))
@@ -159,8 +165,16 @@ func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace
 	s.logger.Debug("Scale target lock taken", zap.String("service", serviceName))
 	crd, found := crddirectory.CRDDirectory.GetCRD(serviceName)
 	if !found {
-		s.releaseMutexForServiceScale(serviceName)
-		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, serviceName: %s", serviceName)
+		_, err := s.reconciler.Reconcile(ctx, ctrl.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      serviceName,
+				Namespace: namespace,
+			},
+		})
+		if err != nil {
+			s.releaseMutexForServiceScale(serviceName)
+			return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, serviceName: %s", serviceName)
+		}
 	}
 
 	if err := s.k8shelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {

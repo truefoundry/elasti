@@ -15,6 +15,7 @@ import (
 	"github.com/truefoundry/elasti/pkg/values"
 	"k8s.io/apimachinery/pkg/api/errors"
 	kRuntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -121,6 +122,16 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	})
 	r.Logger.Info("CRD added to service directory", zap.String("es", req.String()), zap.String("service", es.Spec.Service))
 	return res, nil
+}
+
+func (r *ElastiServiceReconciler) ForceReconcile(ctx context.Context, serviceName, namespace string) error {
+	r.Reconcile(ctx, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      serviceName,
+			Namespace: namespace,
+		},
+	})
+	return nil
 }
 
 func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
