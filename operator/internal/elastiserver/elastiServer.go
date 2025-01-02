@@ -17,9 +17,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/prom"
+
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/truefoundry/elasti/pkg/k8shelper"
