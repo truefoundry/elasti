@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'main'
+      - 'pushing_to'
 
 permissions:
   id-token: write
