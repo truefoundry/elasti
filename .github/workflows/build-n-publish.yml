@@ -44,6 +44,8 @@ jobs:
   update-helm-chart:
     name: Update Helm values.yaml
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     # needs: [build-operator, build-resolver]
     steps:
       - name: Checkout current branch
