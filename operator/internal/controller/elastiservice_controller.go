@@ -165,9 +165,7 @@ func (r *ElastiServiceReconciler) reconcileExistingCRDs(ctx context.Context) err
 			},
 		}
 
-		ctxWithValue := context.WithValue(ctx, "test", fmt.Sprintf("init %v", es.Name))
-
-		if _, err := r.Reconcile(ctxWithValue, req); err != nil {
+		if _, err := r.Reconcile(ctx, req); err != nil {
 			r.Logger.Error(
 				"Failed to reconcile existing ElastiService",
 				zap.String("name", es.Name),
