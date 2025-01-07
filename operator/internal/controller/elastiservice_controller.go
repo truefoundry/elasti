@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"k8s.io/apimachinery/pkg/types"
 
 	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/informer"
@@ -136,4 +137,54 @@ func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *ElastiServiceReconciler) getMutexForReconcile(key string) *sync.Mutex {
 	l, _ := r.ReconcileLocks.LoadOrStore(key, &sync.Mutex{})
 	return l.(*sync.Mutex)
+}
+
+func (r *ElastiServiceReconciler) Initialize(ctx context.Context) error {
+	if err := r.reconcileExistingCRDs(ctx); err != nil {
+		return fmt.Errorf("failed to reconcile existing CRDs: %w", err)
+	}
+	return nil
+}
+
+func (r *ElastiServiceReconciler) reconcileExistingCRDs(ctx context.Context) error {
+	crdList := &v1alpha1.ElastiServiceList{}
+	if err := r.List(ctx, crdList); err != nil {
+		return fmt.Errorf("failed to list ElastiServices: %w", err)
+	}
+
+	for _, es := range crdList.Items {
+		// Skip if being deleted
+		if !es.ObjectMeta.DeletionTimestamp.IsZero() {
+			continue
+		}
+
+		req := ctrl.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      es.Name,
+				Namespace: es.Namespace,
+			},
+		}
+
+		ctxWithValue := context.WithValue(ctx, "test", fmt.Sprintf("init %v", es.Name))
+
+		if _, err := r.Reconcile(ctxWithValue, req); err != nil {
+			r.Logger.Error(
+				"Failed to reconcile existing ElastiService",
+				zap.String("name", es.Name),
+				zap.String("namespace", es.Namespace),
+				zap.Error(err),
+			)
+			continue
+		}
+
+		r.Logger.Info(
+			"Reconciled existing ElastiService",
+			zap.String("name", es.Name),
+			zap.String("namespace", es.Namespace),
+		)
+	}
+
+	r.Logger.Info("Successfully reconciled all existing ElastiServices")
+
+	return nil
 }
