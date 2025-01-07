@@ -151,10 +151,12 @@ func (r *ElastiServiceReconciler) reconcileExistingCRDs(ctx context.Context) err
 	if err := r.List(ctx, crdList); err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
 	}
+	count := 0
 
 	for _, es := range crdList.Items {
 		// Skip if being deleted
 		if !es.ObjectMeta.DeletionTimestamp.IsZero() {
+			r.Logger.Debug("Skipping ElastiService because it is being deleted", zap.String("name", es.Name), zap.String("namespace", es.Namespace))
 			continue
 		}
 
@@ -174,7 +176,7 @@ func (r *ElastiServiceReconciler) reconcileExistingCRDs(ctx context.Context) err
 			)
 			continue
 		}
-
+		count++
 		r.Logger.Info(
 			"Reconciled existing ElastiService",
 			zap.String("name", es.Name),
@@ -182,7 +184,7 @@ func (r *ElastiServiceReconciler) reconcileExistingCRDs(ctx context.Context) err
 		)
 	}
 
-	r.Logger.Info("Successfully reconciled all existing ElastiServices")
+	r.Logger.Info("Successfully reconciled all existing ElastiServices", zap.Int("count", count))
 
 	return nil
 }

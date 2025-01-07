@@ -220,6 +220,7 @@ func mainWithError() error {
 
 	setupLog.Info("starting manager")
 	mgrErrChan := make(chan error, 1)
+	// we are using a goroutine to start the manager because we don't want to block the main thread
 	go func() {
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 			setupLog.Error(err, "problem running manager")
