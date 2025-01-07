@@ -271,7 +271,7 @@ func (m *Manager) enableInformer(req *RequestWatch) error {
 	})
 
 	// Wait for the cache to syncß
-	if !cache.WaitForCacheSync(ctx.Done(), informer.HasSynced) {
+	if !cache.WaitForCacheSync(informerStop, informer.HasSynced) {
 		m.logger.Error("Failed to sync informer", zap.String("key", key))
 		return errors.New("failed to sync informer")
 	}

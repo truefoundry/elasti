@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -175,12 +176,13 @@ func mainWithError() error {
 	informerManager.Start()
 
 	// Set up the ElastiService controller
-	if err = (&controller.ElastiServiceReconciler{
+	reconciler := &controller.ElastiServiceReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
 		Logger:          zapLogger,
 		InformerManager: informerManager,
-	}).SetupWithManager(mgr); err != nil {
+	}
+	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
 		sentry.CaptureException(err)
 		return fmt.Errorf("main: %w", err)
@@ -222,9 +224,27 @@ func mainWithError() error {
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		sentry.CaptureException(err)
+	mgrErrChan := make(chan error, 1)
+	// we are using a goroutine to start the manager because we don't want to block the main thread
+	go func() {
+		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+			setupLog.Error(err, "problem running manager")
+			mgrErrChan <- fmt.Errorf("manager: %w", err)
+		}
+	}()
+
+	// Wait for cache to sync
+	if !mgr.GetCache().WaitForCacheSync(context.Background()) {
+		return fmt.Errorf("failed to sync cache")
+	}
+
+	if err = reconciler.Initialize(context.Background()); err != nil {
+		setupLog.Error(err, "unable to initialize controller")
+		return fmt.Errorf("main: %w", err)
+	}
+	setupLog.Info("initialized controller")
+
+	if err := <-mgrErrChan; err != nil {
 		return fmt.Errorf("main: %w", err)
 	}
 
