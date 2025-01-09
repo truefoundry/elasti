@@ -101,5 +101,10 @@ func parseStackTrace(stack string) (*sentry.Stacktrace, error) {
 		frames = append(frames, frame)
 	}
 
+	// Reverse the order of the frames for sentry to display them in the correct order
+	for i, j := 0, len(frames)-1; i < j; i, j = i+1, j-1 {
+		frames[i], frames[j] = frames[j], frames[i]
+	}
+
 	return &sentry.Stacktrace{Frames: frames}, nil
 }
