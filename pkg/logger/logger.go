@@ -2,41 +2,104 @@ package logger
 
 import (
 	"fmt"
-	"github.com/getsentry/sentry-go"
-	"os"
+	"strconv"
+	"strings"
 
+	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 func NewLogger(env string, sentryEnabled bool) (*zap.Logger, error) {
-	var logger *zap.Logger
+	var config zap.Config
 
 	if env == "prod" {
-		var err error
-		logger, err = zap.NewProduction()
-		if err != nil {
-			return nil, fmt.Errorf("failed to create logger: %w", err)
-		}
-	} else {
-		encoderConfig := zap.NewDevelopmentEncoderConfig()
-		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		encoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
-		encoderConfig.EncodeDuration = zapcore.StringDurationEncoder
-		consoleEncoder := zapcore.NewConsoleEncoder(encoderConfig)
+		encoderCfg := zap.NewProductionEncoderConfig()
+		encoderCfg.TimeKey = "timestamp"
+		encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
-		core := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel)
-		logger = zap.New(core)
+		config = zap.NewProductionConfig()
+		config.EncoderConfig = encoderCfg
+	} else {
+		encoderCfg := zap.NewDevelopmentEncoderConfig()
+		encoderCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+		encoderCfg.EncodeDuration = zapcore.StringDurationEncoder
+		encoderCfg.StacktraceKey = "" // removes stack trace from error logs
+
+		config = zap.Config{
+			Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
+			Development:      true,
+			Encoding:         "console",
+			EncoderConfig:    encoderCfg,
+			OutputPaths:      []string{"stdout"},
+			ErrorOutputPaths: []string{"stderr"},
+		}
+	}
+
+	logger, err := config.Build()
+	if err != nil {
+		return nil, fmt.Errorf("error creating logger: %w", err)
 	}
 
 	if sentryEnabled {
 		logger = logger.WithOptions(zap.Hooks(func(entry zapcore.Entry) error {
-			if entry.Level == zapcore.ErrorLevel {
-				sentry.CaptureMessage(entry.Message)
+			if entry.Level >= zapcore.ErrorLevel {
+				event := &sentry.Event{
+					Message:   entry.Message,
+					Level:     sentry.LevelError,
+					Timestamp: entry.Time,
+				}
+
+				if entry.Stack != "" {
+					stackTrace, err := parseStackTrace(entry.Stack)
+					if err != nil {
+						return err
+					}
+					event.Exception = []sentry.Exception{
+						{
+							Value:      entry.Message,
+							Type:       "error",
+							Stacktrace: stackTrace,
+						},
+					}
+				}
+
+				sentry.CaptureEvent(event)
 			}
 			return nil
 		}))
 	}
 
 	return logger, nil
+}
+
+func parseStackTrace(stack string) (*sentry.Stacktrace, error) {
+	var frames []sentry.Frame
+	lines := strings.Split(stack, "\n")
+
+	for i := 0; i < len(lines); i += 2 {
+		funcName := strings.TrimSpace(lines[i])
+		fileName := strings.TrimSpace(lines[i+1])
+
+		parts := strings.Split(fileName, ":")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid stack trace line: %s", fileName)
+		}
+
+		lineNumber, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, fmt.Errorf("invalid stack trace line: %s", fileName)
+		}
+
+		frame := sentry.Frame{
+			Function: funcName,
+			Filename: parts[0],
+			Lineno:   lineNumber,
+		}
+
+		frames = append(frames, frame)
+	}
+
+	return &sentry.Stacktrace{Frames: frames}, nil
 }
