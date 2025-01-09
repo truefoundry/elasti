@@ -84,7 +84,7 @@ func mainWithError() error {
 		fmt.Println("Initializing Sentry")
 		if err := sentry.Init(sentry.ClientOptions{
 			Dsn:              sentryDsn,
-			EnableTracing:    true,
+			EnableTracing:    false,
 			TracesSampleRate: 1.0,
 			Environment:      os.Getenv("SENTRY_ENVIRONMENT"),
 		}); err != nil {

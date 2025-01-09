@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/getsentry/sentry-go"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/getsentry/sentry-go"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
 
@@ -50,7 +51,7 @@ type config struct {
 
 const (
 	reverseProxyPort = ":8012"
-	internalPort = ":8013"
+	internalPort     = ":8013"
 )
 
 func main() {
@@ -65,7 +66,7 @@ func main() {
 		fmt.Println("Initializing Sentry")
 		if err := sentry.Init(sentry.ClientOptions{
 			Dsn:              env.SentryDsn,
-			EnableTracing:    true,
+			EnableTracing:    false,
 			TracesSampleRate: 1.0,
 			Environment:      env.SentryEnv,
 		}); err != nil {
@@ -116,15 +117,15 @@ func main() {
 	reverseProxyServerMux := http.NewServeMux()
 	reverseProxyServerMux.Handle("/", sentryHandler.HandleFunc(requestHandler.ServeHTTP))
 	reverseProxyServer := &http.Server{
-		Addr:         reverseProxyPort,
-		Handler:      reverseProxyServerMux,
-		ReadHeaderTimeout:  5 * time.Second,
+		Addr:              reverseProxyPort,
+		Handler:           reverseProxyServerMux,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 	logger.Info("Reverse Proxy Server starting at ", zap.String("port", reverseProxyPort))
-	go func(){
+	go func() {
 		if err := reverseProxyServer.ListenAndServe(); err != nil {
 			logger.Fatal("ListenAndServe Failed: ", zap.Error(err))
-		}	
+		}
 	}()
 
 	// Handle all the incoming internal request like from prometheus that are not related to the reverse proxy
@@ -132,9 +133,9 @@ func main() {
 	internalServeMux.Handle("/metrics", promhttp.Handler())
 	internalServeMux.Handle("/queue-status", sentryHandler.HandleFunc(requestHandler.GetQueueStatus))
 	internalServer := &http.Server{
-		Addr:         internalPort,
-		Handler:      internalServeMux,
-		ReadHeaderTimeout:  2 * time.Second,
+		Addr:              internalPort,
+		Handler:           internalServeMux,
+		ReadHeaderTimeout: 2 * time.Second,
 	}
 	logger.Info("Internal Server starting at ", zap.String("port", internalPort))
 	if err := internalServer.ListenAndServe(); err != nil {
