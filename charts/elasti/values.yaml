@@ -49,7 +49,7 @@ elastiResolver:
       operatorRetryDuration: "10"
       queueRetryDuration: "3"
       queueSize: "50000"
-      reqTimeout: "120"
+      reqTimeout: "360"
       trafficReEnableDuration: "5"
     image:
       repository: tfy.jfrog.io/tfy-images/elasti-resolver
