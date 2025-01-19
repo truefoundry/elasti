@@ -1,6 +1,6 @@
 # Challengs
 
-- resolver Switching Traffic using Knative Code
+- resolver Switching Traffic
 - Identify services based on the label using custom CRDs
 - resolver scaling 0 -> 1
 - KEDA and resolver Communication
@@ -49,7 +49,7 @@
   - How long to hold the request in the resolver, timeout. 
 - Create a queue for the requests. 
 - APIs to take the incoming request, and the kind of request we can take in. 
-- Switch the destination in VirtualService to the point between resolver and the actual service. Utilise Knative code to make the resolver behave like a proxy. 
+- Switch the destination in VirtualService to the point between resolver and the actual service
 
 
 | We can later decide to move out some responsibilities from resolver to Controller, like watching the traffic and switching the traffic.  
