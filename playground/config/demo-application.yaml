@@ -8,6 +8,7 @@ kind: Service
 metadata:
   name: httpbin
 spec:
+  type: ClusterIP
   selector:
     app: httpbin
   ports:
@@ -20,7 +21,7 @@ kind: Deployment
 metadata:
   name: httpbin
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: httpbin
@@ -33,13 +34,5 @@ spec:
       containers:
         - name: httpbin
           image: kennethreitz/httpbin
-          resources:
-            limits:
-              cpu: "200m"
-              memory: "512Mi"
-            requests:
-              cpu: "100m"
-              memory: "256Mi"
           ports:
             - containerPort: 80
-

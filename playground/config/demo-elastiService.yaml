@@ -1,9 +1,6 @@
 apiVersion: elasti.truefoundry.com/v1alpha1
 kind: ElastiService
 metadata:
-  labels:
-    app.kubernetes.io/name: elasti-operator
-    app.kubernetes.io/managed-by: kustomize
   name: httpbin
 spec:
   service: httpbin
@@ -12,4 +9,3 @@ spec:
     apiVersion: apps/v1
     kind: Deployments
     name: httpbin
-
