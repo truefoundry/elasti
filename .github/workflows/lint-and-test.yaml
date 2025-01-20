@@ -47,5 +47,5 @@ jobs:
           args: -v --timeout 5m
       - name: test ${{ matrix.modules }}
         # run: cd ${{ matrix.modules }} && make test
-        run: go test -v ${{ matrix.modules }}
+        run: cd ${{ matrix.modules }} && go test -v ./...
   
