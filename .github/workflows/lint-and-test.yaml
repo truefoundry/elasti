@@ -46,6 +46,6 @@ jobs:
           working-directory: ${{ matrix.modules }}
           args: -v --timeout 5m
       
-      - name: test
-        run: make test
+      - name: test ${{ matrix.modules }}
+        run: cd ${{ matrix.modules }} && make test
   
