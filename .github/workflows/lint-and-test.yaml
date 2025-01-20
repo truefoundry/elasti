@@ -47,7 +47,6 @@ jobs:
           args: -v --timeout 5m
   
   test:
-    needs: golangci-lint
     runs-on: ubuntu-latest
     steps:
       - name: test
