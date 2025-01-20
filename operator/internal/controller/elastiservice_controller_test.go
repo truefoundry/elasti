@@ -42,14 +42,14 @@ var _ = Describe("ElastiService Controller", func() {
 	Context("When reconciling an elastiservice", func() {
 		const (
 			resourceName = "test-elasti-service"
-			namespace    = "elasti"
+			namespace    = "elasti-test"
 		)
 
 		ctx := context.Background()
 
 		namespacedName := types.NamespacedName{
 			Name:      resourceName,
-			Namespace: namespace,
+			Namespace: namespaceName,
 		}
 		elastiservice := &elastiv1alpha1.ElastiService{}
 		deployment := &v1.Deployment{}
@@ -198,6 +198,7 @@ var _ = Describe("ElastiService Controller", func() {
 				InformerStartLocks: sync.Map{},
 				ReconcileLocks:     sync.Map{},
 			}
+			Expect(controllerReconciler.Initialize(ctx)).To(Succeed())
 			Expect(controllerReconciler.SetupWithManager(mgr)).To(Succeed())
 			By("getting the deployment")
 			Expect(k8sClient.Get(ctx, namespacedName, deployment)).To(Succeed())

@@ -41,11 +41,11 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
+var namespaceName = "elasti-test"
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
-
-	RunSpecs(t, "Controller Suite")
+	RunSpecs(t, "Controller Suite", Label("controller"))
 }
 
 var _ = BeforeSuite(func() {
@@ -75,7 +75,7 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).NotTo(BeNil())
 	err = k8sClient.Create(context.Background(), &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "elasti",
+			Name: namespaceName,
 		},
 	})
 	Expect(err).NotTo(HaveOccurred())
