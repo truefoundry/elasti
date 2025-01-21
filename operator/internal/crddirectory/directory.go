@@ -22,7 +22,7 @@ var CRDDirectory *Directory
 
 var directoryMutexOnce sync.Once
 
-func INITDirectory(logger *zap.Logger) {
+func InitDirectory(logger *zap.Logger) {
 	directoryMutexOnce.Do(func() {
 		CRDDirectory = &Directory{
 			Logger: logger.Named("CRDDirectory"),
@@ -30,19 +30,19 @@ func INITDirectory(logger *zap.Logger) {
 	})
 }
 
-func (d *Directory) AddCRD(serviceName string, crdDetails *CRDDetails) {
-	d.Services.Store(serviceName, crdDetails)
+func AddCRD(serviceName string, crdDetails *CRDDetails) {
+	CRDDirectory.Services.Store(serviceName, crdDetails)
 }
 
-func (d *Directory) RemoveCRD(serviceName string) {
-	d.Services.Delete(serviceName)
+func RemoveCRD(serviceName string) {
+	CRDDirectory.Services.Delete(serviceName)
 }
 
-func (d *Directory) GetCRD(serviceName string) (*CRDDetails, bool) {
-	value, ok := d.Services.Load(serviceName)
+func GetCRD(serviceName string) (*CRDDetails, bool) {
+	value, ok := CRDDirectory.Services.Load(serviceName)
 	if !ok {
 		return nil, false
 	}
-	d.Logger.Info("Service found in directory", zap.String("service", serviceName))
+	CRDDirectory.Logger.Info("Service found in directory", zap.String("service", serviceName))
 	return value.(*CRDDetails), true
 }

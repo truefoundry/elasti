@@ -170,7 +170,7 @@ func mainWithError() error {
 	}
 
 	// Start the shared CRD Directory
-	crddirectory.INITDirectory(zapLogger)
+	crddirectory.InitDirectory(zapLogger)
 	// Initiate and start the shared informerManager manager
 	informerManager := informer.NewInformerManager(zapLogger, mgr.GetConfig())
 	informerManager.Start()
@@ -247,8 +247,6 @@ func mainWithError() error {
 	if err := <-mgrErrChan; err != nil {
 		return fmt.Errorf("main: %w", err)
 	}
-
-	informerManager.Stop()
 
 	return nil
 }
