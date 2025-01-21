@@ -174,6 +174,7 @@ func mainWithError() error {
 	// Initiate and start the shared informerManager manager
 	informerManager := informer.NewInformerManager(zapLogger, mgr.GetConfig())
 	informerManager.Start()
+	defer informerManager.Stop()
 
 	// Set up the ElastiService controller
 	reconciler := &controller.ElastiServiceReconciler{
