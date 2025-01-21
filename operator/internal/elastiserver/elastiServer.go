@@ -161,7 +161,7 @@ func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace
 	defer s.logger.Debug("Scale target lock released", zap.String("service", namespacedName))
 	s.logger.Debug("Scale target lock taken", zap.String("service", namespacedName))
 
-	crd, found := crddirectory.CRDDirectory.GetCRD(namespacedName)
+	crd, found := crddirectory.GetCRD(namespacedName)
 	if !found {
 		s.releaseMutexForServiceScale(namespacedName)
 		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, namespacedName: %s", namespacedName)
