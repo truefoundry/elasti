@@ -248,6 +248,8 @@ func mainWithError() error {
 		return fmt.Errorf("main: %w", err)
 	}
 
+	informerManager.Stop()
+
 	return nil
 }
 
