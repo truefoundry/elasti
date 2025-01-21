@@ -31,14 +31,23 @@ func InitDirectory(logger *zap.Logger) {
 }
 
 func AddCRD(serviceName string, crdDetails *CRDDetails) {
+	if CRDDirectory == nil {
+		panic("CRDDirectory not initialized")
+	}
 	CRDDirectory.Services.Store(serviceName, crdDetails)
 }
 
 func RemoveCRD(serviceName string) {
+	if CRDDirectory == nil {
+		panic("CRDDirectory not initialized")
+	}
 	CRDDirectory.Services.Delete(serviceName)
 }
 
 func GetCRD(serviceName string) (*CRDDetails, bool) {
+	if CRDDirectory == nil {
+		panic("CRDDirectory not initialized")
+	}
 	value, ok := CRDDirectory.Services.Load(serviceName)
 	if !ok {
 		return nil, false
