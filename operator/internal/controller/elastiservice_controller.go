@@ -116,7 +116,8 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// We add the CRD details to service directory, so when elasti server received a request,
 	// we can find the right resource to scale up
-	crddirectory.AddCRD(req.NamespacedName.String(), &crddirectory.CRDDetails{
+	svcNamespacedName := types.NamespacedName{Name: es.Spec.Service, Namespace: es.Namespace}
+	crddirectory.AddCRD(svcNamespacedName.String(), &crddirectory.CRDDetails{
 		CRDName: es.Name,
 		Spec:    es.Spec,
 	})

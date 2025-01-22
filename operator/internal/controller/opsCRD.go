@@ -128,7 +128,8 @@ func (r *ElastiServiceReconciler) watchScaleTargetRef(ctx context.Context, es *v
 		return fmt.Errorf("scaleTargetRef is incomplete: %w", k8shelper.ErrNoScaleTargetFound)
 	}
 
-	crd, found := crddirectory.GetCRD(req.NamespacedName.String())
+	svcNamespacedName := types.NamespacedName{Name: es.Spec.Service, Namespace: es.Namespace}
+	crd, found := crddirectory.GetCRD(svcNamespacedName.String())
 	if found {
 		if es.Spec.ScaleTargetRef.Name != crd.Spec.ScaleTargetRef.Name ||
 			es.Spec.ScaleTargetRef.Kind != crd.Spec.ScaleTargetRef.Kind ||
