@@ -38,36 +38,19 @@ func (r *ElastiServiceReconciler) getMutexKeyForPublicSVC(req ctrl.Request) stri
 func (r *ElastiServiceReconciler) getMutexKeyForTargetRef(req ctrl.Request) string {
 	return req.String() + lockKeyPostfixForTargetRef
 }
-
-func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) cache.ResourceEventHandlerFuncs {
-	key := r.InformerManager.GetKey(informer.KeyParams{
-		Namespace:    resolverNamespace,
-		CRDName:      req.Name,
-		ResourceName: resolverDeploymentName,
-		Resource:     values.KindDeployments,
-	})
+func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context) cache.ResourceEventHandlerFuncs {
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			errStr := values.Success
-			err := r.handleResolverChanges(ctx, obj, es.Spec.Service, req.Namespace)
+			err := r.handleResolverChanges(ctx, obj)
 			if err != nil {
-				errStr = err.Error()
 				r.Logger.Error("Failed to handle resolver changes", zap.Error(err))
-			} else {
-				r.Logger.Info("Resolver deployment added", zap.String("deployment_name", resolverDeploymentName), zap.String("es", req.String()))
 			}
-			prom.InformerHandlerCounter.WithLabelValues(req.String(), key, errStr).Inc()
 		},
 		UpdateFunc: func(_, newObj interface{}) {
-			errStr := values.Success
-			err := r.handleResolverChanges(ctx, newObj, es.Spec.Service, req.Namespace)
+			err := r.handleResolverChanges(ctx, newObj)
 			if err != nil {
-				errStr = err.Error()
 				r.Logger.Error("Failed to handle resolver changes", zap.Error(err))
-			} else {
-				r.Logger.Info("Resolver deployment updated", zap.String("deployment_name", resolverDeploymentName), zap.String("es", req.String()))
 			}
-			prom.InformerHandlerCounter.WithLabelValues(req.String(), key, errStr).Inc()
 		},
 		DeleteFunc: func(_ interface{}) {
 			// TODO: Handle deletion of resolver deployment
@@ -78,7 +61,7 @@ func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context, 
 			//
 			// Another situation is, if the resolver has some issues, and is restarting.
 			// In that case, we can wait for the resolver to come back up, and in the meanwhile, we can move to the serve mode
-			r.Logger.Debug("Resolver deployment deleted", zap.String("deployment_name", resolverDeploymentName), zap.String("es", req.String()))
+			r.Logger.Warn("Resolver deployment deleted", zap.String("deployment_name", resolverDeploymentName))
 		},
 	}
 }

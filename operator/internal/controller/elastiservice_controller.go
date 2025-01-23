@@ -40,6 +40,7 @@ type (
 const (
 
 	// These are resolver details, ideally in future we can move this to a configmap, or find a better way to serve this
+	// TODO: Move this to configmap
 	resolverNamespace      = "elasti"
 	resolverDeploymentName = "elasti-resolver"
 	resolverServiceName    = "elasti-resolver-service"
@@ -120,6 +121,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	crddirectory.AddCRD(svcNamespacedName.String(), &crddirectory.CRDDetails{
 		CRDName: es.Name,
 		Spec:    es.Spec,
+		Status:  es.Status,
 	})
 	r.Logger.Info("CRD added to service directory", zap.String("es", req.String()), zap.String("service", es.Spec.Service))
 	return res, nil
@@ -143,6 +145,9 @@ func (r *ElastiServiceReconciler) getMutexForReconcile(key string) *sync.Mutex {
 func (r *ElastiServiceReconciler) Initialize(ctx context.Context) error {
 	if err := r.reconcileExistingCRDs(ctx); err != nil {
 		return fmt.Errorf("failed to reconcile existing CRDs: %w", err)
+	}
+	if err := r.InformerManager.InitializeResolverInformer(r.getResolverChangeHandler(context.Background())); err != nil {
+		return fmt.Errorf("failed to initialize resolver informer: %w", err)
 	}
 	return nil
 }

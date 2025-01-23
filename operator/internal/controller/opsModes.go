@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"truefoundry/elasti/operator/api/v1alpha1"
-	"truefoundry/elasti/operator/internal/informer"
 
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
@@ -39,7 +38,7 @@ func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Reque
 	defer r.updateCRDStatus(ctx, req.NamespacedName, mode)
 	switch mode {
 	case values.ServeMode:
-		if err = r.enableServeMode(ctx, req, es); err != nil {
+		if err = r.enableServeMode(ctx, es); err != nil {
 			r.Logger.Error("Failed to enable SERVE mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
 			return err
 		}
@@ -82,31 +81,10 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.
 	}
 	r.Logger.Info("3. Created or updated endpointslice to resolver", zap.String("service", targetSVC.Name))
 
-	// Watch for changes in resolver deployment, and update the endpointslice since we are in proxy mode
-	if err := r.InformerManager.WatchDeployment(req, resolverDeploymentName, resolverNamespace, r.getResolverChangeHandler(ctx, es, req)); err != nil {
-		return fmt.Errorf("failed to add watch on resolver deployment: %w", err)
-	}
-	r.Logger.Info("4. Added watch on resolver deployment", zap.String("deployment", resolverDeploymentName))
-
 	return nil
 }
 
-func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService) error {
-	// TODO: Why are we stopping the watch on resolver deployment if a service moves to serve mode?
-	// Seems we are creating multiple informers for the resolver deployment when only one would suffice
-	// Stop the watch on resolver deployment, since we are in serve mode
-	key := r.InformerManager.GetKey(informer.KeyParams{
-		Namespace:    resolverNamespace,
-		CRDName:      req.Name,
-		ResourceName: resolverDeploymentName,
-		Resource:     values.KindDeployments,
-	})
-	err := r.InformerManager.StopInformer(key)
-	if err != nil {
-		r.Logger.Error("Failed to stop watch on resolver deployment", zap.String("deployment", resolverDeploymentName), zap.Error(err))
-	}
-	r.Logger.Info("1. Stopped watch on resolver deployment", zap.String("deployment", resolverDeploymentName))
-
+func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, es *v1alpha1.ElastiService) error {
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
@@ -114,6 +92,6 @@ func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, req ctrl.
 	if err := r.deleteEndpointsliceToResolver(ctx, targetNamespacedName); err != nil {
 		return fmt.Errorf("failed to delete endpointslice to resolver: %w", err)
 	}
-	r.Logger.Info("2. Deleted endpointslice to resolver", zap.String("service", targetNamespacedName.String()))
+	r.Logger.Info("1. Deleted endpointslice to resolver", zap.String("service", targetNamespacedName.String()))
 	return nil
 }
