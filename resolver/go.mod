@@ -3,7 +3,7 @@ module github.com/truefoundry/elasti/resolver
 go 1.22.3
 
 require (
-	github.com/getsentry/sentry-go v0.30.0
+	github.com/getsentry/sentry-go v0.31.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/truefoundry/elasti/pkg v0.0.0
