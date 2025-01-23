@@ -110,7 +110,12 @@ func (m *Manager) InitializeResolverInformer(handlers cache.ResourceEventHandler
 		&unstructured.Unstructured{},
 		m.resyncPeriod,
 	)
-	m.resolver.Informer.AddEventHandler(handlers)
+
+	_, err := m.resolver.Informer.AddEventHandler(handlers)
+	if err != nil {
+		m.logger.Error("Failed to add event handler", zap.Error(err))
+		return fmt.Errorf("failed to add event handler: %w", err)
+	}
 
 	m.resolver.StopCh = make(chan struct{})
 	go m.resolver.Informer.Run(m.resolver.StopCh)
