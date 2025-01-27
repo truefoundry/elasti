@@ -16,6 +16,7 @@ type Directory struct {
 type CRDDetails struct {
 	CRDName string
 	Spec    v1alpha1.ElastiServiceSpec
+	Status  v1alpha1.ElastiServiceStatus
 }
 
 var CRDDirectory *Directory

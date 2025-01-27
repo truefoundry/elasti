@@ -28,6 +28,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+const (
+	// TODO: Move to configMap
+	resolverNamespace      = "elasti"
+	resolverDeploymentName = "elasti-resolver"
+	resolverServiceName    = "elasti-resolver-service"
+	resolverPort           = 8012
+)
+
 type (
 	// Manager helps manage lifecycle of informer
 	Manager struct {
@@ -35,6 +43,7 @@ type (
 		dynamicClient       *dynamic.DynamicClient
 		logger              *zap.Logger
 		informers           sync.Map
+		resolver            info
 		resyncPeriod        time.Duration
 		healthCheckDuration time.Duration
 		healthCheckStopChan chan struct{}
@@ -76,6 +85,47 @@ func NewInformerManager(logger *zap.Logger, kConfig *rest.Config) *Manager {
 		healthCheckDuration: 5 * time.Second,
 		healthCheckStopChan: make(chan struct{}),
 	}
+}
+
+func (m *Manager) InitializeResolverInformer(handlers cache.ResourceEventHandlerFuncs) error {
+	deploymentGVR := schema.GroupVersionResource{
+		Group:    "apps",
+		Version:  "v1",
+		Resource: "deployments",
+	}
+
+	m.resolver.Informer = cache.NewSharedInformer(
+		&cache.ListWatch{
+			ListFunc: func(_ metav1.ListOptions) (kRuntime.Object, error) {
+				return m.dynamicClient.Resource(deploymentGVR).Namespace(resolverNamespace).List(context.Background(), metav1.ListOptions{
+					FieldSelector: "metadata.name=" + resolverDeploymentName,
+				})
+			},
+			WatchFunc: func(_ metav1.ListOptions) (watch.Interface, error) {
+				return m.dynamicClient.Resource(deploymentGVR).Namespace(resolverNamespace).Watch(context.Background(), metav1.ListOptions{
+					FieldSelector: "metadata.name=" + resolverDeploymentName,
+				})
+			},
+		},
+		&unstructured.Unstructured{},
+		m.resyncPeriod,
+	)
+
+	_, err := m.resolver.Informer.AddEventHandler(handlers)
+	if err != nil {
+		m.logger.Error("Failed to add event handler", zap.Error(err))
+		return fmt.Errorf("failed to add event handler: %w", err)
+	}
+
+	m.resolver.StopCh = make(chan struct{})
+	go m.resolver.Informer.Run(m.resolver.StopCh)
+
+	if !cache.WaitForCacheSync(m.resolver.StopCh, m.resolver.Informer.HasSynced) {
+		m.logger.Error("Failed to sync informer", zap.String("key", m.getKeyFromRequestWatch(m.resolver.Req)))
+		return errors.New("failed to sync resolver informer")
+	}
+	m.logger.Info("Resolver informer started")
+	return nil
 }
 
 // Start is to initiate a health check on all the running informers
