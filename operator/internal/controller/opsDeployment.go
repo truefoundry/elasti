@@ -67,7 +67,7 @@ func (r *ElastiServiceReconciler) handleResolverChanges(ctx context.Context, obj
 
 		targetService := &v1.Service{}
 		if err := r.Get(ctx, namespacedName, targetService); err != nil {
-			r.Logger.Error("Failed to get service to update EndpointSlice", zap.Error(err))
+			r.Logger.Warn("Failed to get service to update EndpointSlice", zap.Error(err))
 			return true
 		}
 
