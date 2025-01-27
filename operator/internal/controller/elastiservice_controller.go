@@ -146,7 +146,7 @@ func (r *ElastiServiceReconciler) Initialize(ctx context.Context) error {
 	if err := r.reconcileExistingCRDs(ctx); err != nil {
 		return fmt.Errorf("failed to reconcile existing CRDs: %w", err)
 	}
-	if err := r.InformerManager.InitializeResolverInformer(r.getResolverChangeHandler(context.Background())); err != nil {
+	if err := r.InformerManager.InitializeResolverInformer(r.getResolverChangeHandler(ctx)); err != nil {
 		return fmt.Errorf("failed to initialize resolver informer: %w", err)
 	}
 	return nil
