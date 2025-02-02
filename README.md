@@ -4,9 +4,6 @@
 
 <p align="center">
  <a>
-    <img src="https://goreportcard.com/badge/github.com/truefoundry/elasti" align="center">
- </a>
- <a>
     <img src="https://img.shields.io/badge/license-MIT-blue" align="center">
  </a>
 
@@ -46,22 +43,6 @@ Kubernetes clusters can become costly, especially when running multiple services
   - [Monitoring](#monitoring)
   - [Uninstall](#uninstall)
 - [Development](#development)
-  - [Dev Environment](#dev-environment)
-    - [1. Get required tools](#1-get-required-tools)
-    - [2. Clone the Repository](#2-clone-the-repository)
-    - [3. Repository Structure](#3-repository-structure)
-  - [Setup Playground](#setup-playground)
-    - [1. Local Cluster](#1-local-cluster)
-    - [2. Start a Local Docker Registry](#2-start-a-local-docker-registry)
-    - [3. Install Istio Gateway.](#3-install-istio-gateway)
-    - [4. Deploy a demo service](#4-deploy-a-demo-service)
-  - [Build](#build)
-    - [1. Build \& Publish Resolver](#1-build--publish-resolver)
-    - [2. Build \& Publish Operator](#2-build--publish-operator)
-  - [Deploy Locally](#deploy-locally)
-    - [3. Create ElastiService Resource](#3-create-elastiservice-resource)
-  - [Testing](#testing)
-  - [Monitoring](#monitoring-1)
 - [Contribution](#contribution)
   - [Getting Started](#getting-started-1)
   - [Getting Help](#getting-help)
@@ -100,26 +81,16 @@ With Elasti, you can easily manage and scale your Kubernetes services by using a
 
 ## Install
 
-### 1. Add the Elasti Helm Repository
-
-Add the official elasti Helm chart repository to your Helm configuration:
-
-```bash
-helm repo add elasti https://charts.truefoundry.com/elasti
-helm repo update
-```
-
-### 2. Install Elasti
+### 1. Install Elasti using helm
 
 Use Helm to install elasti into your Kubernetes cluster. Replace `<release-name>` with your desired release name and `<namespace>` with the Kubernetes namespace you want to use:
 
 ```bash
-helm install <release-name> elasti/elasti --namespace <namespace>
+helm install <release-name> oci://tfy.jfrog.io/tfy-helm/elasti --namespace <namespace> --create-namespace
 ```
+Check out [values.yaml](./charts/elasti/values.yaml) to see config in the helm value file.
 
-Check out [docs](./docs/README.md#5-helm-values) to see config in the helm value file.
-
-### 3. Verify the Installation
+### 2. Verify the Installation
 
 Check the status of your Helm release and ensure that the elasti components are running:
 
@@ -141,33 +112,34 @@ To configure a service to handle its traffic via elasti, you'll need to create a
 
 ### 1. Define a ElastiService
 
-```
+```yaml
 apiVersion: elasti.truefoundry.com/v1alpha1
 kind: ElastiService
 metadata:
-   name: <service-name>
-   namespace: <service-namespace>
+  name: <service-name>
+  namespace: <service-namespace>
 spec:
-   minTargetReplicas: <min-target-replicas>
-   service: <service-name>
-   scaleTargetRef:
-      apiVersion: <apiVersion>
-      kind: <kind>
-      name: <deployment-or-rollout-name>
+  minTargetReplicas: <min-target-replicas>
+  service: <service-name>
+  scaleTargetRef:
+    apiVersion: <apiVersion>
+    kind: <kind>
+    name: <deployment-or-rollout-name>
 ```
 
 - `<service-name>`: Replace it with the service you want managed by elasti.
 - `<min-target-replicas>`: Min replicas to bring up when first request arrives.
 - `<service-namespace>`: Replace by namespace of the service.
+- `<scaleTargetRef>`: Reference to the scale target similar to the one used in HorizontalPodAutoscaler.
 - `<kind>`: Replace by `rollouts` or `deployments`
-- `<apiVersion>`: Replace by `argoproj.io/v1alpha1` or `apps/v1`
-- `<deployment-or-rollout-name>`: Replace by name of the rollout or the deployment for the service. This will be scaled up to min-target-replicas when first request comes
+- `<apiVersion>`: Replace with `argoproj.io/v1alpha1` or `apps/v1`
+- `<deployment-or-rollout-name>`: Replace with name of the rollout or the deployment for the service. This will be scaled up to min-target-replicas when first request comes
 
 ### 2. Apply the configuration
 
 Apply the configuration to your Kubernetes cluster:
 
-```
+```bash
 kubectl apply -f <service-name>-elasti-CRD.yaml
 ```
 
@@ -175,7 +147,7 @@ kubectl apply -f <service-name>-elasti-CRD.yaml
 
 You can view logs from the controller to watchout for any errors.
 
-```
+```bash
 kubectl logs -f deployment/elasti-operator-controller-manager -n <namespace>
 ```
 
@@ -195,261 +167,13 @@ To uninstall Elasti, **you will need to remove all the installed ElastiServices 
 
 ```bash
 kubectl delete elastiservices --all
-helm uninstall elasti -n <namespace>
+helm uninstall <release-name> -n <namespace>
 kubectl delete namespace <namespace>
 ```
 
 # Development
 
-Setting up your development environment for Elasti involves preparing your local setup for building, testing, and contributing to the project. Follow these steps to get started:
-
-## Dev Environment
-
-### 1. Get required tools
-
-Ensure you have the following tools installed:
-
-- **Go:** The programming language used for Elasti. Download and install it from [golang.org](https://golang.org/dl/).
-- **Docker:** For containerization and building Docker images. Install it from [docker.com](https://www.docker.com/get-started).
-- **kubectl:**: Command-line tool for interacting with Kubernetes. Install it from [kubernetes.io](https://kubernetes.io/docs/tasks/tools/).
-- **Helm:** Package manager for Kubernetes. Install it from [helm.sh](https://helm.sh/docs/intro/install/).
-- **Docker Desktop/Kind/Minikube:** A local kubernetes cluster. Make sure you have the local cluster running before development.
-- **Make:** Helps in working with the project.
-- **k6:** Required to load test the project. Install from [k6.io](https://k6.io/)
-
-### 2. Clone the Repository
-
-Clone the Elasti repository from GitHub to your local machine:
-
-```
-git clone https://github.com/truefoundry/elasti.git
-cd elasti
-```
-
-> Make sure you checkout the documentation and architecture before making your changes.
-
-### 3. Repository Structure
-
-Understanding the repository structure will help you navigate and contribute effectively to the Elasti project. Below is an overview of the key directories and files in the repository:
-
-```
-.
-├── LICENSE
-├── Makefile
-├── README.md
-├── charts
-├── docs
-├── go.work
-├── go.work.sum
-├── kustomization.yaml
-├── operator
-├── pkg
-├── playground
-├── resolver
-└── test
-```
-
-2 Main Modules:
-
-- **`./operator`:** Contains the code for Kubernetes operator, created using kubebuilder.
-  ```
-  .
-  ├── Dockerfile
-  ├── Makefile
-  ├── api
-  ├── cmd
-  ├── config
-  ├── go.mod
-  ├── go.sum
-  ├── internal
-  └── test
-  ```
-  - **`./api`:** Contains the folder named after the apiVersion, and has custom resource type description.
-  - **`./config`:** Kubernetes manifest files.
-  - **`./cmd`:** Main files for the tool.
-  - **`./internal`:** Internal packages of the program.
-  - **`./Makefile`:** Helps with working with the program. Use `make help` to see all the available commands.
-- **`./resolver`:** Contains the code for resolver.
-  - File structure of it is similar to that of Operator.
-
-Other Directories:
-
-- **`./playground`:** Code to setup a playground to try and test elasti.
-- **`./test`:** Load testing scripts.
-- **`./pkg`:** Common packages, shared via Operator and Resolve.
-- **`./charts`:** Helm chart template.
-- **`./docs`:** Detailed documentation on the HLD, LLD and Architecture of elasti.
-
-## Setup Playground
-
-### 1. Local Cluster
-
-If you don't already have a local Kubernetes cluster, you can set one up using Minikube, Kind or Docker-Desktop:
-
-```
-minikube start
-```
-
-or
-
-```
-kind create cluster
-```
-
-or
-
-Enable it in Docker-Desktop
-
-### 2. Start a Local Docker Registry
-
-Run a local Docker registry container, to push our images locally and access them in our cluster.
-
-```
-docker run -d -p 5000:5000 --name registry registry:2
-```
-
-> You will need to add this registry to Minikube and Kind, with Docker-Desktop, it is automatically picked up if running in same context.
-
-<!-- ### 3. Install NGINX Ingress Controller:
-Install the NGINX Ingress Controller using Helm:
-```
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
-kubectl create namespace nginx
-helm install ingress-nginx ingress-nginx/ingress-nginx -n nginx
-``` -->
-
-### 3. Install Istio Gateway.
-
-```bash
-# Download the latest Istio release from the official Istio website.
-curl -L https://istio.io/downloadIstio | sh -
-# Move it to home directory
-mv istio-x.xx.x ~/.istioctl
-export PATH=$HOME/.istioctl/bin:$PATH
-
-istioctl install --set profile=default -y
-
-# Label the namespace where you want to deploy your application to enable Istio sidecar Injection
-kubectl create namespace demo
-kubectl label namespace demo istio-injection=enabled
-
-# Create a gateway
-kubectl apply -f ./playground/config/gateway.yaml
-```
-
-> For Linux and macOS
-
-### 4. Deploy a demo service
-
-Run a demo application in your cluster.
-
-```bash
-kubectl apply -f ./playground/config/demo-application.yaml -n demo
-
-# Create a Virtual Service to expose the demo service
-kubectl apply -f ./playground/config/demo-virtualService.yaml
-```
-
-## Build
-
-### 1. Build & Publish Resolver
-
-We will build and publish our resolver changes.
-
-1. Go into the resolver directory.
-2. Run the build and publish command.
-
-```bash
-make docker-build docker-push IMG=localhost:5000/elasti-resolver:v1alpha1
-
-or
-
-# Build the docker image
-docker build -t localhost:5000/elasti-resolver:v1alpha1
-# Push the image to local registry
-docker push localhost:5000/elasti-resolver:v1alpha1
-```
-
-### 2. Build & Publish Operator
-
-We will build and publish our Operator changes.
-
-1. Go into the operator directory.
-```bash
-cd operator
-```
-2. Run the build and publish command.
-
-```bash
-make docker-build IMG=localhost:5000/elasti-operator:v1alpha1
-
-or
-# Build the docker image
-docker build -t localhost:5000/elasti-operator:v1alpha1
-# Push the image to local registry
-docker push localhost:5000/elasti-operator:v1alpha1
-```
-
-## Deploy Locally
-
-Make sure you have configured the local context in kubectl. We will be using `./playground/infra/elast-demo-values.yaml` for the helm installation. Configure the image uri according to the requirement. Post that follow below steps from the project home directory:
-
-```bash
-
-helm template elasti ./charts/elasti -n elasti -f ./playground/infra/elasti-demo-values.yaml | kubectl apply -f -
-```
-
-If you want to enable monitoring, please make `enableMonitoring` true in the values file.
-
-### 3. Create ElastiService Resource
-
-Using the [ElastiService Defination](#1-define-a-elastiservice), create a manifest file for your service and apply it. For demo, we use the below manifest.
-
-```bash
-kubectl -n demo apply -f ./playground/config/demo-elastiService.yaml
-```
-
-## Testing
-
-Testing is crucial to ensure the reliability and performance of Elasti. This section outlines how to run integration tests, and performance tests using k6.
-
-1. **Update k6 tests**
-
-   Update the `./test/load.js` file, to add your url for testing, and update other configurations in the same file.
-
-2. **Run load.js**
-
-   Run the following command to run the test.
-
-   ```
-   chmod +x ./test/generate_load.sh
-   cd ./test
-   ./generate_load.sh
-   ```
-
-## Monitoring
-
-```bash
-# First, add the prometheus-community Helm repository.
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-
-
-# Install the kube-prometheus-stack chart. This chart includes Prometheus and Grafana.
-kubectl create namespace prometheus
-helm install prometheus-stack prometheus-community/kube-prometheus-stack -n prometheus
-
-# Port-forward to access the dashboard
-kubectl port-forward -n prometheus services/prometheus-stack-grafana 3000:80
-
-# Get the admin user.
-kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="{.data.admin-user}" | base64 --decode ; echo
-# Get the admin password.
-kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
-```
-
-Post this, you can use [`./playground/infra/elasti-dashboard.yaml`](./playground//infra/elasti-dashboard.yaml) to import the elasti dashboard.
+Refer to [DEVELOPMENT.md](./DEVELOPMENT.md) for more details.
 
 # Contribution
 

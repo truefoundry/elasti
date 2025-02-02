@@ -3,7 +3,7 @@ module truefoundry/elasti/operator
 go 1.22.3
 
 require (
-	github.com/getsentry/sentry-go v0.30.0
+	github.com/getsentry/sentry-go v0.31.1
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/truefoundry/elasti/pkg v0.0.0

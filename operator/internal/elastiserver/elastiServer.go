@@ -13,6 +13,7 @@ import (
 	"time"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
+	"k8s.io/apimachinery/pkg/types"
 
 	"k8s.io/client-go/rest"
 
@@ -149,31 +150,34 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace string) error {
-	scaleMutex, loaded := s.getMutexForServiceScale(serviceName)
+	namespacedName := (types.NamespacedName{Namespace: namespace, Name: serviceName}).String()
+	scaleMutex, loaded := s.getMutexForServiceScale(namespacedName)
 	if loaded {
-		s.logger.Debug("Scale target lock already exists", zap.String("service", serviceName))
+		s.logger.Debug("Scale target lock already exists", zap.String("service", namespacedName))
 		return nil
 	}
 	scaleMutex.Lock()
-	defer s.logger.Debug("Scale target lock released", zap.String("service", serviceName))
-	s.logger.Debug("Scale target lock taken", zap.String("service", serviceName))
-	crd, found := crddirectory.CRDDirectory.GetCRD(serviceName)
+
+	defer s.logger.Debug("Scale target lock released", zap.String("service", namespacedName))
+	s.logger.Debug("Scale target lock taken", zap.String("service", namespacedName))
+
+	crd, found := crddirectory.GetCRD(namespacedName)
 	if !found {
-		s.releaseMutexForServiceScale(serviceName)
-		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, serviceName: %s", serviceName)
+		s.releaseMutexForServiceScale(namespacedName)
+		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, namespacedName: %s", namespacedName)
 	}
 
 	if err := s.k8shelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
-		s.releaseMutexForServiceScale(serviceName)
-		prom.TargetScaleCounter.WithLabelValues(serviceName, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, err.Error()).Inc()
+		s.releaseMutexForServiceScale(namespacedName)
+		prom.TargetScaleCounter.WithLabelValues(serviceName, namespace, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, err.Error()).Inc()
 		return fmt.Errorf("scaleTargetForService - error: %w, targetRefKind: %s, targetRefName: %s", err, crd.Spec.ScaleTargetRef.Kind, crd.Spec.ScaleTargetRef.Name)
 	}
-	prom.TargetScaleCounter.WithLabelValues(serviceName, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, "success").Inc()
+	prom.TargetScaleCounter.WithLabelValues(serviceName, namespace, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, "success").Inc()
 
 	// If the target is scaled up, we will hold the lock for longer, to not scale up again
 	// TODO: Is there a better way to do this and why is it even needed?
 	time.AfterFunc(s.rescaleDuration, func() {
-		s.releaseMutexForServiceScale(serviceName)
+		s.releaseMutexForServiceScale(namespacedName)
 	})
 	return nil
 }

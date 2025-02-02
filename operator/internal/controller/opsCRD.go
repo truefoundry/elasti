@@ -109,7 +109,7 @@ func (r *ElastiServiceReconciler) finalizeCRD(ctx context.Context, es *v1alpha1.
 	}()
 	wg.Wait()
 	// Remove CRD details from service directory
-	crddirectory.CRDDirectory.RemoveCRD(es.Spec.Service)
+	crddirectory.RemoveCRD(targetNamespacedName.String())
 	r.Logger.Info("[Done] CRD removed from service directory", zap.String("es", req.String()))
 
 	if err1 != nil || err2 != nil {
@@ -128,7 +128,8 @@ func (r *ElastiServiceReconciler) watchScaleTargetRef(ctx context.Context, es *v
 		return fmt.Errorf("scaleTargetRef is incomplete: %w", k8shelper.ErrNoScaleTargetFound)
 	}
 
-	crd, found := crddirectory.CRDDirectory.GetCRD(es.Spec.Service)
+	svcNamespacedName := types.NamespacedName{Name: es.Spec.Service, Namespace: es.Namespace}
+	crd, found := crddirectory.GetCRD(svcNamespacedName.String())
 	if found {
 		if es.Spec.ScaleTargetRef.Name != crd.Spec.ScaleTargetRef.Name ||
 			es.Spec.ScaleTargetRef.Kind != crd.Spec.ScaleTargetRef.Kind ||

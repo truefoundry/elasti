@@ -68,6 +68,6 @@ var (
 			Name: "elasti_operator_scale_counter",
 			Help: "Scale counter for target",
 		},
-		[]string{"service_name", "target", "error"},
+		[]string{"service_name", "namespace", "target", "error"},
 	)
 )
