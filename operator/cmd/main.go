@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/truefoundry/elasti/pkg/k8shelper"
 
 	"truefoundry/elasti/operator/internal/elastiserver"
 
@@ -182,6 +183,7 @@ func mainWithError() error {
 		Scheme:          mgr.GetScheme(),
 		Logger:          zapLogger,
 		InformerManager: informerManager,
+		Helper:          k8shelper.NewOps(zapLogger, mgr.GetConfig()),
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")

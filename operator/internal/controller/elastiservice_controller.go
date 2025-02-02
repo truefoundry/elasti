@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"k8s.io/apimachinery/pkg/types"
 
 	"truefoundry/elasti/operator/internal/crddirectory"
@@ -32,8 +33,10 @@ type (
 		Logger             *zap.Logger
 		InformerManager    *informer.Manager
 		SwitchModeLocks    sync.Map
+		Helper             *k8shelper.Ops
 		InformerStartLocks sync.Map
 		ReconcileLocks     sync.Map
+		ScaleDownLocks     sync.Map
 	}
 )
 
@@ -142,6 +145,11 @@ func (r *ElastiServiceReconciler) getMutexForReconcile(key string) *sync.Mutex {
 	return l.(*sync.Mutex)
 }
 
+func (r *ElastiServiceReconciler) getMutexForScaleDown(key string) *sync.Mutex {
+	l, _ := r.ScaleDownLocks.LoadOrStore(key, &sync.Mutex{})
+	return l.(*sync.Mutex)
+}
+
 func (r *ElastiServiceReconciler) Initialize(ctx context.Context) error {
 	if err := r.reconcileExistingCRDs(ctx); err != nil {
 		return fmt.Errorf("failed to reconcile existing CRDs: %w", err)
@@ -149,6 +157,7 @@ func (r *ElastiServiceReconciler) Initialize(ctx context.Context) error {
 	if err := r.InformerManager.InitializeResolverInformer(r.getResolverChangeHandler(ctx)); err != nil {
 		return fmt.Errorf("failed to initialize resolver informer: %w", err)
 	}
+	r.startScaleDownWatcher(ctx)
 	return nil
 }
 
@@ -191,6 +200,58 @@ func (r *ElastiServiceReconciler) reconcileExistingCRDs(ctx context.Context) err
 	}
 
 	r.Logger.Info("Successfully reconciled all existing ElastiServices", zap.Int("count", count))
+
+	return nil
+}
+
+func (r *ElastiServiceReconciler) startScaleDownWatcher(ctx context.Context) {
+	ticker := time.NewTicker(time.Second * 30)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				if err := r.checkAndScaleDown(); err != nil {
+					r.Logger.Error("failed to run the scale down check", zap.Error(err))
+				}
+			}
+		}
+	}()
+}
+
+func (r *ElastiServiceReconciler) checkAndScaleDown() error {
+	var elastiServiceList v1alpha1.ElastiServiceList
+	if err := r.List(context.TODO(), &elastiServiceList); err != nil {
+		return fmt.Errorf("failed to list ElastiServices: %w", err)
+	}
+
+	for _, es := range elastiServiceList.Items {
+		if es.Status.Mode == values.ProxyMode {
+			continue
+		}
+
+		namespacedName := types.NamespacedName{
+			Name:      es.Spec.ScaleTargetRef.Name,
+			Namespace: es.Namespace,
+		}
+
+		// TODO: add the metric check to scale down the service
+		scaleDown := true
+
+		if scaleDown {
+			mutex := r.getMutexForScaleDown(namespacedName.String())
+			mutex.Lock()
+
+			r.Logger.Info("Scaling down", zap.String("namespacedName", namespacedName.String()))
+			if err := r.Helper.ScaleTargetToZero(namespacedName, es.Spec.ScaleTargetRef.Kind); err != nil {
+				r.Logger.Error("Failed to scale target to zero", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
+			}
+
+			mutex.Unlock()
+		}
+	}
 
 	return nil
 }

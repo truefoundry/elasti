@@ -39,6 +39,26 @@ spec:
           spec:
             description: ElastiServiceSpec defines the desired state of ElastiService
             properties:
+              metrics:
+                items:
+                  properties:
+                    metric:
+                      properties:
+                        name:
+                          type: string
+                        selector:
+                          additionalProperties:
+                            type: string
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type:
+                      type: string
+                  required:
+                  - type
+                  type: object
+                type: array
               minTargetReplicas:
                 format: int32
                 type: integer

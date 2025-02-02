@@ -8,6 +8,7 @@ import (
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -73,6 +74,24 @@ func (k *Ops) ScaleTargetWhenAtZero(ns, targetName, targetKind string, replicas 
 	return nil
 }
 
+func (k *Ops) ScaleTargetToZero(namespacedName types.NamespacedName, targetKind string) error {
+	switch strings.ToLower(targetKind) {
+	case values.KindDeployments:
+		err := k.ScaleDeployment(namespacedName.Namespace, namespacedName.Name, 0)
+		if err != nil {
+			return fmt.Errorf("ScaleTargetToZero - Deployment: %w", err)
+		}
+	case values.KindRollout:
+		err := k.ScaleArgoRollout(namespacedName.Namespace, namespacedName.Name, 0)
+		if err != nil {
+			return fmt.Errorf("ScaleTargetToZero - Rollout: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported target kind: %s", targetKind)
+	}
+	return nil
+}
+
 // ScaleDeployment scales the deployment to the provided replicas
 func (k *Ops) ScaleDeployment(ns, targetName string, replicas int32) error {
 	deploymentClient := k.kClient.AppsV1().Deployments(ns)
@@ -82,7 +101,7 @@ func (k *Ops) ScaleDeployment(ns, targetName string, replicas int32) error {
 	}
 
 	k.logger.Debug("Deployment found", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas), zap.Int32("desired replicas", replicas))
-	if *deploy.Spec.Replicas == 0 {
+	if deploy.Spec.Replicas != nil && *deploy.Spec.Replicas != replicas {
 		deploy.Spec.Replicas = &replicas
 		_, err = deploymentClient.Update(context.TODO(), deploy, metav1.UpdateOptions{})
 		if err != nil {
@@ -101,9 +120,11 @@ func (k *Ops) ScaleArgoRollout(ns, targetName string, replicas int32) error {
 	if err != nil {
 		return fmt.Errorf("ScaleArgoRollout - GET: %w", err)
 	}
+
 	currentReplicas := rollout.Object["spec"].(map[string]interface{})["replicas"].(int64)
 	k.logger.Info("Rollout found", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
-	if currentReplicas == 0 {
+
+	if currentReplicas != int64(replicas) {
 		rollout.Object["spec"].(map[string]interface{})["replicas"] = replicas
 		_, err = k.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Update(context.TODO(), rollout, metav1.UpdateOptions{})
 		if err != nil {
