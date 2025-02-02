@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	elastiv1alpha1 "truefoundry/elasti/operator/api/v1alpha1"
+	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/informer"
 
 	v1 "k8s.io/api/apps/v1"
@@ -154,6 +155,7 @@ var _ = Describe("ElastiService Controller", func() {
 
 			informerManager = informer.NewInformerManager(zap.NewExample(), cfg)
 			informerManager.Start()
+			crddirectory.InitDirectory(zap.NewExample())
 		})
 
 		AfterEach(func() {
