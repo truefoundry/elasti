@@ -42,6 +42,7 @@ jobs:
           cache: true
       - name: Install dependencies
         run: go mod tidy
+        working-directory: ${{ matrix.modules }}
       - name: golangci-lint ${{ matrix.modules }}
         uses: golangci/golangci-lint-action@v6
         with:
@@ -66,5 +67,6 @@ jobs:
           cache: true
       - name: Install dependencies
         run: go mod tidy
+        working-directory: ${{ matrix.modules }}
       - name: test ${{ matrix.modules }}
         run: cd ${{ matrix.modules }} && make test
