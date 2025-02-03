@@ -34,7 +34,7 @@ type ElastiServiceSpec struct {
 	ScaleTargetRef    ScaleTargetRef `json:"scaleTargetRef,omitempty"`
 	Service           string         `json:"service,omitempty"`
 	MinTargetReplicas int32          `json:"minTargetReplicas,omitempty" default:"1"`
-	Metrics           []MetricSpec   `json:"metrics,omitempty"`
+	Triggers          []ScaleTrigger `json:"metrics,omitempty"`
 }
 
 type ScaleTargetRef struct {
@@ -72,24 +72,9 @@ type ElastiServiceList struct {
 	Items           []ElastiService `json:"items"`
 }
 
-type MetricSpec struct {
-	Type   string            `json:"type"`
-	Metric *MetricIdentifier `json:"metric,omitempty"`
-}
-
-type ExternalMetricSource struct {
-	Metric MetricIdentifier `json:"metric"`
-	Target MetricTarget     `json:"target"`
-}
-
-type MetricIdentifier struct {
-	Name     string            `json:"name"`
-	Selector map[string]string `json:"selector,omitempty"`
-}
-
-type MetricTarget struct {
-	Type  string  `json:"type"`
-	Value float64 `json:"value,omitempty"`
+type ScaleTrigger struct {
+	Type     string                 `json:"type"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 func init() {

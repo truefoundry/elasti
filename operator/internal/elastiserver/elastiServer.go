@@ -3,25 +3,23 @@ package elastiserver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
+	"github.com/truefoundry/elasti/pkg/scaling"
 	"k8s.io/apimachinery/pkg/types"
-
-	"k8s.io/client-go/rest"
 
 	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/prom"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
 )
@@ -35,20 +33,18 @@ type (
 	// It is used by components about certain events, like when resolver receive the request
 	// for a service, that service is scaled up if it's at 0 replicas
 	Server struct {
-		logger     *zap.Logger
-		k8shelper  *k8shelper.Ops
-		scaleLocks sync.Map
+		logger       *zap.Logger
+		scaleHandler *scaling.ScaleHandler
 		// rescaleDuration is the duration to wait before checking to rescaling the target
 		rescaleDuration time.Duration
 	}
 )
 
-func NewServer(logger *zap.Logger, config *rest.Config, rescaleDuration time.Duration) *Server {
+func NewServer(logger *zap.Logger, scaleHandler *scaling.ScaleHandler, rescaleDuration time.Duration) *Server {
 	// Get Ops client
-	k8sUtil := k8shelper.NewOps(logger, config)
 	return &Server{
-		logger:    logger.Named("elastiServer"),
-		k8shelper: k8sUtil,
+		logger:       logger.Named("elastiServer"),
+		scaleHandler: scaleHandler,
 		// rescaleDuration is the duration to wait before checking to rescaling the target
 		rescaleDuration: rescaleDuration,
 	}
@@ -88,7 +84,7 @@ func (s *Server) Start(port string) error {
 	}()
 
 	s.logger.Info("Starting ElastiServer", zap.String("port", port))
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		s.logger.Error("Failed to start ElastiServer", zap.Error(err))
 		return err
 	}
@@ -150,48 +146,21 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace string) error {
-	namespacedName := (types.NamespacedName{Namespace: namespace, Name: serviceName}).String()
-	scaleMutex, loaded := s.getMutexForServiceScale(namespacedName)
-	if loaded {
-		s.logger.Debug("Scale target lock already exists", zap.String("service", namespacedName))
-		return nil
-	}
-	scaleMutex.Lock()
+	namespacedName := types.NamespacedName{Namespace: namespace, Name: serviceName}
 
-	defer s.logger.Debug("Scale target lock released", zap.String("service", namespacedName))
-	s.logger.Debug("Scale target lock taken", zap.String("service", namespacedName))
+	defer s.logger.Debug("Scale target lock released", zap.String("service", namespacedName.String()))
+	s.logger.Debug("Scale target lock taken", zap.String("service", namespacedName.String()))
 
-	crd, found := crddirectory.GetCRD(namespacedName)
+	crd, found := crddirectory.GetCRD(namespacedName.String())
 	if !found {
-		s.releaseMutexForServiceScale(namespacedName)
 		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, namespacedName: %s", namespacedName)
 	}
 
-	if err := s.k8shelper.ScaleTargetWhenAtZero(namespace, crd.Spec.ScaleTargetRef.Name, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
-		s.releaseMutexForServiceScale(namespacedName)
+	if err := s.scaleHandler.ScaleTargetWhenAtZero(namespacedName, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
 		prom.TargetScaleCounter.WithLabelValues(serviceName, namespace, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, err.Error()).Inc()
 		return fmt.Errorf("scaleTargetForService - error: %w, targetRefKind: %s, targetRefName: %s", err, crd.Spec.ScaleTargetRef.Kind, crd.Spec.ScaleTargetRef.Name)
 	}
 	prom.TargetScaleCounter.WithLabelValues(serviceName, namespace, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, "success").Inc()
 
-	// If the target is scaled up, we will hold the lock for longer, to not scale up again
-	// TODO: Is there a better way to do this and why is it even needed?
-	time.AfterFunc(s.rescaleDuration, func() {
-		s.releaseMutexForServiceScale(namespacedName)
-	})
 	return nil
-}
-
-func (s *Server) releaseMutexForServiceScale(service string) {
-	lock, loaded := s.scaleLocks.Load(service)
-	if !loaded {
-		return
-	}
-	lock.(*sync.Mutex).Unlock()
-	s.scaleLocks.Delete(service)
-}
-
-func (s *Server) getMutexForServiceScale(serviceName string) (*sync.Mutex, bool) {
-	l, loaded := s.scaleLocks.LoadOrStore(serviceName, &sync.Mutex{})
-	return l.(*sync.Mutex), loaded
 }
