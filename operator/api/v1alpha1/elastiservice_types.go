@@ -74,10 +74,9 @@ type ElastiServiceList struct {
 
 type ScaleTrigger struct {
 	Type string `json:"type"`
-	Name string `json:"name"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
-	Metadata interface{} `json:"metadata,omitempty"`
+	Metadata any `json:"metadata,omitempty"`
 }
 
 func init() {

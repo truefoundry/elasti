@@ -8,6 +8,7 @@ import (
 	"time"
 	"truefoundry/elasti/operator/api/v1alpha1"
 
+	"github.com/truefoundry/elasti/pkg/scaling/scalers"
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -108,8 +109,31 @@ func (h *ScaleHandler) checkAndScaleDown(ctx context.Context) error {
 }
 
 func (h *ScaleHandler) CheckMetricsToScaleDown(ctx context.Context, es *v1alpha1.ElastiService) (bool, error) {
+	for _, trigger := range es.Spec.Triggers {
+		var scaler scalers.Scaler
+		var err error
 
-	return false, nil
+		switch trigger.Type {
+		case "prometheus":
+			scaler, err = scalers.NewPrometheusScaler(trigger.Metadata)
+		default:
+			return false, fmt.Errorf("unsupported trigger type: %s", trigger.Type)
+		}
+
+		if err != nil {
+			return false, fmt.Errorf("failed to create scaler: %w", err)
+		}
+
+		scaleDown, err := scaler.ShouldScaleToZero(ctx)
+		scaler.Close(ctx)
+		if err != nil {
+			return false, fmt.Errorf("failed to check to scale to zero: %w", err)
+		}
+		if !scaleDown {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // ScaleTargetWhenAtZero scales the TargetRef to the provided replicas when it's at 0
