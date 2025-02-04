@@ -39,26 +39,6 @@ spec:
           spec:
             description: ElastiServiceSpec defines the desired state of ElastiService
             properties:
-              metrics:
-                items:
-                  properties:
-                    metric:
-                      properties:
-                        name:
-                          type: string
-                        selector:
-                          additionalProperties:
-                            type: string
-                          type: object
-                      required:
-                      - name
-                      type: object
-                    type:
-                      type: string
-                  required:
-                  - type
-                  type: object
-                type: array
               minTargetReplicas:
                 format: int32
                 type: integer
@@ -76,6 +56,20 @@ spec:
                 type: object
               service:
                 type: string
+              triggers:
+                items:
+                  properties:
+                    metadata:
+                      x-kubernetes-preserve-unknown-fields: true
+                    name:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - name
+                  - type
+                  type: object
+                type: array
             type: object
           status:
             description: ElastiServiceStatus defines the observed state of ElastiService
