@@ -136,13 +136,6 @@ func (h *ScaleHandler) ScaleTargetWhenAtZero(namespacedName types.NamespacedName
 	return nil
 }
 
-/*
-    - Proxy
-    - Request - Scale up to server
-	- Prometheus does not record the request
-    - Scale down
-*/
-
 // ScaleTargetToZero scales the target to zero
 // TODO: Emit k8s events
 func (h *ScaleHandler) ScaleTargetToZero(namespacedName types.NamespacedName, targetKind string) error {
