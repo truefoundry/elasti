@@ -61,7 +61,7 @@ func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				if err := h.checkAndScaleDown(); err != nil {
+				if err := h.checkAndScaleDown(ctx); err != nil {
 					h.logger.Error("failed to run the scale down check", zap.Error(err))
 				}
 			}
@@ -69,8 +69,8 @@ func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
 	}()
 }
 
-func (h *ScaleHandler) checkAndScaleDown() error {
-	elastiServiceList, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).List(context.TODO(), metav1.ListOptions{})
+func (h *ScaleHandler) checkAndScaleDown(ctx context.Context) error {
+	elastiServiceList, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
 	}
@@ -90,8 +90,11 @@ func (h *ScaleHandler) checkAndScaleDown() error {
 			Namespace: es.Namespace,
 		}
 
-		// TODO: add the metric check to scale down the service
-		scaleDown := true
+		scaleDown, err := h.CheckMetricsToScaleDown(ctx, es)
+		if err != nil {
+			h.logger.Error("Failed to check metrics to scale down", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
+			continue
+		}
 
 		if scaleDown {
 			if err := h.ScaleTargetToZero(namespacedName, es.Spec.ScaleTargetRef.Kind); err != nil {
@@ -102,6 +105,11 @@ func (h *ScaleHandler) checkAndScaleDown() error {
 	}
 
 	return nil
+}
+
+func (h *ScaleHandler) CheckMetricsToScaleDown(ctx context.Context, es *v1alpha1.ElastiService) (bool, error) {
+
+	return false, nil
 }
 
 // ScaleTargetWhenAtZero scales the TargetRef to the provided replicas when it's at 0
@@ -128,7 +136,15 @@ func (h *ScaleHandler) ScaleTargetWhenAtZero(namespacedName types.NamespacedName
 	return nil
 }
 
+/*
+    - Proxy
+    - Request - Scale up to server
+	- Prometheus does not record the request
+    - Scale down
+*/
+
 // ScaleTargetToZero scales the target to zero
+// TODO: Emit k8s events
 func (h *ScaleHandler) ScaleTargetToZero(namespacedName types.NamespacedName, targetKind string) error {
 	mutex := h.getMutexForScale(namespacedName.String())
 	mutex.Lock()
@@ -153,6 +169,7 @@ func (h *ScaleHandler) ScaleTargetToZero(namespacedName types.NamespacedName, ta
 }
 
 // ScaleDeployment scales the deployment to the provided replicas
+// TODO: use a generic logic to perform scaling similar to HPA/KEDA
 func (h *ScaleHandler) ScaleDeployment(ns, targetName string, replicas int32) error {
 	deploymentClient := h.kClient.AppsV1().Deployments(ns)
 	deploy, err := deploymentClient.Get(context.TODO(), targetName, metav1.GetOptions{})
@@ -162,7 +179,7 @@ func (h *ScaleHandler) ScaleDeployment(ns, targetName string, replicas int32) er
 
 	h.logger.Debug("Deployment found", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas), zap.Int32("desired replicas", replicas))
 	if deploy.Spec.Replicas != nil && *deploy.Spec.Replicas != replicas {
-		deploy.Spec.Replicas = &replicas
+		*deploy.Spec.Replicas = replicas
 		_, err = deploymentClient.Update(context.TODO(), deploy, metav1.UpdateOptions{})
 		if err != nil {
 			return fmt.Errorf("ScaleDeployment - Update: %w", err)

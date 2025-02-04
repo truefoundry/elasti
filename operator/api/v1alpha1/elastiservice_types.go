@@ -34,7 +34,7 @@ type ElastiServiceSpec struct {
 	ScaleTargetRef    ScaleTargetRef `json:"scaleTargetRef,omitempty"`
 	Service           string         `json:"service,omitempty"`
 	MinTargetReplicas int32          `json:"minTargetReplicas,omitempty" default:"1"`
-	Triggers          []ScaleTrigger `json:"metrics,omitempty"`
+	Triggers          []ScaleTrigger `json:"triggers,omitempty"`
 }
 
 type ScaleTargetRef struct {
@@ -73,8 +73,11 @@ type ElastiServiceList struct {
 }
 
 type ScaleTrigger struct {
-	Type     string                 `json:"type"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Type string `json:"type"`
+	Name string `json:"name"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Metadata interface{} `json:"metadata,omitempty"`
 }
 
 func init() {
