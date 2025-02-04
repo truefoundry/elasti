@@ -65,7 +65,7 @@ elastiResolver:
     sentry:
       enabled: false
       environment: ""
-  replicas: 2
+  replicas: 1
   autoscaling:
     enabled: false
     minReplicas: 1
