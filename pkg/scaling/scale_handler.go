@@ -100,15 +100,15 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 		}
 
 		if es.Status.Mode == values.ServeMode {
-			err := h.checkMetricsAndScale(ctx, es, true)
+			err := h.handleScaleToZero(ctx, es)
 			if err != nil {
-				h.logger.Error("failed to check and scale from zero", zap.Error(err))
+				h.logger.Error("failed to check and scale from zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 				continue
 			}
 		} else {
-			err := h.checkMetricsAndScale(ctx, es, false)
+			err := h.handleScaleFromZero(ctx, es)
 			if err != nil {
-				h.logger.Error("failed to check and scale to zero", zap.Error(err))
+				h.logger.Error("failed to check and scale to zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 				continue
 			}
 		}
@@ -117,73 +117,129 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 	return nil
 }
 
-func (h *ScaleHandler) checkMetricsAndScale(ctx context.Context, es *v1alpha1.ElastiService, scaleDown bool) error {
+func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.ElastiService) error {
 	namespacedName := types.NamespacedName{
-		Name:      es.Spec.ScaleTargetRef.Name,
+		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
 	}
+	shouldScale := true
+	for _, trigger := range es.Spec.Triggers {
+		scaler, err := h.createScalerForTrigger(&trigger)
+		if err != nil {
+			return fmt.Errorf("failed to create scaler for trigger: %w", err)
+		}
 
-	shouldScale, err := h.checkMetrics(ctx, es, scaleDown)
-	if err != nil {
-		return fmt.Errorf("failed to check metrics to scale down: %w", err)
+		scalerResult, err := scaler.ShouldScaleToZero(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to check scaler: %w", err)
+		}
+		if !scalerResult {
+			shouldScale = false
+			break
+		}
+
+		err = scaler.Close(ctx)
+		if err != nil {
+			h.logger.Error("failed to close scaler", zap.Error(err))
+		}
 	}
 	if !shouldScale {
 		return nil
 	}
 
-	// If scaling down, pause the keda scaledobject
-	// If scaling up, unpause the keda scaledobject
+	// Pause the KEDA ScaledObject
 	if es.Spec.Autoscaler != nil && strings.ToLower(es.Spec.Autoscaler.Type) == "keda" {
-		err := h.UpdateKedaScaledObject(ctx, es.Spec.Autoscaler.Name, es.Namespace, scaleDown)
+		err := h.UpdateKedaScaledObjectPausedState(ctx, es.Spec.Autoscaler.Name, es.Namespace, true)
 		if err != nil {
 			return fmt.Errorf("failed to update Keda ScaledObject for service %s: %w", namespacedName.String(), err)
 		}
 	}
 
-	if scaleDown {
-		if err := h.ScaleTargetToZero(namespacedName, es.Spec.ScaleTargetRef.Kind); err != nil {
-			return fmt.Errorf("failed to scale target to zero: %w", err)
+	// Check cooldown period
+	if es.Spec.Cooldown != "" && es.Status.LastScaledUpTime != nil {
+		cooldownPeriod, err := time.ParseDuration(es.Spec.Cooldown)
+		if err != nil {
+			return fmt.Errorf("failed to parse cooldownPeriod: %w", err)
 		}
-	} else {
-		if err := h.ScaleTargetFromZero(namespacedName, es.Spec.ScaleTargetRef.Kind, es.Spec.MinTargetReplicas); err != nil {
-			return fmt.Errorf("failed to scale target from zero: %w", err)
+
+		if time.Since(es.Status.LastScaledUpTime.Time) < cooldownPeriod {
+			h.logger.Info("Skipping scale down as minimum cooldownPeriod not met",
+				zap.String("service", namespacedName.String()),
+				zap.Duration("cooldown", cooldownPeriod),
+				zap.Time("last scaled up time", es.Status.LastScaledUpTime.Time))
+			return nil
 		}
+	}
+
+	if err := h.ScaleTargetToZero(namespacedName, es.Spec.ScaleTargetRef.Kind); err != nil {
+		return fmt.Errorf("failed to scale target to zero: %w", err)
 	}
 	return nil
 }
 
-func (h *ScaleHandler) checkMetrics(ctx context.Context, es *v1alpha1.ElastiService, scaleDown bool) (bool, error) {
+func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.ElastiService) error {
+	namespacedName := types.NamespacedName{
+		Name:      es.Spec.Service,
+		Namespace: es.Namespace,
+	}
+	shouldScale := false
 	for _, trigger := range es.Spec.Triggers {
-		var scaler scalers.Scaler
-		var err error
-
-		switch trigger.Type {
-		case "prometheus":
-			scaler, err = scalers.NewPrometheusScaler(trigger.Metadata)
-		default:
-			return false, fmt.Errorf("unsupported trigger type: %s", trigger.Type)
-		}
-
+		scaler, err := h.createScalerForTrigger(&trigger)
 		if err != nil {
-			return false, fmt.Errorf("failed to create scaler: %w", err)
+			h.logger.Error("failed to create scaler for trigger", zap.Error(err))
+			shouldScale = true
+			break
 		}
 
-		var shouldScale bool
-		if scaleDown {
-			shouldScale, err = scaler.ShouldScaleToZero(ctx)
-		} else {
-			shouldScale, err = scaler.ShouldScaleFromZero(ctx)
-		}
+		scalerResult, err := scaler.ShouldScaleFromZero(ctx)
 		if err != nil {
-			return false, fmt.Errorf("failed to check scaler: %w", err)
+			h.logger.Error("failed to check scaler", zap.Error(err))
+			shouldScale = true
+			break
+		}
+		if scalerResult {
+			shouldScale = true
+			break
 		}
 
-		scaler.Close(ctx)
-		if !shouldScale {
-			return false, nil
+		err = scaler.Close(ctx)
+		if err != nil {
+			h.logger.Error("failed to close scaler", zap.Error(err))
 		}
 	}
-	return true, nil
+	if !shouldScale {
+		return nil
+	}
+
+	// Unpause the KEDA ScaledObject if it's paused
+	if es.Spec.Autoscaler != nil && strings.ToLower(es.Spec.Autoscaler.Type) == "keda" {
+		err := h.UpdateKedaScaledObjectPausedState(ctx, es.Spec.Autoscaler.Name, es.Namespace, false)
+		if err != nil {
+			return fmt.Errorf("failed to update Keda ScaledObject for service %s: %w", namespacedName.String(), err)
+		}
+	}
+
+	if err := h.ScaleTargetFromZero(namespacedName, es.Spec.ScaleTargetRef.Kind, es.Spec.MinTargetReplicas); err != nil {
+		return fmt.Errorf("failed to scale target from zero: %w", err)
+	}
+	return nil
+}
+
+func (h *ScaleHandler) createScalerForTrigger(trigger *v1alpha1.ScaleTrigger) (scalers.Scaler, error) {
+	var scaler scalers.Scaler
+	var err error
+
+	switch trigger.Type {
+	case "prometheus":
+		scaler, err = scalers.NewPrometheusScaler(trigger.Metadata)
+	default:
+		return nil, fmt.Errorf("unsupported trigger type: %s", trigger.Type)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return scaler, nil
 }
 
 // ScaleTargetFromZero scales the TargetRef to the provided replicas when it's at 0
@@ -282,7 +338,7 @@ func (h *ScaleHandler) ScaleArgoRollout(ns, targetName string, replicas int32) e
 	return nil
 }
 
-func (h *ScaleHandler) UpdateKedaScaledObject(ctx context.Context, scaledObjectName, namespace string, paused bool) error {
+func (h *ScaleHandler) UpdateKedaScaledObjectPausedState(ctx context.Context, scaledObjectName, namespace string, paused bool) error {
 	scaledObject, err := h.kDynamicClient.Resource(values.ScaledObjectGVR).Namespace(namespace).Get(ctx, scaledObjectName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get ScaledObject: %w", err)

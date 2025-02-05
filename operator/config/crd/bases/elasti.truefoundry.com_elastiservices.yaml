@@ -49,6 +49,8 @@ spec:
                 - name
                 - type
                 type: object
+              cooldown:
+                type: string
               minTargetReplicas:
                 format: int32
                 type: integer
@@ -85,6 +87,9 @@ spec:
                 description: |-
                   INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
                   Important: Run "make" to regenerate code after modifying this file
+                format: date-time
+                type: string
+              lastScaledUpTime:
                 format: date-time
                 type: string
               mode:

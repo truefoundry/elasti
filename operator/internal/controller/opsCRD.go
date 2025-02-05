@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"truefoundry/elasti/operator/api/v1alpha1"
 	"truefoundry/elasti/operator/internal/crddirectory"
@@ -48,6 +49,10 @@ func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamesp
 	if err = r.Client.Get(ctx, crdNamespacedName, es); err != nil {
 		r.Logger.Error("Failed to get ElastiService for status update", zap.String("es", crdNamespacedName.String()), zap.Error(err))
 		return fmt.Errorf("failed to get elastiService for status update")
+	}
+
+	if es.Status.Mode == values.ProxyMode && mode == values.ServeMode {
+		es.Status.LastScaledUpTime = &metav1.Time{Time: time.Now()}
 	}
 	es.Status.LastReconciledTime = metav1.Now()
 	es.Status.Mode = mode

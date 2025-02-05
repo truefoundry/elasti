@@ -158,7 +158,7 @@ func (s *Server) scaleTargetForService(ctx context.Context, serviceName, namespa
 
 	// Unpause the Keda ScaledObject if it's paused
 	if crd.Spec.Autoscaler != nil && strings.ToLower(crd.Spec.Autoscaler.Type) == "keda" {
-		err := s.scaleHandler.UpdateKedaScaledObject(ctx, crd.Spec.Autoscaler.Name, namespace, false)
+		err := s.scaleHandler.UpdateKedaScaledObjectPausedState(ctx, crd.Spec.Autoscaler.Name, namespace, false)
 		if err != nil {
 			return fmt.Errorf("failed to update Keda ScaledObject for service %s: %w", namespacedName.String(), err)
 		}

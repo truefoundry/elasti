@@ -34,6 +34,7 @@ type ElastiServiceSpec struct {
 	ScaleTargetRef    ScaleTargetRef  `json:"scaleTargetRef,omitempty"`
 	Service           string          `json:"service,omitempty"`
 	MinTargetReplicas int32           `json:"minTargetReplicas,omitempty" default:"1"`
+	Cooldown          string          `json:"cooldown,omitempty"`
 	Triggers          []ScaleTrigger  `json:"triggers,omitempty"`
 	Autoscaler        *AutoscalerSpec `json:"autoscaler,omitempty"`
 }
@@ -48,8 +49,9 @@ type ScaleTargetRef struct {
 type ElastiServiceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	LastReconciledTime metav1.Time `json:"lastReconciledTime,omitempty"`
-	Mode               string      `json:"mode,omitempty"`
+	LastReconciledTime metav1.Time  `json:"lastReconciledTime,omitempty"`
+	LastScaledUpTime   *metav1.Time `json:"lastScaledUpTime,omitempty"`
+	Mode               string       `json:"mode,omitempty"`
 }
 
 //+kubebuilder:object:root=true
