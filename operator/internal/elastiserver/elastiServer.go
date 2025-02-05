@@ -170,5 +170,10 @@ func (s *Server) scaleTargetForService(ctx context.Context, serviceName, namespa
 	}
 	prom.TargetScaleCounter.WithLabelValues(serviceName, namespace, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, "success").Inc()
 
+	if err := s.scaleHandler.UpdateLastScaledUpTime(ctx, crd.CRDName, namespace); err != nil {
+		// not returning an error as scale up has been successful
+		s.logger.Error("failed to update LastScaledUpTime", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+	}
+
 	return nil
 }

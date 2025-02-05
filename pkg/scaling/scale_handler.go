@@ -14,6 +14,7 @@ import (
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
@@ -222,6 +223,12 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 	if err := h.ScaleTargetFromZero(namespacedName, es.Spec.ScaleTargetRef.Kind, es.Spec.MinTargetReplicas); err != nil {
 		return fmt.Errorf("failed to scale target from zero: %w", err)
 	}
+
+	if err := h.UpdateLastScaledUpTime(ctx, es.Name, es.Namespace); err != nil {
+		// not returning an error as scale up has been successful
+		h.logger.Error("failed to update LastScaledUpTime", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+	}
+
 	return nil
 }
 
@@ -355,6 +362,36 @@ func (h *ScaleHandler) UpdateKedaScaledObjectPausedState(ctx context.Context, sc
 	_, err = h.kDynamicClient.Resource(values.ScaledObjectGVR).Namespace(namespace).Update(ctx, scaledObject, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update ScaledObject: %w", err)
+	}
+
+	return nil
+}
+
+func (h *ScaleHandler) UpdateLastScaledUpTime(ctx context.Context, crdName, namespace string) error {
+	elastiService, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).
+		Namespace(namespace).
+		Get(ctx, crdName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get ElastiService: %w", err)
+	}
+
+	currentES := &v1alpha1.ElastiService{}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(elastiService.Object, currentES); err != nil {
+		return fmt.Errorf("failed to convert unstructured to ElastiService: %w", err)
+	}
+	now := metav1.Now()
+	currentES.Status.LastScaledUpTime = &now
+
+	obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(currentES)
+	if err != nil {
+		return fmt.Errorf("failed to convert ElastiService to unstructured: %w", err)
+	}
+
+	_, err = h.kDynamicClient.Resource(values.ElastiServiceGVR).
+		Namespace(currentES.Namespace).
+		UpdateStatus(ctx, &unstructured.Unstructured{Object: obj}, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update ElastiService status: %w", err)
 	}
 
 	return nil
