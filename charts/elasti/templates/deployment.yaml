@@ -31,6 +31,8 @@ spec:
         env:
         - name: KUBERNETES_CLUSTER_DOMAIN
           value: {{ .Values.global.kubernetesClusterDomain }}
+        - name: POLLING_INTERVAL
+          value: {{ .Values.elastiController.manager.pollingInterval | quote }}
         {{- if .Values.elastiController.manager.sentry.enabled }}
         - name: SENTRY_DSN
           valueFrom:

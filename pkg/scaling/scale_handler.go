@@ -3,6 +3,7 @@ package scaling
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -59,7 +60,17 @@ func NewScaleHandler(logger *zap.Logger, config *rest.Config) *ScaleHandler {
 }
 
 func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
-	ticker := time.NewTicker(time.Second * 30)
+	pollingInterval := 30 * time.Second
+	if envInterval := os.Getenv("POLLING_VARIABLE"); envInterval != "" {
+		duration, err := time.ParseDuration(envInterval)
+		if err != nil {
+			h.logger.Warn("Invalid POLLING_VARIABLE value, using default 30s", zap.Error(err))
+		} else {
+			pollingInterval = duration
+		}
+	}
+	ticker := time.NewTicker(pollingInterval)
+
 	go func() {
 		for {
 			select {

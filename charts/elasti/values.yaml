@@ -29,6 +29,7 @@ elastiController:
     sentry:
       enabled: false
       environment: ""
+    pollingInterval: 30
   replicas: 1
   serviceAccount:
     annotations: {}
