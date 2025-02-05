@@ -39,6 +39,16 @@ spec:
           spec:
             description: ElastiServiceSpec defines the desired state of ElastiService
             properties:
+              autoscaler:
+                properties:
+                  name:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - name
+                - type
+                type: object
               minTargetReplicas:
                 format: int32
                 type: integer

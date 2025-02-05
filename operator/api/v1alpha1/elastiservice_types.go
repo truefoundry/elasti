@@ -31,10 +31,11 @@ const (
 type ElastiServiceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	ScaleTargetRef    ScaleTargetRef `json:"scaleTargetRef,omitempty"`
-	Service           string         `json:"service,omitempty"`
-	MinTargetReplicas int32          `json:"minTargetReplicas,omitempty" default:"1"`
-	Triggers          []ScaleTrigger `json:"triggers,omitempty"`
+	ScaleTargetRef    ScaleTargetRef  `json:"scaleTargetRef,omitempty"`
+	Service           string          `json:"service,omitempty"`
+	MinTargetReplicas int32           `json:"minTargetReplicas,omitempty" default:"1"`
+	Triggers          []ScaleTrigger  `json:"triggers,omitempty"`
+	Autoscaler        *AutoscalerSpec `json:"autoscaler,omitempty"`
 }
 
 type ScaleTargetRef struct {
@@ -77,6 +78,11 @@ type ScaleTrigger struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Metadata any `json:"metadata,omitempty"`
+}
+
+type AutoscalerSpec struct {
+	Type string `json:"type"` // keda/hpa
+	Name string `json:"name"` // Name of the ScaledObject/HorizontalPodAutoscaler
 }
 
 func init() {

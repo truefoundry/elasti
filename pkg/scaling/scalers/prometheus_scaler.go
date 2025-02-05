@@ -9,8 +9,6 @@ import (
 	"net/url"
 	"strconv"
 	"time"
-
-	v2 "k8s.io/api/autoscaling/v2"
 )
 
 const (
@@ -20,7 +18,6 @@ const (
 type prometheusScaler struct {
 	httpClient *http.Client
 	metadata   *prometheusMetadata
-	metricType v2.MetricTargetType
 }
 
 type prometheusMetadata struct {
@@ -51,13 +48,13 @@ func NewPrometheusScaler(metadata any) (Scaler, error) {
 	}
 
 	return &prometheusScaler{
-		metricType: v2.AverageValueMetricType,
 		metadata:   parsedMetadata,
 		httpClient: client,
 	}, nil
 }
 
 func parsePrometheusMetadata(metadata any) (*prometheusMetadata, error) {
+	// TODO implement a generic way to parse metadata
 	metadataMap, ok := metadata.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("error parsing prometheus metadata: expected map[string]interface{}, got %T", metadata)
@@ -152,6 +149,18 @@ func (s *prometheusScaler) ShouldScaleToZero(ctx context.Context) (bool, error) 
 	}
 
 	if metricValue < s.metadata.Threshold {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (s *prometheusScaler) ShouldScaleFromZero(ctx context.Context) (bool, error) {
+	metricValue, err := s.executePromQuery(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to execute prometheus query: %w", err)
+	}
+
+	if metricValue >= s.metadata.Threshold {
 		return true, nil
 	}
 	return false, nil

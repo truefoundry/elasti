@@ -3,6 +3,7 @@ package scaling
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +18,10 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+)
+
+const (
+	kedaPausedAnnotation = "autoscaling.keda.sh/paused"
 )
 
 type ScaleHandler struct {
@@ -62,7 +67,7 @@ func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				if err := h.checkAndScaleDown(ctx); err != nil {
+				if err := h.checkAndScale(ctx); err != nil {
 					h.logger.Error("failed to run the scale down check", zap.Error(err))
 				}
 			}
@@ -70,7 +75,7 @@ func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
 	}()
 }
 
-func (h *ScaleHandler) checkAndScaleDown(ctx context.Context) error {
+func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 	elastiServiceList, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
@@ -82,24 +87,17 @@ func (h *ScaleHandler) checkAndScaleDown(ctx context.Context) error {
 			h.logger.Error("failed to convert unstructured to ElastiService", zap.Error(err))
 			continue
 		}
-		if es.Status.Mode == values.ProxyMode {
-			continue
-		}
 
-		namespacedName := types.NamespacedName{
-			Name:      es.Spec.ScaleTargetRef.Name,
-			Namespace: es.Namespace,
-		}
-
-		scaleDown, err := h.CheckMetricsToScaleDown(ctx, es)
-		if err != nil {
-			h.logger.Error("Failed to check metrics to scale down", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
-			continue
-		}
-
-		if scaleDown {
-			if err := h.ScaleTargetToZero(namespacedName, es.Spec.ScaleTargetRef.Kind); err != nil {
-				h.logger.Error("Failed to scale target to zero", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
+		if es.Status.Mode == values.ServeMode {
+			err := h.checkMetricsAndScale(ctx, es, true)
+			if err != nil {
+				h.logger.Error("failed to check and scale from zero", zap.Error(err))
+				continue
+			}
+		} else {
+			err := h.checkMetricsAndScale(ctx, es, false)
+			if err != nil {
+				h.logger.Error("failed to check and scale to zero", zap.Error(err))
 				continue
 			}
 		}
@@ -108,7 +106,42 @@ func (h *ScaleHandler) checkAndScaleDown(ctx context.Context) error {
 	return nil
 }
 
-func (h *ScaleHandler) CheckMetricsToScaleDown(ctx context.Context, es *v1alpha1.ElastiService) (bool, error) {
+func (h *ScaleHandler) checkMetricsAndScale(ctx context.Context, es *v1alpha1.ElastiService, scaleDown bool) error {
+	namespacedName := types.NamespacedName{
+		Name:      es.Spec.ScaleTargetRef.Name,
+		Namespace: es.Namespace,
+	}
+
+	shouldScale, err := h.checkMetrics(ctx, es, scaleDown)
+	if err != nil {
+		return fmt.Errorf("failed to check metrics to scale down: %w", err)
+	}
+	if !shouldScale {
+		return nil
+	}
+
+	// If scaling down, pause the keda scaledobject
+	// If scaling up, unpause the keda scaledobject
+	if es.Spec.Autoscaler != nil && strings.ToLower(es.Spec.Autoscaler.Type) == "keda" {
+		err := h.UpdateKedaScaledObject(ctx, es.Spec.Autoscaler.Name, es.Namespace, scaleDown)
+		if err != nil {
+			return fmt.Errorf("failed to update Keda ScaledObject for service %s: %w", namespacedName.String(), err)
+		}
+	}
+
+	if scaleDown {
+		if err := h.ScaleTargetToZero(namespacedName, es.Spec.ScaleTargetRef.Kind); err != nil {
+			return fmt.Errorf("failed to scale target to zero: %w", err)
+		}
+	} else {
+		if err := h.ScaleTargetFromZero(namespacedName, es.Spec.ScaleTargetRef.Kind, es.Spec.MinTargetReplicas); err != nil {
+			return fmt.Errorf("failed to scale target from zero: %w", err)
+		}
+	}
+	return nil
+}
+
+func (h *ScaleHandler) checkMetrics(ctx context.Context, es *v1alpha1.ElastiService, scaleDown bool) (bool, error) {
 	for _, trigger := range es.Spec.Triggers {
 		var scaler scalers.Scaler
 		var err error
@@ -124,20 +157,26 @@ func (h *ScaleHandler) CheckMetricsToScaleDown(ctx context.Context, es *v1alpha1
 			return false, fmt.Errorf("failed to create scaler: %w", err)
 		}
 
-		scaleDown, err := scaler.ShouldScaleToZero(ctx)
-		scaler.Close(ctx)
-		if err != nil {
-			return false, fmt.Errorf("failed to check to scale to zero: %w", err)
+		var shouldScale bool
+		if scaleDown {
+			shouldScale, err = scaler.ShouldScaleToZero(ctx)
+		} else {
+			shouldScale, err = scaler.ShouldScaleFromZero(ctx)
 		}
-		if !scaleDown {
+		if err != nil {
+			return false, fmt.Errorf("failed to check scaler: %w", err)
+		}
+
+		scaler.Close(ctx)
+		if !shouldScale {
 			return false, nil
 		}
 	}
 	return true, nil
 }
 
-// ScaleTargetWhenAtZero scales the TargetRef to the provided replicas when it's at 0
-func (h *ScaleHandler) ScaleTargetWhenAtZero(namespacedName types.NamespacedName, targetKind string, replicas int32) error {
+// ScaleTargetFromZero scales the TargetRef to the provided replicas when it's at 0
+func (h *ScaleHandler) ScaleTargetFromZero(namespacedName types.NamespacedName, targetKind string, replicas int32) error {
 	mutex := h.getMutexForScale(namespacedName.String())
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -147,12 +186,12 @@ func (h *ScaleHandler) ScaleTargetWhenAtZero(namespacedName types.NamespacedName
 	case values.KindDeployments:
 		err := h.ScaleDeployment(namespacedName.Namespace, namespacedName.Name, replicas)
 		if err != nil {
-			return fmt.Errorf("ScaleTargetWhenAtZero - Deployment: %w", err)
+			return fmt.Errorf("ScaleTargetFromZero - Deployment: %w", err)
 		}
 	case values.KindRollout:
 		err := h.ScaleArgoRollout(namespacedName.Namespace, namespacedName.Name, replicas)
 		if err != nil {
-			return fmt.Errorf("ScaleTargetWhenAtZero - Rollout: %w", err)
+			return fmt.Errorf("ScaleTargetFromZero - Rollout: %w", err)
 		}
 	default:
 		return fmt.Errorf("unsupported target kind: %s", targetKind)
@@ -228,6 +267,28 @@ func (h *ScaleHandler) ScaleArgoRollout(ns, targetName string, replicas int32) e
 		return nil
 	}
 	h.logger.Info("Rollout already scaled", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas))
+
+	return nil
+}
+
+func (h *ScaleHandler) UpdateKedaScaledObject(ctx context.Context, scaledObjectName, namespace string, paused bool) error {
+	scaledObject, err := h.kDynamicClient.Resource(values.ScaledObjectGVR).Namespace(namespace).Get(ctx, scaledObjectName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get ScaledObject: %w", err)
+	}
+
+	annotations := scaledObject.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+
+	annotations[kedaPausedAnnotation] = strconv.FormatBool(paused)
+	scaledObject.SetAnnotations(annotations)
+
+	_, err = h.kDynamicClient.Resource(values.ScaledObjectGVR).Namespace(namespace).Update(ctx, scaledObject, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update ScaledObject: %w", err)
+	}
 
 	return nil
 }

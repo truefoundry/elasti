@@ -145,7 +145,7 @@ func (s *Server) resolverReqHandler(w http.ResponseWriter, req *http.Request) {
 		zap.String("namespace", body.Namespace))
 }
 
-func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace string) error {
+func (s *Server) scaleTargetForService(ctx context.Context, serviceName, namespace string) error {
 	namespacedName := types.NamespacedName{Namespace: namespace, Name: serviceName}
 
 	defer s.logger.Debug("Scale target lock released", zap.String("service", namespacedName.String()))
@@ -156,7 +156,15 @@ func (s *Server) scaleTargetForService(_ context.Context, serviceName, namespace
 		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, namespacedName: %s", namespacedName)
 	}
 
-	if err := s.scaleHandler.ScaleTargetWhenAtZero(namespacedName, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
+	// Unpause the Keda ScaledObject if it's paused
+	if crd.Spec.Autoscaler != nil && strings.ToLower(crd.Spec.Autoscaler.Type) == "keda" {
+		err := s.scaleHandler.UpdateKedaScaledObject(ctx, crd.Spec.Autoscaler.Name, namespace, false)
+		if err != nil {
+			return fmt.Errorf("failed to update Keda ScaledObject for service %s: %w", namespacedName.String(), err)
+		}
+	}
+
+	if err := s.scaleHandler.ScaleTargetFromZero(namespacedName, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas); err != nil {
 		prom.TargetScaleCounter.WithLabelValues(serviceName, namespace, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, err.Error()).Inc()
 		return fmt.Errorf("scaleTargetForService - error: %w, targetRefKind: %s, targetRefName: %s", err, crd.Spec.ScaleTargetRef.Kind, crd.Spec.ScaleTargetRef.Name)
 	}

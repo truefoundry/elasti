@@ -35,4 +35,10 @@ var (
 		Version:  "v1alpha1",
 		Resource: "elastiservices",
 	}
+
+	ScaledObjectGVR = schema.GroupVersionResource{
+		Group:    "keda.sh",
+		Version:  "v1alpha1",
+		Resource: "scaledobjects",
+	}
 )
