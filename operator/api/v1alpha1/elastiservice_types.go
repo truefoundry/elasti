@@ -34,7 +34,7 @@ type ElastiServiceSpec struct {
 	ScaleTargetRef    ScaleTargetRef  `json:"scaleTargetRef,omitempty"`
 	Service           string          `json:"service,omitempty"`
 	MinTargetReplicas int32           `json:"minTargetReplicas,omitempty" default:"1"`
-	Cooldown          string          `json:"cooldown,omitempty"`
+	CooldownPeriod    int32           `json:"cooldownPeriod,omitempty"`
 	Triggers          []ScaleTrigger  `json:"triggers,omitempty"`
 	Autoscaler        *AutoscalerSpec `json:"autoscaler,omitempty"`
 }

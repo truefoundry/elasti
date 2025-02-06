@@ -49,8 +49,9 @@ spec:
                 - name
                 - type
                 type: object
-              cooldown:
-                type: string
+              cooldownPeriod:
+                format: int32
+                type: integer
               minTargetReplicas:
                 format: int32
                 type: integer

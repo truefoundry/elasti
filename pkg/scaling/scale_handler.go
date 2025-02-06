@@ -157,11 +157,8 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 	}
 
 	// Check cooldown period
-	if es.Spec.Cooldown != "" && es.Status.LastScaledUpTime != nil {
-		cooldownPeriod, err := time.ParseDuration(es.Spec.Cooldown)
-		if err != nil {
-			return fmt.Errorf("failed to parse cooldownPeriod: %w", err)
-		}
+	if es.Status.LastScaledUpTime != nil {
+		cooldownPeriod := time.Second * time.Duration(es.Spec.CooldownPeriod)
 
 		if time.Since(es.Status.LastScaledUpTime.Time) < cooldownPeriod {
 			h.logger.Info("Skipping scale down as minimum cooldownPeriod not met",
