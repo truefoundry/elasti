@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/truefoundry/elasti/pkg/scaling"
 
 	"truefoundry/elasti/operator/internal/elastiserver"
 
@@ -176,12 +177,16 @@ func mainWithError() error {
 	informerManager.Start()
 	defer informerManager.Stop()
 
+	// Initiate and start the shared scaleHandler
+	scaleHandler := scaling.NewScaleHandler(zapLogger, mgr.GetConfig())
+
 	// Set up the ElastiService controller
 	reconciler := &controller.ElastiServiceReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
 		Logger:          zapLogger,
 		InformerManager: informerManager,
+		ScaleHandler:    scaleHandler,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
@@ -190,7 +195,7 @@ func mainWithError() error {
 	}
 
 	// Start the elasti server
-	eServer := elastiserver.NewServer(zapLogger, mgr.GetConfig(), 30*time.Second)
+	eServer := elastiserver.NewServer(zapLogger, scaleHandler, 30*time.Second)
 	errChan := make(chan error, 1)
 	go func() {
 		if err := eServer.Start(elastiServerPort); err != nil {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-
 	"truefoundry/elasti/operator/api/v1alpha1"
 	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/informer"
