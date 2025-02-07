@@ -124,7 +124,7 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 		Namespace: es.Namespace,
 	}
 	shouldScale := true
-	if es.Spec.Triggers == nil || len(es.Spec.Triggers) == 0 {
+	if len(es.Spec.Triggers) == 0 {
 		h.logger.Info("No triggers found, skipping scale to zero", zap.String("namespacedName", namespacedName.String()))
 		return nil
 	}
@@ -188,7 +188,7 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 		Namespace: es.Namespace,
 	}
 	shouldScale := false
-	if es.Spec.Triggers == nil || len(es.Spec.Triggers) == 0 {
+	if len(es.Spec.Triggers) == 0 {
 		h.logger.Info("No triggers found, skipping scale from zero", zap.String("namespacedName", namespacedName.String()))
 		return nil
 	}
