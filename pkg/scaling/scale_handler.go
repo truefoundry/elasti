@@ -124,15 +124,19 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 		Namespace: es.Namespace,
 	}
 	shouldScale := true
+	if len(es.Spec.Triggers) == 0 {
+		h.logger.Info("No triggers found, skipping scale to zero", zap.String("namespacedName", namespacedName.String()))
+		return nil
+	}
 	for _, trigger := range es.Spec.Triggers {
 		scaler, err := h.createScalerForTrigger(&trigger)
 		if err != nil {
-			return fmt.Errorf("failed to create scaler for trigger: %w", err)
+			return fmt.Errorf("failed to create scaler for %s: %w", namespacedName.String(), err)
 		}
 
 		scalerResult, err := scaler.ShouldScaleToZero(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to check scaler: %w", err)
+			return fmt.Errorf("failed to check scaler for %s: %w", namespacedName.String(), err)
 		}
 		if !scalerResult {
 			shouldScale = false
@@ -141,7 +145,7 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 
 		err = scaler.Close(ctx)
 		if err != nil {
-			h.logger.Error("failed to close scaler", zap.Error(err))
+			h.logger.Error("failed to close scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 		}
 	}
 	if !shouldScale {
@@ -159,6 +163,9 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 	// Check cooldown period
 	if es.Status.LastScaledUpTime != nil {
 		cooldownPeriod := time.Second * time.Duration(es.Spec.CooldownPeriod)
+		if cooldownPeriod == 0 {
+			cooldownPeriod = values.DefaultCooldownPeriod
+		}
 
 		if time.Since(es.Status.LastScaledUpTime.Time) < cooldownPeriod {
 			h.logger.Info("Skipping scale down as minimum cooldownPeriod not met",
@@ -181,17 +188,21 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 		Namespace: es.Namespace,
 	}
 	shouldScale := false
+	if len(es.Spec.Triggers) == 0 {
+		h.logger.Info("No triggers found, skipping scale from zero", zap.String("namespacedName", namespacedName.String()))
+		return nil
+	}
 	for _, trigger := range es.Spec.Triggers {
 		scaler, err := h.createScalerForTrigger(&trigger)
 		if err != nil {
-			h.logger.Error("failed to create scaler for trigger", zap.Error(err))
+			h.logger.Error("failed to create scaler for trigger", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 			shouldScale = true
 			break
 		}
 
 		scalerResult, err := scaler.ShouldScaleFromZero(ctx)
 		if err != nil {
-			h.logger.Error("failed to check scaler", zap.Error(err))
+			h.logger.Error("failed to check scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 			shouldScale = true
 			break
 		}
@@ -202,7 +213,7 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 
 		err = scaler.Close(ctx)
 		if err != nil {
-			h.logger.Error("failed to close scaler", zap.Error(err))
+			h.logger.Error("failed to close scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 		}
 	}
 	if !shouldScale {
