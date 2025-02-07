@@ -1,6 +1,10 @@
 package values
 
-import "k8s.io/apimachinery/pkg/runtime/schema"
+import (
+	"time"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
+)
 
 const (
 	ArgoPhaseHealthy              = "Healthy"
@@ -15,6 +19,8 @@ const (
 	NullMode  = ""
 
 	Success = "success"
+
+	DefaultCooldownPeriod = time.Second * 300
 )
 
 var (

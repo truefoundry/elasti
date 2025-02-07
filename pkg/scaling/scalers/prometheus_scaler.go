@@ -145,9 +145,12 @@ func (s *prometheusScaler) executePromQuery(ctx context.Context) (float64, error
 func (s *prometheusScaler) ShouldScaleToZero(ctx context.Context) (bool, error) {
 	metricValue, err := s.executePromQuery(ctx)
 	if err != nil {
-		return false, fmt.Errorf("failed to execute prometheus query: %w", err)
+		return false, fmt.Errorf("failed to execute prometheus query %s: %w", s.metadata.Query, err)
 	}
 
+	if metricValue == -1 {
+		return false, nil
+	}
 	if metricValue < s.metadata.Threshold {
 		return true, nil
 	}
@@ -157,7 +160,10 @@ func (s *prometheusScaler) ShouldScaleToZero(ctx context.Context) (bool, error) 
 func (s *prometheusScaler) ShouldScaleFromZero(ctx context.Context) (bool, error) {
 	metricValue, err := s.executePromQuery(ctx)
 	if err != nil {
-		return false, fmt.Errorf("failed to execute prometheus query: %w", err)
+		return true, fmt.Errorf("failed to execute prometheus query %s: %w", s.metadata.Query, err)
+	}
+	if metricValue == -1 {
+		return true, nil
 	}
 
 	if metricValue >= s.metadata.Threshold {
