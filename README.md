@@ -121,10 +121,18 @@ metadata:
 spec:
   minTargetReplicas: <min-target-replicas>
   service: <service-name>
+  cooldownPeriod: <cooldown-period>
   scaleTargetRef:
     apiVersion: <apiVersion>
     kind: <kind>
     name: <deployment-or-rollout-name>
+  triggers:
+  - type: <trigger-type>
+    metadata:
+      <trigger-metadata>
+  autoscaler:
+    name: <autoscaler-object-name>
+    type: <autoscaler-type>
 ```
 
 - `<service-name>`: Replace it with the service you want managed by elasti.
@@ -134,6 +142,11 @@ spec:
 - `<kind>`: Replace by `rollouts` or `deployments`
 - `<apiVersion>`: Replace with `argoproj.io/v1alpha1` or `apps/v1`
 - `<deployment-or-rollout-name>`: Replace with name of the rollout or the deployment for the service. This will be scaled up to min-target-replicas when first request comes
+- `cooldownPeriod`: Minimum time (in seconds) to wait after scaling up before considering scale down
+- `triggers`: List of conditions that determine when to scale down (currently supports only Prometheus metrics)
+- `autoscaler`: **Optional** integration with external scalers (HPA/KEDA) if needed
+  - `<autoscaler-type>`: hpa/keda
+  - `<autoscaler-object-name>`: name of the KEDA ScaledObject or HPA HorizontalPodAutoscaler object
 
 ### 2. Apply the configuration
 

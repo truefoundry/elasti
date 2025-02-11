@@ -32,7 +32,7 @@ The Elasti project is designed to enable serverless capability for Kubernetes se
      3. If `replicas > 0` -> Switches to **Serve Mode**.
      4. Currently, it supports only `deployments` and `rollouts`.
 
-- **When pods scale to 0, either via HPA, KEDA, or any other auto-scaler.**
+- **When pods scale to 0**
 
 - **[Switch to Proxy Mode]**
    1. Creates a Private Service for the target service. This allows the resolver to reach the target pod, even when the public service has been modified, as described in the following steps.
@@ -55,7 +55,7 @@ The Elasti project is designed to enable serverless capability for Kubernetes se
       1. ElastiServer processes requests from the resolver, containing the service experiencing traffic.
       2. Matches the service with the `crdDirectory` entry to retrieve the `ScaleTargetRef`, which is then used to scale the target.
 
-- **When pods scale to 1, either via Elasti, HPA, KEDA, or any other auto-scaler.**
+- **When pods scale to 1**
 
 - **[Switch to Serve Mode]**
     1. The Operator stops the informer/watch on the resolver.
