@@ -1,3 +1,6 @@
+# Integration with HPA
+Elasti works seamlessly with Horizontal Pod Autoscaler (HPA) and handles scaling to zero on its own. Since Elasti manages the scale-to-zero functionality, you can configure HPA to handle scaling based on metrics for any number of replicas **greater than zero**, while Elasti takes care of scaling to/from zero.
+
 # Integration with KEDA
 Elasti takes care of scaling up a service when there is some traffic. We need another component to scale down the service when there is no traffic. KEDA is a good candidate for this.
 Here we will see how to integrate Elasti with KEDA to perform a complete scaling solution.
@@ -41,7 +44,7 @@ spec:
 Refer to the [keda documentation](https://keda.sh/docs/2.16/reference/scaledobject-spec/) for more details on configuring the ScaledObject.
 
 ## Add Elasti to the service
-We will create an [ElastiService](../README.md#1-define-a-elastiservice) object for this service, update the keda scaler to query the Elasti metrics and add a scrapeconfig to the prometheus instance to scrape the Elasti metrics. The final setup will look like this:
+We will create an [ElastiService](../README.md#1-define-an-elastiservice) object for this service, update the keda scaler to query the Elasti metrics and add a scrapeconfig to the prometheus instance to scrape the Elasti metrics. The final setup will look like this:
 
 ![Final Setup](./assets/keda-with-elasti.png)
 

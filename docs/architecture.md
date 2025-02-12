@@ -88,24 +88,24 @@ The Elasti project is designed to enable serverless capability for Kubernetes se
 Values you can pass to elastiResolver env.
 ```yaml
 
-	// HeaderForHost is the header to look for to get the host. X-Envoy-Decorator-Operation is the key for istio
-    headerForHost: X-Envoy-Decorator-Operation
-	// InitialCapacity is the initial capacity of the semaphore
-    initialCapacity: "500"
-    maxIdleProxyConns: "100"
-    maxIdleProxyConnsPerHost: "500"
-    // MaxQueueConcurrency is the maximum number of concurrent requests
-    maxQueueConcurrency: "100"
-	// OperatorRetryDuration is the duration for which we don't inform the operator
-	// about the traffic on the same host
-    operatorRetryDuration: "10"
-	// QueueRetryDuration is the duration after we retry the requests in queue
-    queueRetryDuration: "3"
-    // QueueSize is the size of the queue
-    queueSize: "50000"
-    // ReqTimeout is the timeout for each request
-    reqTimeout: "120"
-    // TrafficReEnableDuration is the duration for which the traffic is disabled for a host
-    // This is also duration for which we don't recheck readiness of the service
-    trafficReEnableDuration: "5"
+# HeaderForHost is the header to look for to get the host. X-Envoy-Decorator-Operation is the key for istio
+headerForHost: X-Envoy-Decorator-Operation
+# InitialCapacity is the initial capacity of the semaphore
+initialCapacity: "500"
+maxIdleProxyConns: "100"
+maxIdleProxyConnsPerHost: "500"
+# MaxQueueConcurrency is the maximum number of concurrent requests
+maxQueueConcurrency: "100"
+# OperatorRetryDuration is the duration for which we don't inform the operator
+# about the traffic on the same host
+operatorRetryDuration: "10"
+# QueueRetryDuration is the duration after we retry the requests in queue
+queueRetryDuration: "3"
+# QueueSize is the size of the queue
+queueSize: "50000"
+# ReqTimeout is the timeout for each request
+reqTimeout: "120"
+# TrafficReEnableDuration is the duration for which the traffic is disabled for a host
+# This is also duration for which we don't recheck readiness of the service
+trafficReEnableDuration: "5"
 ```

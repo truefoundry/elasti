@@ -15,7 +15,7 @@
 
 Kubernetes clusters can become costly, especially when running multiple services continuously. Elasti addresses this issue by giving you the confidence to scale down services during periods of low or no traffic, as it can bring them back up when demand increases. This optimization minimizes resource usage without compromising on service availability. Additionally, Elasti ensures reliability by acting as a proxy that queues incoming requests for scaled-down services. Once these services are reactivated, Elasti processes the queued requests, so that no request is lost. This combination of cost savings and dependable performance makes Elasti an invaluable tool for efficient Kubernetes service management.
 
-> The name Elasti comes from a superhero "Elasti-Girl" from DC Comics. Her supower is to expand or shrink her body at will—from hundreds of feet tall to mere inches in height.
+> The name Elasti comes from a superhero "Elasti-Girl" from DC Comics. Her superpower is to expand or shrink her body at will—from hundreds of feet tall to mere inches in height.
 
 <div align="center"> <b> Demo </b></div>
 <div align="center">
@@ -33,9 +33,8 @@ Kubernetes clusters can become costly, especially when running multiple services
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Install](#install)
-    - [1. Add the Elasti Helm Repository](#1-add-the-elasti-helm-repository)
-    - [2. Install Elasti](#2-install-elasti)
-    - [3. Verify the Installation](#3-verify-the-installation)
+    - [1. Install Elasti using helm](#1-install-elasti-using-helm)
+    - [2. Verify the Installation](#2-verify-the-installation)
   - [Configuration](#configuration)
     - [1. Define an ElastiService](#1-define-an-elastiservice)
     - [2. Apply the configuration](#2-apply-the-configuration)
@@ -71,7 +70,7 @@ Elasti monitors the target service for which you want to enable scale-to-zero. W
 
 # Getting Started
 
-With Elasti, you can easily manage and scale your Kubernetes services by using a proxy mechanism that queues and holds requests for scaled-down services, bringing them up only when needed. Get started by follwing below steps:
+With Elasti, you can easily manage and scale your Kubernetes services by using a proxy mechanism that queues and holds requests for scaled-down services, bringing them up only when needed. Get started by following below steps:
 
 ## Prerequisites
 
@@ -104,7 +103,7 @@ You will see 2 components running.
 1.  **Controller/Operator:** `elasti-operator-controller-manager-...` is to switch the traffic, watch resources, scale etc.
 2.  **Resolver:** `elasti-resolver-...` is to proxy the requests.
 
-Refer to the [Docs](./docs/README.md) to know how it works.
+Refer to the [Docs](./docs/architecture) to know how it works.
 
 ## Configuration
 
@@ -144,7 +143,7 @@ spec:
 - `<deployment-or-rollout-name>`: Replace with name of the rollout or the deployment for the service. This will be scaled up to min-target-replicas when first request comes
 - `cooldownPeriod`: Minimum time (in seconds) to wait after scaling up before considering scale down
 - `triggers`: List of conditions that determine when to scale down (currently supports only Prometheus metrics)
-- `autoscaler`: **Optional** integration with external scalers (HPA/KEDA) if needed
+- `autoscaler`: **Optional** integration with an external autoscaler (HPA/KEDA) if needed
   - `<autoscaler-type>`: hpa/keda
   - `<autoscaler-object-name>`: name of the KEDA ScaledObject or HPA HorizontalPodAutoscaler object
 
