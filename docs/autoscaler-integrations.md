@@ -1,3 +1,15 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Integration with HPA](#integration-with-hpa)
+- [Integration with KEDA](#integration-with-keda)
+  - [Prerequisites](#prerequisites)
+  - [Starting setup](#starting-setup)
+  - [Add Elasti to the service](#add-elasti-to-the-service)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Integration with HPA
 Elasti works seamlessly with Horizontal Pod Autoscaler (HPA) and handles scaling to zero on its own. Since Elasti manages the scale-to-zero functionality, you can configure HPA to handle scaling based on metrics for any number of replicas **greater than zero**, while Elasti takes care of scaling to/from zero.
 

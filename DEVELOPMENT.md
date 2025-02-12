@@ -1,3 +1,31 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Development Guide](#development-guide)
+  - [Dev Environment](#dev-environment)
+    - [1. Get required tools](#1-get-required-tools)
+    - [2. Clone the Repository](#2-clone-the-repository)
+    - [3. Repository Structure](#3-repository-structure)
+  - [Setup Playground](#setup-playground)
+    - [1. Local Cluster](#1-local-cluster)
+    - [2. Start a Local Docker Registry](#2-start-a-local-docker-registry)
+    - [3. Install Istio Gateway to work with istio](#3-install-istio-gateway-to-work-with-istio)
+    - [4. Deploy a demo service](#4-deploy-a-demo-service)
+    - [5. Build & Publish Resolver](#5-build--publish-resolver)
+    - [6. Build & Publish Operator](#6-build--publish-operator)
+    - [7. Deploy Locally](#7-deploy-locally)
+    - [8. Setup a Trigger for Elasti](#8-setup-a-trigger-for-elasti)
+    - [9. Create ElastiService Resource](#9-create-elastiservice-resource)
+    - [10. Test the service](#10-test-the-service)
+      - [10.1 Create a watch on the service](#101-create-a-watch-on-the-service)
+      - [10.2 Scale down the service](#102-scale-down-the-service)
+      - [10.3 Create a load on the service](#103-create-a-load-on-the-service)
+  - [Testing](#testing)
+  - [Monitoring](#monitoring)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Development Guide
 
 Setting up your development environment for Elasti involves preparing your local setup for building, testing, and contributing to the project. Follow these steps to get started:

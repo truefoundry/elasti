@@ -1,3 +1,19 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Elasti Project Documentation](#elasti-project-documentation)
+  - [1. Introduction](#1-introduction)
+    - [Overview](#overview)
+    - [Key Components](#key-components)
+  - [2. Architecture](#2-architecture)
+    - [Flow Description](#flow-description)
+  - [3. Controller](#3-controller)
+  - [4. Resolver](#4-resolver)
+  - [5. Helm Values](#5-helm-values)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Elasti Project Documentation
 
 ## 1. Introduction
