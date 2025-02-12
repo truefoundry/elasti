@@ -258,7 +258,7 @@ func mainWithError() error {
 }
 
 func _(mgr ctrl.Manager) healthz.Checker {
-	return func(req *http.Request) error {
+	return func(_ *http.Request) error {
 		select {
 		case <-mgr.Elected():
 			return nil

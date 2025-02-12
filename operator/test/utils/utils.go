@@ -57,7 +57,7 @@ func Run(cmd *exec.Cmd) ([]byte, error) {
 	if err := os.Chdir(cmd.Dir); err != nil {
 		_, err := fmt.Fprintf(GinkgoWriter, "chdir dir: %s\n", err)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to chdir dir: %w", err)
 		}
 	}
 
@@ -66,7 +66,7 @@ func Run(cmd *exec.Cmd) ([]byte, error) {
 
 	_, err := fmt.Fprintf(GinkgoWriter, "running: %s\n", command)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to run command: %w", err)
 	}
 
 	output, err := cmd.CombinedOutput()
