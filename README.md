@@ -15,7 +15,7 @@
 
 Kubernetes clusters can become costly, especially when running multiple services continuously. Elasti addresses this issue by giving you the confidence to scale down services during periods of low or no traffic, as it can bring them back up when demand increases. This optimization minimizes resource usage without compromising on service availability. Additionally, Elasti ensures reliability by acting as a proxy that queues incoming requests for scaled-down services. Once these services are reactivated, Elasti processes the queued requests, so that no request is lost. This combination of cost savings and dependable performance makes Elasti an invaluable tool for efficient Kubernetes service management.
 
-> The name Elasti comes from a superhero "Elasti-Girl" from DC Comics. Her supower is to expand or shrink her body at will—from hundreds of feet tall to mere inches in height.
+> The name Elasti comes from a superhero "Elasti-Girl" from DC Comics. Her superpower is to expand or shrink her body at will—from hundreds of feet tall to mere inches in height.
 
 <div align="center"> <b> Demo </b></div>
 <div align="center">
@@ -33,11 +33,10 @@ Kubernetes clusters can become costly, especially when running multiple services
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Install](#install)
-    - [1. Add the Elasti Helm Repository](#1-add-the-elasti-helm-repository)
-    - [2. Install Elasti](#2-install-elasti)
-    - [3. Verify the Installation](#3-verify-the-installation)
+    - [1. Install Elasti using Helm](#1-install-elasti-using-helm)
+    - [2. Verify the Installation](#2-verify-the-installation)
   - [Configuration](#configuration)
-    - [1. Define a ElastiService](#1-define-a-elastiservice)
+    - [1. Define a ElastiService](#1-define-an-elastiservice)
     - [2. Apply the configuration](#2-apply-the-configuration)
     - [3. Check Logs](#3-check-logs)
   - [Monitoring](#monitoring)
@@ -50,6 +49,8 @@ Kubernetes clusters can become costly, especially when running multiple services
 - [Future Developments](#future-developments)
 
 # Introduction
+
+Elasti is a Kubernetes-native solution that enables true scale-to-zero functionality while ensuring zero request loss. It acts as an intelligent traffic manager that monitors your services and automatically handles scaling operations.
 
 Elasti monitors the target service for which you want to enable scale-to-zero. When the target service is scaled down to zero, Elasti automatically switches to Proxy mode, redirecting all incoming traffic to itself. In this mode, Elasti queues the incoming requests and scales up the target service. Once the service is back online, Elasti processes the queued requests, sending them to the now-active service. After the target service is scaled up, Elasti switches to Serve mode, where traffic is directly handled by the service, removing any redirection. This seamless transition between modes ensures efficient handling of requests while optimizing resource usage.
 
@@ -71,7 +72,7 @@ Elasti monitors the target service for which you want to enable scale-to-zero. W
 
 # Getting Started
 
-With Elasti, you can easily manage and scale your Kubernetes services by using a proxy mechanism that queues and holds requests for scaled-down services, bringing them up only when needed. Get started by follwing below steps:
+With Elasti, you can easily manage and scale your Kubernetes services by using a proxy mechanism that queues and holds requests for scaled-down services, bringing them up only when needed. Get started by following below steps:
 
 ## Prerequisites
 
@@ -104,13 +105,13 @@ You will see 2 components running.
 1.  **Controller/Operator:** `elasti-operator-controller-manager-...` is to switch the traffic, watch resources, scale etc.
 2.  **Resolver:** `elasti-resolver-...` is to proxy the requests.
 
-Refer to the [Docs](./docs/README.md) to know how it works.
+Refer to the [Docs](./docs/architecture) to know how it works.
 
 ## Configuration
 
 To configure a service to handle its traffic via elasti, you'll need to create and apply a `ElastiService` custom resource:
 
-### 1. Define a ElastiService
+### 1. Define an ElastiService
 
 ```yaml
 apiVersion: elasti.truefoundry.com/v1alpha1
@@ -243,5 +244,5 @@ Thank you for contributing to Elasti! Your contributions make the project better
 
 - Support GRPC, Websockets.
 - Test multiple ports in same service.
-- Seperate queue for different services.
+- Separate queue for different services.
 - Unit test coverage.
