@@ -1,3 +1,31 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Development Guide](#development-guide)
+  - [Dev Environment](#dev-environment)
+    - [1. Get required tools](#1-get-required-tools)
+    - [2. Clone the Repository](#2-clone-the-repository)
+    - [3. Repository Structure](#3-repository-structure)
+  - [Setup Playground](#setup-playground)
+    - [1. Local Cluster](#1-local-cluster)
+    - [2. Start a Local Docker Registry](#2-start-a-local-docker-registry)
+    - [3. Install Istio Gateway to work with istio](#3-install-istio-gateway-to-work-with-istio)
+    - [4. Deploy a demo service](#4-deploy-a-demo-service)
+    - [5. Build & Publish Resolver](#5-build--publish-resolver)
+    - [6. Build & Publish Operator](#6-build--publish-operator)
+    - [7. Deploy Locally](#7-deploy-locally)
+    - [8. Setup a Trigger for Elasti](#8-setup-a-trigger-for-elasti)
+    - [9. Create ElastiService Resource](#9-create-elastiservice-resource)
+    - [10. Test the service](#10-test-the-service)
+      - [10.1 Create a watch on the service](#101-create-a-watch-on-the-service)
+      - [10.2 Scale down the service](#102-scale-down-the-service)
+      - [10.3 Create a load on the service](#103-create-a-load-on-the-service)
+  - [Testing](#testing)
+  - [Monitoring](#monitoring)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Development Guide
 
 Setting up your development environment for Elasti involves preparing your local setup for building, testing, and contributing to the project. Follow these steps to get started:
@@ -26,7 +54,7 @@ git clone https://github.com/truefoundry/elasti.git
 cd elasti
 ```
 
-> Make sure you checkout the documentation and architecture before making your changes.
+> Make sure you check out the documentation and architecture before making your changes.
 
 ### 3. Repository Structure
 
@@ -74,7 +102,7 @@ Understanding the repository structure will help you navigate and contribute eff
 
 Other Directories:
 
-- **`./playground`:** Code to setup a playground to try and test elasti.
+- **`./playground`:** Code to set up a playground to try and test elasti.
 - **`./test`:** Load testing scripts.
 - **`./pkg`:** Common packages, shared via Operator and Resolve.
 - **`./charts`:** Helm chart template.
@@ -93,7 +121,7 @@ minikube start
 or
 
 ```
-kind create cluster
+kind create cluster --config=playground/config/kind-cluster-config.yaml
 ```
 
 or
@@ -119,7 +147,7 @@ kubectl create namespace nginx
 helm install ingress-nginx ingress-nginx/ingress-nginx -n nginx
 ``` -->
 
-### 3. [Optional] Install Istio Gateway to work with istio
+### 3. Install Istio Gateway to work with istio
 
 ```bash
 # Download the latest Istio release from the official Istio website.
@@ -147,7 +175,7 @@ kubectl create namespace demo
 kubectl apply -f ./playground/config/demo-application.yaml -n demo
 
 # Create a Virtual Service to expose the demo service if you are using istio
-kubectl apply -f ./playground/config/demo-virtualService.yaml -n demo
+kubectl apply -f ./playground/config/demo-virtualService.yaml
 ```
 
 ### 5. Build & Publish Resolver
@@ -157,6 +185,11 @@ Go into the resolver directory and run the build and publish command.
 ```bash
 cd resolver
 make docker-build docker-push IMG=localhost:5000/elasti-resolver:v1alpha1
+```
+
+If using a kind cluster
+```bash
+docker network connect "kind" registry
 ```
 
 ### 6. Build & Publish Operator
@@ -173,34 +206,50 @@ make docker-build docker-push IMG=localhost:5000/elasti-operator:v1alpha1
 Make sure you have configured the local context in kubectl. We will be using [`./playground/infra/elasti-demo-values.yaml`](./playground/infra/elasti-demo-values.yaml) for the helm installation. Configure the image uri according to the requirement. Post that follow below steps from the project home directory:
 
 ```bash
+kubectl create namespace elasti
 helm template elasti ./charts/elasti -n elasti -f ./playground/infra/elasti-demo-values.yaml | kubectl apply -f -
 ```
 
 If you want to enable monitoring, please make `enableMonitoring` true in the values file.
 
-### 8. Create ElastiService Resource
+### 8. Setup a Trigger for Elasti
 
-Using the [ElastiService Defination](#1-define-a-elastiservice), create a manifest file for your service and apply it. For demo, we use the below manifest.
+We will use Prometheus as the trigger for Elasti.
+
+```bash
+# First, add the prometheus-community Helm repository.
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+
+# Install the kube-prometheus-stack chart. This chart includes Prometheus and Grafana.
+kubectl create namespace prometheus
+helm install prometheus-stack prometheus-community/kube-prometheus-stack -n prometheus
+```
+
+### 9. Create ElastiService Resource
+
+Using the [ElastiService Definition](README.md#1-define-an-elastiservice), create a manifest file for your service and apply it. For demo, we use the below manifest.
 
 ```bash
 kubectl -n demo apply -f ./playground/config/demo-elastiService.yaml
 ```
 
-### 9. Test the service
+### 10. Test the service
 
-#### 9.1 Create a watch on the service
+#### 10.1 Create a watch on the service
 
 ```bash
 kubectl -n demo get elastiservice httpbin -w
 ```
 
-#### 9.2 Scale down the service
+#### 10.2 Scale down the service
 
 ```bash
 kubectl -n demo scale deployment httpbin --replicas=0
 ```
 
-#### 9.3 Create a load on the service
+#### 10.3 Create a load on the service
 
 ```bash
 kubectl run -it --rm curl --image=alpine/curl -- http://httpbin.demo.svc.cluster.local/headers
@@ -228,6 +277,7 @@ This section outlines how to run integration tests, and performance tests using 
 
 ## Monitoring
 
+Install prometheus if not already installed.
 ```bash
 # First, add the prometheus-community Helm repository.
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -237,7 +287,9 @@ helm repo update
 # Install the kube-prometheus-stack chart. This chart includes Prometheus and Grafana.
 kubectl create namespace prometheus
 helm install prometheus-stack prometheus-community/kube-prometheus-stack -n prometheus
-
+```
+Set up monitoring.
+```bash
 # Port-forward to access the dashboard
 kubectl port-forward -n prometheus services/prometheus-stack-grafana 3000:80
 
@@ -247,4 +299,4 @@ kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="
 kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
-Post this, you can use [`./playground/infra/elasti-dashboard.yaml`](./playground//infra/elasti-dashboard.yaml) to import the elasti dashboard.
+Post this, you can use [`./playground/infra/elasti-dashboard.yaml`](./playground/infra/elasti-dashboard.yaml) to import the elasti dashboard.
