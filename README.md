@@ -37,7 +37,7 @@ Kubernetes clusters can become costly, especially when running multiple services
     - [2. Install Elasti](#2-install-elasti)
     - [3. Verify the Installation](#3-verify-the-installation)
   - [Configuration](#configuration)
-    - [1. Define a ElastiService](#1-define-a-elastiservice)
+    - [1. Define an ElastiService](#1-define-an-elastiservice)
     - [2. Apply the configuration](#2-apply-the-configuration)
     - [3. Check Logs](#3-check-logs)
   - [Monitoring](#monitoring)
@@ -110,7 +110,7 @@ Refer to the [Docs](./docs/README.md) to know how it works.
 
 To configure a service to handle its traffic via elasti, you'll need to create and apply a `ElastiService` custom resource:
 
-### 1. Define a ElastiService
+### 1. Define an ElastiService
 
 ```yaml
 apiVersion: elasti.truefoundry.com/v1alpha1
@@ -194,7 +194,7 @@ We welcome contributions from the community to improve Elasti. Whether you're fi
 
 ## Getting Started
 
-Follows the steps mentioned in [development](#development) section. Post that follow:
+Follows the steps mentioned in [development](DEVELOPMENT.md) to set up the development environment.
 
 1. **Fork the Repository:**
    Fork the Elasti repository to your own GitHub account:
@@ -256,5 +256,5 @@ Thank you for contributing to Elasti! Your contributions make the project better
 
 - Support GRPC, Websockets.
 - Test multiple ports in same service.
-- Seperate queue for different services.
+- Separate queue for different services.
 - Unit test coverage.

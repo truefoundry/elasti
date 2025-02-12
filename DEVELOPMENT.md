@@ -201,7 +201,7 @@ helm install prometheus-stack prometheus-community/kube-prometheus-stack -n prom
 
 ### 9. Create ElastiService Resource
 
-Using the [ElastiService Definition](README.md#1-define-a-elastiservice), create a manifest file for your service and apply it. For demo, we use the below manifest.
+Using the [ElastiService Definition](README.md#1-define-an-elastiservice), create a manifest file for your service and apply it. For demo, we use the below manifest.
 
 ```bash
 kubectl -n demo apply -f ./playground/config/demo-elastiService.yaml

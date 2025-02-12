@@ -21,16 +21,15 @@ The Elasti project is designed to enable serverless capability for Kubernetes se
 
 ### Flow Description
 
-- **[In Serve Mode]** Traffic hits the gateway, is routed to the target service, then to the target pod, and resolves the request.
 - **[CRD Created]** The Operator fetches details from the CRD.
    1. Adds a finalizer to the CRD, ensuring it is only deleted by the Operator for proper cleanup.
    2. Fetches the `ScaleTargetRef` and initiates a watch on it.
    3. Adds the CRD details to a `crdDirectory`, caching the details of all CRDs.
-  - **[ScaleTargetRef Watch]** When a watch is added to the `ScaleTargetRef`:
-     1. Identifies the kind of target and checks the available ready pods.
-     2. If `replicas == 0` -> Switches to **Proxy Mode**.
-     3. If `replicas > 0` -> Switches to **Serve Mode**.
-     4. Currently, it supports only `deployments` and `rollouts`.
+- **[ScaleTargetRef Watch]** When a watch is added to the `ScaleTargetRef`:
+   1. Identifies the kind of target and checks the available ready pods.
+   2. If `replicas == 0` -> Switches to **Proxy Mode**.
+   3. If `replicas > 0` -> Switches to **Serve Mode**.
+   4. Currently, it supports only `deployments` and `rollouts`.
 
 - **When pods scale to 0**
 
@@ -42,7 +41,7 @@ The Elasti project is designed to enable serverless capability for Kubernetes se
 
 - **[In Proxy Mode]**
     1. Traffic reaching the target service, which has no pods, is sent to the resolver, capable of handling requests on all endpoints.
-    1. [**In Resolver**]
+    2. [**In Resolver**]
        1. Once traffic hits the resolver, it reaches the `handleAnyRequest` handler.
        2. The host is extracted from the request. If it's a known host, the cache is retrieved from `hostManager`. If not, the service name is extracted from the host and saved in `hostManager`.
        3. The service name is used to identify the private service.
@@ -51,9 +50,12 @@ The Elasti project is designed to enable serverless capability for Kubernetes se
           1. If yes, a proxy request is made, and the response is sent back.
           2. If no, the request is re-enqueued, and the check is retried after a configurable time interval (set in the Helm values file).
        6. If the request is successful, traffic for this host is disabled temporarily (configurable). This prevents new incoming requests to the resolver, as the target is now verified to be up.
-   1. [**In Controller/Operator**]
-      1. ElastiServer processes requests from the resolver, containing the service experiencing traffic.
-      2. Matches the service with the `crdDirectory` entry to retrieve the `ScaleTargetRef`, which is then used to scale the target.
+    3. [**In Controller/Operator**]
+       1. ElastiServer processes requests from the resolver, containing the service experiencing traffic.
+       2. Matches the service with the `crdDirectory` entry to retrieve the `ScaleTargetRef`, which is then used to scale the target.
+       3. Evaluates triggers defined in the ElastiService:
+           - If **any** trigger indicates that the service should be scaled up -> Scales to minTargetReplicas
+       4. Once scaled up, switches to **Serve Mode**
 
 - **When pods scale to 1**
 
@@ -61,6 +63,12 @@ The Elasti project is designed to enable serverless capability for Kubernetes se
     1. The Operator stops the informer/watch on the resolver.
     2. The Operator deletes the `EndpointSlice` pointing to the resolver.
     3. The system switches to **Serve Mode**.
+- **[In Serve Mode]**
+    1. Traffic hits the gateway, is routed to the target service, then to the target pod, and resolves the request.
+    2. The Operator periodically evaluates triggers defined in the ElastiService.
+    3. If **all** triggers indicate that the service is to be scaled down and cooldownPeriod has elapsed since last scale-up:
+        - Scales down the target service to zero replicas
+        - Switches to **Proxy Mode**
 
 
 ## 3. Controller
