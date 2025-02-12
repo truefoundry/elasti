@@ -1,3 +1,30 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Why use Elasti?](#why-use-elasti)
+- [Introduction](#introduction)
+  - [Key Features](#key-features)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Install](#install)
+    - [1. Install Elasti using helm](#1-install-elasti-using-helm)
+    - [2. Verify the Installation](#2-verify-the-installation)
+  - [Configuration](#configuration)
+    - [1. Define an ElastiService](#1-define-an-elastiservice)
+    - [2. Apply the configuration](#2-apply-the-configuration)
+    - [3. Check Logs](#3-check-logs)
+  - [Monitoring](#monitoring)
+  - [Uninstall](#uninstall)
+- [Development](#development)
+- [Contribution](#contribution)
+  - [Getting Started](#getting-started-1)
+  - [Getting Help](#getting-help)
+  - [Acknowledgements](#acknowledgements)
+- [Future Developments](#future-developments)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 <p align="center">
 <img src="./docs/logo/banner.png" alt="elasti icon">
 </p>
@@ -23,30 +50,6 @@ Kubernetes clusters can become costly, especially when running multiple services
       <img style="max-width:640px;" src="https://cdn.loom.com/sessions/thumbnails/6dae33a27a5847f081f7381f8d9510e6-adf9e85a899f85fd-full-play.gif">
     </a>
   </div>
-
-# Contents
-
-- [Why use Elasti?](#why-use-elasti)
-- [Contents](#contents)
-- [Introduction](#introduction)
-  - [Key Features](#key-features)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Install](#install)
-    - [1. Install Elasti using helm](#1-install-elasti-using-helm)
-    - [2. Verify the Installation](#2-verify-the-installation)
-  - [Configuration](#configuration)
-    - [1. Define an ElastiService](#1-define-an-elastiservice)
-    - [2. Apply the configuration](#2-apply-the-configuration)
-    - [3. Check Logs](#3-check-logs)
-  - [Monitoring](#monitoring)
-  - [Uninstall](#uninstall)
-- [Development](#development)
-- [Contribution](#contribution)
-  - [Getting Started](#getting-started-1)
-  - [Getting Help](#getting-help)
-  - [Acknowledgements](#acknowledgements)
-- [Future Developments](#future-developments)
 
 # Introduction
 
