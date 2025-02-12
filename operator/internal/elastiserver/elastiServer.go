@@ -86,7 +86,7 @@ func (s *Server) Start(port string) error {
 	s.logger.Info("Starting ElastiServer", zap.String("port", port))
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		s.logger.Error("Failed to start ElastiServer", zap.Error(err))
-		return err
+		return fmt.Errorf("failed to start ElastiServer: %w", err)
 	}
 
 	<-done
