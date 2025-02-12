@@ -10,6 +10,7 @@ linters:
     - bodyclose
     - containedctx
     # - contextcheck
+    - copyloopvar
     - dogsled
     - dupl
     - durationcheck
@@ -51,12 +52,12 @@ linters:
     - revive
     - staticcheck
     - stylecheck
-    - tenv
     - thelper
     - tparallel
     - typecheck
     - unconvert
     - unparam
     - unused
+    - usetesting
     - whitespace
     - wrapcheck
