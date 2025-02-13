@@ -1,1 +1,4 @@
-theme: jekyll-theme-cayman
+title: Elasti
+description: Confidently scale to zero with no downtime
+show_downloads: false
+theme: jekyll-theme-midnight
