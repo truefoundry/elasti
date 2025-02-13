@@ -58,6 +58,8 @@ Kubernetes clusters can become costly, especially when running multiple services
 
 # Introduction
 
+Elasti is a Kubernetes-native solution that enables true scale-to-zero functionality while ensuring zero request loss. It acts as an intelligent traffic manager that monitors your services and automatically handles scaling operations.
+
 Elasti monitors the target service for which you want to enable scale-to-zero. When the target service is scaled down to zero, Elasti automatically switches to Proxy mode, redirecting all incoming traffic to itself. In this mode, Elasti queues the incoming requests and scales up the target service. Once the service is back online, Elasti processes the queued requests, sending them to the now-active service. After the target service is scaled up, Elasti switches to Serve mode, where traffic is directly handled by the service, removing any redirection. This seamless transition between modes ensures efficient handling of requests while optimizing resource usage.
 
 <div align="center">
