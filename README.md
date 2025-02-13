@@ -173,6 +173,28 @@ spec:
 - `autoscaler`: **Optional** integration with an external autoscaler (HPA/KEDA) if needed
   - `<autoscaler-type>`: hpa/keda
   - `<autoscaler-object-name>`: name of the KEDA ScaledObject or HPA HorizontalPodAutoscaler object
+  
+Below is an example configuration for an ElastiService.
+```yaml
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  name: httpbin
+spec:
+  service: httpbin
+  minTargetReplicas: 1
+  cooldownPeriod: 300
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployments
+    name: httpbin
+  triggers:
+    - type: prometheus
+      metadata:
+        query: sum(rate(istio_requests_total{destination_service="httpbin.demo.svc.cluster.local"}[1m])) or vector(0)
+        serverAddress: http://prometheus-server.prometheus.svc.cluster.local:9090
+        threshold: "0.01"
+```
 
 ### 2. Apply the configuration
 
