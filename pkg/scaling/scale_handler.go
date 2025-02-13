@@ -13,6 +13,7 @@ import (
 	"github.com/truefoundry/elasti/pkg/scaling/scalers"
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -264,45 +265,92 @@ func (h *ScaleHandler) ScaleTargetFromZero(namespacedName types.NamespacedName, 
 	defer mutex.Unlock()
 
 	h.logger.Info("Scaling up from zero", zap.String("kind", targetKind), zap.String("namespacedName", namespacedName.String()), zap.Int32("replicas", replicas))
+
+	var err error
 	switch strings.ToLower(targetKind) {
 	case values.KindDeployments:
-		err := h.ScaleDeployment(namespacedName.Namespace, namespacedName.Name, replicas)
-		if err != nil {
-			return fmt.Errorf("ScaleTargetFromZero - Deployment: %w", err)
-		}
+		err = h.ScaleDeployment(namespacedName.Namespace, namespacedName.Name, replicas)
 	case values.KindRollout:
-		err := h.ScaleArgoRollout(namespacedName.Namespace, namespacedName.Name, replicas)
-		if err != nil {
-			return fmt.Errorf("ScaleTargetFromZero - Rollout: %w", err)
-		}
+		err = h.ScaleArgoRollout(namespacedName.Namespace, namespacedName.Name, replicas)
 	default:
 		return fmt.Errorf("unsupported target kind: %s", targetKind)
 	}
+
+	if err != nil {
+		eventErr := h.createEvent(
+			namespacedName.Namespace,
+			namespacedName.Name,
+			targetKind,
+			"Warning",
+			"ScaleFromZeroFailed",
+			fmt.Sprintf("Failed to scale %s from zero to %d replicas: %v", targetKind, replicas, err),
+		)
+		if eventErr != nil {
+			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
+		}
+		return fmt.Errorf("ScaleTargetFromZero - %s: %w", targetKind, err)
+	}
+
+	eventErr := h.createEvent(
+		namespacedName.Namespace,
+		namespacedName.Name,
+		targetKind,
+		"Normal",
+		"ScaledFromZero",
+		fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas),
+	)
+	if eventErr != nil {
+		h.logger.Error("Failed to create success event", zap.Error(eventErr))
+	}
+
 	return nil
 }
 
 // ScaleTargetToZero scales the target to zero
-// TODO: Emit k8s events
 func (h *ScaleHandler) ScaleTargetToZero(namespacedName types.NamespacedName, targetKind string) error {
 	mutex := h.getMutexForScale(namespacedName.String())
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	h.logger.Info("Scaling down to zero", zap.String("kind", targetKind), zap.String("namespacedName", namespacedName.String()))
+
+	var err error
 	switch strings.ToLower(targetKind) {
 	case values.KindDeployments:
-		err := h.ScaleDeployment(namespacedName.Namespace, namespacedName.Name, 0)
-		if err != nil {
-			return fmt.Errorf("ScaleTargetToZero - Deployment: %w", err)
-		}
+		err = h.ScaleDeployment(namespacedName.Namespace, namespacedName.Name, 0)
 	case values.KindRollout:
-		err := h.ScaleArgoRollout(namespacedName.Namespace, namespacedName.Name, 0)
-		if err != nil {
-			return fmt.Errorf("ScaleTargetToZero - Rollout: %w", err)
-		}
+		err = h.ScaleArgoRollout(namespacedName.Namespace, namespacedName.Name, 0)
 	default:
 		return fmt.Errorf("unsupported target kind: %s", targetKind)
 	}
+
+	if err != nil {
+		eventErr := h.createEvent(
+			namespacedName.Namespace,
+			namespacedName.Name,
+			targetKind,
+			"Warning",
+			"ScaleToZeroFailed",
+			fmt.Sprintf("Failed to scale %s to zero: %v", targetKind, err),
+		)
+		if eventErr != nil {
+			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
+		}
+		return fmt.Errorf("ScaleTargetToZero - %s: %w", targetKind, err)
+	}
+
+	eventErr := h.createEvent(
+		namespacedName.Namespace,
+		namespacedName.Name,
+		targetKind,
+		"Normal",
+		"ScaledToZero",
+		fmt.Sprintf("Successfully scaled %s to zero", targetKind),
+	)
+	if eventErr != nil {
+		h.logger.Error("Failed to create success event", zap.Error(eventErr))
+	}
+
 	return nil
 }
 
@@ -402,5 +450,37 @@ func (h *ScaleHandler) UpdateLastScaledUpTime(ctx context.Context, crdName, name
 		return fmt.Errorf("failed to update ElastiService status: %w", err)
 	}
 
+	return nil
+}
+
+// createEvent creates a new event on scaling up or down
+func (h *ScaleHandler) createEvent(namespace, name string, targetKind string, eventType string, reason string, message string) error {
+	h.logger.Info("createEvent", zap.String("eventType", eventType), zap.String("reason", reason), zap.String("message", message))
+	event := &v1.Event{
+		EventTime: metav1.MicroTime{Time: time.Now()},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: name + "-",
+			Namespace:    namespace,
+		},
+		InvolvedObject: v1.ObjectReference{
+			Kind:      targetKind,
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type:                eventType, // Normal or Warning
+		Reason:              reason,
+		Message:             message,
+		ReportingInstance:   "elasti-operator",
+		ReportingController: "elasti-operator",
+		Action:              "Scale",
+		Source: v1.EventSource{
+			Component: "elasti-operator",
+		},
+	}
+
+	_, err := h.kClient.CoreV1().Events(namespace).Create(context.TODO(), event, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create event: %w", err)
+	}
 	return nil
 }
