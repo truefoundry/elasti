@@ -296,7 +296,7 @@ func (h *ScaleHandler) ScaleTargetFromZero(namespacedName types.NamespacedName, 
 		namespacedName.Name,
 		targetKind,
 		"Normal",
-		"ScaledFromZero",
+		"ScaledUpFromZero",
 		fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas),
 	)
 	if eventErr != nil {
@@ -344,7 +344,7 @@ func (h *ScaleHandler) ScaleTargetToZero(namespacedName types.NamespacedName, ta
 		namespacedName.Name,
 		targetKind,
 		"Normal",
-		"ScaledToZero",
+		"ScaledDownToZero",
 		fmt.Sprintf("Successfully scaled %s to zero", targetKind),
 	)
 	if eventErr != nil {
