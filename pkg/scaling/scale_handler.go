@@ -177,7 +177,7 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 		}
 	}
 
-	if err := h.ScaleTargetToZero(namespacedName, es.Spec.ScaleTargetRef.Kind); err != nil {
+	if err := h.ScaleTargetToZero(namespacedName, es.Spec.ScaleTargetRef.Kind, es.Name); err != nil {
 		return fmt.Errorf("failed to scale target to zero: %w", err)
 	}
 	return nil
@@ -229,13 +229,8 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 		}
 	}
 
-	if err := h.ScaleTargetFromZero(namespacedName, es.Spec.ScaleTargetRef.Kind, es.Spec.MinTargetReplicas); err != nil {
+	if err := h.ScaleTargetFromZero(namespacedName, es.Spec.ScaleTargetRef.Kind, es.Spec.MinTargetReplicas, es.Name); err != nil {
 		return fmt.Errorf("failed to scale target from zero: %w", err)
-	}
-
-	if err := h.UpdateLastScaledUpTime(ctx, es.Name, es.Namespace); err != nil {
-		// not returning an error as scale up has been successful
-		h.logger.Error("failed to update LastScaledUpTime", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 	}
 
 	return nil
@@ -259,7 +254,7 @@ func (h *ScaleHandler) createScalerForTrigger(trigger *v1alpha1.ScaleTrigger) (s
 }
 
 // ScaleTargetFromZero scales the TargetRef to the provided replicas when it's at 0
-func (h *ScaleHandler) ScaleTargetFromZero(namespacedName types.NamespacedName, targetKind string, replicas int32) error {
+func (h *ScaleHandler) ScaleTargetFromZero(namespacedName types.NamespacedName, targetKind string, replicas int32, elastiServiceName string) error {
 	mutex := h.getMutexForScale(namespacedName.String())
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -277,37 +272,27 @@ func (h *ScaleHandler) ScaleTargetFromZero(namespacedName types.NamespacedName, 
 	}
 
 	if err != nil {
-		eventErr := h.createEvent(
-			namespacedName.Namespace,
-			namespacedName.Name,
-			targetKind,
-			"Warning",
-			"ScaleFromZeroFailed",
-			fmt.Sprintf("Failed to scale %s from zero to %d replicas: %v", targetKind, replicas, err),
-		)
+		eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Warning", "ScaleFromZeroFailed", fmt.Sprintf("Failed to scale %s from zero to %d replicas: %v", targetKind, replicas, err))
 		if eventErr != nil {
 			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
 		}
 		return fmt.Errorf("ScaleTargetFromZero - %s: %w", targetKind, err)
 	}
 
-	eventErr := h.createEvent(
-		namespacedName.Namespace,
-		namespacedName.Name,
-		targetKind,
-		"Normal",
-		"ScaledUpFromZero",
-		fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas),
-	)
+	eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Normal", "ScaledUpFromZero", fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas))
 	if eventErr != nil {
 		h.logger.Error("Failed to create success event", zap.Error(eventErr))
+	}
+
+	if err := h.UpdateLastScaledUpTime(context.Background(), elastiServiceName, namespacedName.Namespace); err != nil {
+		h.logger.Error("Failed to update LastScaledUpTime", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
 	}
 
 	return nil
 }
 
 // ScaleTargetToZero scales the target to zero
-func (h *ScaleHandler) ScaleTargetToZero(namespacedName types.NamespacedName, targetKind string) error {
+func (h *ScaleHandler) ScaleTargetToZero(namespacedName types.NamespacedName, targetKind string, elastiServiceName string) error {
 	mutex := h.getMutexForScale(namespacedName.String())
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -325,28 +310,14 @@ func (h *ScaleHandler) ScaleTargetToZero(namespacedName types.NamespacedName, ta
 	}
 
 	if err != nil {
-		eventErr := h.createEvent(
-			namespacedName.Namespace,
-			namespacedName.Name,
-			targetKind,
-			"Warning",
-			"ScaleToZeroFailed",
-			fmt.Sprintf("Failed to scale %s to zero: %v", targetKind, err),
-		)
+		eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Warning", "ScaleToZeroFailed", fmt.Sprintf("Failed to scale %s to zero: %v", targetKind, err))
 		if eventErr != nil {
 			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
 		}
 		return fmt.Errorf("ScaleTargetToZero - %s: %w", targetKind, err)
 	}
 
-	eventErr := h.createEvent(
-		namespacedName.Namespace,
-		namespacedName.Name,
-		targetKind,
-		"Normal",
-		"ScaledDownToZero",
-		fmt.Sprintf("Successfully scaled %s to zero", targetKind),
-	)
+	eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Normal", "ScaledDownToZero", fmt.Sprintf("Successfully scaled %s to zero", targetKind))
 	if eventErr != nil {
 		h.logger.Error("Failed to create success event", zap.Error(eventErr))
 	}
@@ -454,25 +425,23 @@ func (h *ScaleHandler) UpdateLastScaledUpTime(ctx context.Context, crdName, name
 }
 
 // createEvent creates a new event on scaling up or down
-func (h *ScaleHandler) createEvent(namespace, name string, targetKind string, eventType string, reason string, message string) error {
+func (h *ScaleHandler) createEvent(namespace, name, eventType, reason, message string) error {
 	h.logger.Info("createEvent", zap.String("eventType", eventType), zap.String("reason", reason), zap.String("message", message))
 	event := &v1.Event{
-		EventTime: metav1.MicroTime{Time: time.Now()},
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: name + "-",
 			Namespace:    namespace,
 		},
 		InvolvedObject: v1.ObjectReference{
-			Kind:      targetKind,
-			Name:      name,
-			Namespace: namespace,
+			APIVersion: "elasti.truefoundry.com/v1alpha1",
+			Kind:       "ElastiService",
+			Name:       name,
+			Namespace:  namespace,
 		},
-		Type:                eventType, // Normal or Warning
-		Reason:              reason,
-		Message:             message,
-		ReportingInstance:   "elasti-operator",
-		ReportingController: "elasti-operator",
-		Action:              "Scale",
+		Type:    eventType, // Normal or Warning
+		Reason:  reason,
+		Message: message,
+		Action:  "Scale",
 		Source: v1.EventSource{
 			Component: "elasti-operator",
 		},
