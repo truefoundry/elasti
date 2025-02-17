@@ -20,7 +20,7 @@ Elasti continuously monitors an ElastiService by evaluating a set of custom trig
 
 This allows Elasti to optimize resource consumption by scaling services down when unneeded, while its request queueing mechanism preserves user interactions and guarantees prompt service availability when conditions change.
 <div align="center">
-<img src="./docs/assets/modes.png" width="400px">
+<img src="./assets/modes.png" width="400px">
 </div>
 
 ## Key Features
