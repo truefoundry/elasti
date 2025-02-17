@@ -61,7 +61,6 @@ func main() {
 	}
 
 	sentryEnabled := env.SentryDsn != ""
-
 	if sentryEnabled {
 		fmt.Println("Initializing Sentry")
 		if err := sentry.Init(sentry.ClientOptions{
@@ -72,12 +71,14 @@ func main() {
 		}); err != nil {
 			fmt.Println("Sentry initialization failed:", err)
 		}
-		defer sentry.Flush(2 * time.Second)
 	}
 
 	logger, err := logger.NewLogger("dev", sentryEnabled)
 	if err != nil {
 		log.Fatal("Failed to get logger: ", err)
+	}
+	if sentryEnabled {
+		defer sentry.Flush(2 * time.Second)
 	}
 
 	config, err := rest.InClusterConfig()
