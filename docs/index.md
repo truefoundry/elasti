@@ -1,7 +1,3 @@
----
-layout: default
----
-
 # Elasti
 
 
