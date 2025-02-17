@@ -1,6 +1,6 @@
 # Getting Started
 
-With Elasti, you can easily manage and scale your Kubernetes services by using a proxy mechanism that queues and holds requests for scaled-down services, bringing them up only when needed. Get started by following below steps:
+Get started by following below steps:
 
 ## Prerequisites
 
@@ -12,11 +12,12 @@ With Elasti, you can easily manage and scale your Kubernetes services by using a
 
 ### 1. Install Elasti using helm
 
-Use Helm to install elasti into your Kubernetes cluster. Replace `<release-name>` with your desired release name and `<namespace>` with the Kubernetes namespace you want to use:
+Use Helm to install elasti into your Kubernetes cluster. 
 
 ```bash
 helm install elasti oci://tfy.jfrog.io/tfy-helm/elasti --namespace elasti --create-namespace
 ```
+
 Check out [values.yaml](./charts/elasti/values.yaml) to see config in the helm value file.
 
 ### 2. Verify the Installation
