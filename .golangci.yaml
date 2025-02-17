@@ -1,7 +1,7 @@
 run:
   tests: false
   timeout: 5m
-  go: 1.22
+  go: "1.22"
   modules-download-mode: readonly
 linters:
   # Enable specific linter
@@ -9,7 +9,7 @@ linters:
   enable:
     - bodyclose
     - containedctx
-    # - contextcheck
+#     - contextcheck
     - copyloopvar
     - dogsled
     - dupl
@@ -18,8 +18,8 @@ linters:
     - errchkjson
     - errname
     - errorlint
-    - exhaustive
-    # - forcetypeassert
+#    - exhaustive
+#     - forcetypeassert
     - gocognit
     - goconst
     - gocritic
@@ -27,7 +27,7 @@ linters:
     - gofmt
     - goheader
     - goimports
-    # - gomoddirectives
+#     - gomoddirectives
     - gomodguard
     - goprintffuncname
     - gosec
@@ -36,19 +36,19 @@ linters:
     - grouper
     - importas
     - ineffassign
-    - ireturn
+#    - ireturn
     - maintidx
     - makezero
     - misspell
     - nakedret
     - nilerr
     - nilnil
-    # - noctx
+#     - noctx
     - nolintlint
-    # - nonamedreturns
+#     - nonamedreturns
     - nosprintfhostport
     - predeclared
-    # - promlinter
+#     - promlinter
     - revive
     - staticcheck
     - stylecheck

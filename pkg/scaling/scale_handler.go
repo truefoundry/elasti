@@ -252,7 +252,7 @@ func (h *ScaleHandler) createScalerForTrigger(trigger *v1alpha1.ScaleTrigger) (s
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create scaler: %w", err)
 	}
 	return scaler, nil
 }
