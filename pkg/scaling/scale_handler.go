@@ -372,24 +372,11 @@ func (h *ScaleHandler) ScaleArgoRollout(ns, targetName string, replicas int32) e
 }
 
 func (h *ScaleHandler) UpdateKedaScaledObjectPausedState(ctx context.Context, scaledObjectName, namespace string, paused bool) error {
-	scaledObject, err := h.kDynamicClient.Resource(values.ScaledObjectGVR).Namespace(namespace).Get(ctx, scaledObjectName, metav1.GetOptions{})
+	patchBytes := []byte(fmt.Sprintf(`{"metadata": {"annotations": {"%s": "%s"}}}`, kedaPausedAnnotation, strconv.FormatBool(paused)))
+	_, err := h.kDynamicClient.Resource(values.ScaledObjectGVR).Namespace(namespace).Patch(ctx, scaledObjectName, types.MergePatchType, patchBytes, metav1.PatchOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get ScaledObject: %w", err)
+		return fmt.Errorf("failed to patch ScaledObject: %w", err)
 	}
-
-	annotations := scaledObject.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-
-	annotations[kedaPausedAnnotation] = strconv.FormatBool(paused)
-	scaledObject.SetAnnotations(annotations)
-
-	_, err = h.kDynamicClient.Resource(values.ScaledObjectGVR).Namespace(namespace).Update(ctx, scaledObject, metav1.UpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to update ScaledObject: %w", err)
-	}
-
 	return nil
 }
 
