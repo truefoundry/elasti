@@ -15,7 +15,6 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
@@ -395,32 +394,15 @@ func (h *ScaleHandler) UpdateKedaScaledObjectPausedState(ctx context.Context, sc
 }
 
 func (h *ScaleHandler) UpdateLastScaledUpTime(ctx context.Context, crdName, namespace string) error {
-	elastiService, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).
-		Namespace(namespace).
-		Get(ctx, crdName, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get ElastiService: %w", err)
-	}
-
-	currentES := &v1alpha1.ElastiService{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(elastiService.Object, currentES); err != nil {
-		return fmt.Errorf("failed to convert unstructured to ElastiService: %w", err)
-	}
 	now := metav1.Now()
-	currentES.Status.LastScaledUpTime = &now
+	patchBytes := []byte(fmt.Sprintf(`{"status": {"lastScaledUpTime": "%s"}}`, now.Format(time.RFC3339Nano)))
 
-	obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(currentES)
+	_, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).
+		Namespace(namespace).
+		Patch(ctx, crdName, types.MergePatchType, patchBytes, metav1.PatchOptions{}, "status")
 	if err != nil {
-		return fmt.Errorf("failed to convert ElastiService to unstructured: %w", err)
+		return fmt.Errorf("failed to patch ElastiService status: %w", err)
 	}
-
-	_, err = h.kDynamicClient.Resource(values.ElastiServiceGVR).
-		Namespace(currentES.Namespace).
-		UpdateStatus(ctx, &unstructured.Unstructured{Object: obj}, metav1.UpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to update ElastiService status: %w", err)
-	}
-
 	return nil
 }
 
