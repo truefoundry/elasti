@@ -108,5 +108,9 @@ func (c *CustomCore) Write(entry zapcore.Entry, fields []zapcore.Field) error {
 			sentry.CaptureEvent(event)
 		})
 	}
-	return fmt.Errorf("failed to write entry: %w", c.Core.Write(entry, fields))
+	err := c.Core.Write(entry, fields)
+	if err != nil {
+		return fmt.Errorf("failed to write entry: %w", err)
+	}
+	return nil
 }
