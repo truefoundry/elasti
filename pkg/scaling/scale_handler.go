@@ -168,7 +168,7 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 		}
 
 		if time.Since(es.Status.LastScaledUpTime.Time) < cooldownPeriod {
-			h.logger.Info("Skipping scale down as minimum cooldownPeriod not met",
+			h.logger.Debug("Skipping scale down as minimum cooldownPeriod not met",
 				zap.String("service", namespacedName.String()),
 				zap.Duration("cooldown", cooldownPeriod),
 				zap.Time("last scaled up time", es.Status.LastScaledUpTime.Time))
@@ -176,7 +176,7 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 		}
 	}
 
-	if err := h.ScaleTargetToZero(namespacedName, es.Spec.ScaleTargetRef.Kind, es.Name); err != nil {
+	if err := h.ScaleTargetToZero(ctx, namespacedName, es.Spec.ScaleTargetRef.Kind, es.Name); err != nil {
 		return fmt.Errorf("failed to scale target to zero: %w", err)
 	}
 	return nil
@@ -228,7 +228,7 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 		}
 	}
 
-	if err := h.ScaleTargetFromZero(namespacedName, es.Spec.ScaleTargetRef.Kind, es.Spec.MinTargetReplicas, es.Name); err != nil {
+	if err := h.ScaleTargetFromZero(ctx, namespacedName, es.Spec.ScaleTargetRef.Kind, es.Spec.MinTargetReplicas, es.Name); err != nil {
 		return fmt.Errorf("failed to scale target from zero: %w", err)
 	}
 
@@ -253,7 +253,7 @@ func (h *ScaleHandler) createScalerForTrigger(trigger *v1alpha1.ScaleTrigger) (s
 }
 
 // ScaleTargetFromZero scales the TargetRef to the provided replicas when it's at 0
-func (h *ScaleHandler) ScaleTargetFromZero(namespacedName types.NamespacedName, targetKind string, replicas int32, elastiServiceName string) error {
+func (h *ScaleHandler) ScaleTargetFromZero(ctx context.Context, namespacedName types.NamespacedName, targetKind string, replicas int32, elastiServiceName string) error {
 	mutex := h.getMutexForScale(namespacedName.String())
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -263,9 +263,9 @@ func (h *ScaleHandler) ScaleTargetFromZero(namespacedName types.NamespacedName, 
 	var err error
 	switch strings.ToLower(targetKind) {
 	case values.KindDeployments:
-		err = h.ScaleDeployment(namespacedName.Namespace, namespacedName.Name, replicas)
+		err = h.ScaleDeployment(ctx, namespacedName.Namespace, namespacedName.Name, replicas)
 	case values.KindRollout:
-		err = h.ScaleArgoRollout(namespacedName.Namespace, namespacedName.Name, replicas)
+		err = h.ScaleArgoRollout(ctx, namespacedName.Namespace, namespacedName.Name, replicas)
 	default:
 		return fmt.Errorf("unsupported target kind: %s", targetKind)
 	}
@@ -283,7 +283,7 @@ func (h *ScaleHandler) ScaleTargetFromZero(namespacedName types.NamespacedName, 
 		h.logger.Error("Failed to create success event", zap.Error(eventErr))
 	}
 
-	if err := h.UpdateLastScaledUpTime(context.Background(), elastiServiceName, namespacedName.Namespace); err != nil {
+	if err := h.UpdateLastScaledUpTime(ctx, elastiServiceName, namespacedName.Namespace); err != nil {
 		h.logger.Error("Failed to update LastScaledUpTime", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
 	}
 
@@ -291,7 +291,7 @@ func (h *ScaleHandler) ScaleTargetFromZero(namespacedName types.NamespacedName, 
 }
 
 // ScaleTargetToZero scales the target to zero
-func (h *ScaleHandler) ScaleTargetToZero(namespacedName types.NamespacedName, targetKind string, elastiServiceName string) error {
+func (h *ScaleHandler) ScaleTargetToZero(ctx context.Context, namespacedName types.NamespacedName, targetKind string, elastiServiceName string) error {
 	mutex := h.getMutexForScale(namespacedName.String())
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -301,9 +301,9 @@ func (h *ScaleHandler) ScaleTargetToZero(namespacedName types.NamespacedName, ta
 	var err error
 	switch strings.ToLower(targetKind) {
 	case values.KindDeployments:
-		err = h.ScaleDeployment(namespacedName.Namespace, namespacedName.Name, 0)
+		err = h.ScaleDeployment(ctx, namespacedName.Namespace, namespacedName.Name, 0)
 	case values.KindRollout:
-		err = h.ScaleArgoRollout(namespacedName.Namespace, namespacedName.Name, 0)
+		err = h.ScaleArgoRollout(ctx, namespacedName.Namespace, namespacedName.Name, 0)
 	default:
 		return fmt.Errorf("unsupported target kind: %s", targetKind)
 	}
@@ -326,19 +326,19 @@ func (h *ScaleHandler) ScaleTargetToZero(namespacedName types.NamespacedName, ta
 
 // ScaleDeployment scales the deployment to the provided replicas
 // TODO: use a generic logic to perform scaling similar to HPA/KEDA
-func (h *ScaleHandler) ScaleDeployment(ns, targetName string, replicas int32) error {
+func (h *ScaleHandler) ScaleDeployment(ctx context.Context, ns, targetName string, replicas int32) error {
 	deploymentClient := h.kClient.AppsV1().Deployments(ns)
-	deploy, err := deploymentClient.Get(context.TODO(), targetName, metav1.GetOptions{})
+	deploy, err := deploymentClient.Get(ctx, targetName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("ScaleDeployment - GET: %w", err)
 	}
 
 	h.logger.Debug("Deployment found", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas), zap.Int32("desired replicas", replicas))
 	if deploy.Spec.Replicas != nil && *deploy.Spec.Replicas != replicas {
-		*deploy.Spec.Replicas = replicas
-		_, err = deploymentClient.Update(context.TODO(), deploy, metav1.UpdateOptions{})
+		patchBytes := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
+		_, err = deploymentClient.Patch(ctx, targetName, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 		if err != nil {
-			return fmt.Errorf("ScaleDeployment - Update: %w", err)
+			return fmt.Errorf("ScaleDeployment - Patch: %w", err)
 		}
 		h.logger.Info("Deployment scaled", zap.String("deployment", targetName), zap.Int32("replicas", replicas))
 		return nil
@@ -348,8 +348,8 @@ func (h *ScaleHandler) ScaleDeployment(ns, targetName string, replicas int32) er
 }
 
 // ScaleArgoRollout scales the rollout to the provided replicas
-func (h *ScaleHandler) ScaleArgoRollout(ns, targetName string, replicas int32) error {
-	rollout, err := h.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Get(context.TODO(), targetName, metav1.GetOptions{})
+func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, ns, targetName string, replicas int32) error {
+	rollout, err := h.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Get(ctx, targetName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("ScaleArgoRollout - GET: %w", err)
 	}
@@ -358,10 +358,16 @@ func (h *ScaleHandler) ScaleArgoRollout(ns, targetName string, replicas int32) e
 	h.logger.Info("Rollout found", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
 
 	if currentReplicas != int64(replicas) {
-		rollout.Object["spec"].(map[string]interface{})["replicas"] = replicas
-		_, err = h.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Update(context.TODO(), rollout, metav1.UpdateOptions{})
+		patchBytes := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
+		_, err = h.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Patch(
+			ctx,
+			targetName,
+			types.MergePatchType,
+			patchBytes,
+			metav1.PatchOptions{},
+		)
 		if err != nil {
-			return fmt.Errorf("ScaleArgoRollout - Update: %w", err)
+			return fmt.Errorf("ScaleArgoRollout - Patch: %w", err)
 		}
 		h.logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
 		return nil
