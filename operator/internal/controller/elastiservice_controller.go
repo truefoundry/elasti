@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/truefoundry/elasti/pkg/scaling"
 	"k8s.io/apimachinery/pkg/types"
 
 	"truefoundry/elasti/operator/internal/crddirectory"
@@ -32,6 +33,7 @@ type (
 		Logger             *zap.Logger
 		InformerManager    *informer.Manager
 		SwitchModeLocks    sync.Map
+		ScaleHandler       *scaling.ScaleHandler
 		InformerStartLocks sync.Map
 		ReconcileLocks     sync.Map
 	}
@@ -85,14 +87,12 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return res, nil
 		}
 		r.Logger.Error("Failed to get ElastiService in Reconcile", zap.String("es", req.String()), zap.Error(esErr))
-		sentry.CaptureException(esErr)
 		return res, esErr
 	}
 
 	// If the ElastiService is being deleted, we need to clean up the resources
 	if isDeleted, err := r.finalizeCRDIfDeleted(ctx, es, req); err != nil {
 		r.Logger.Error("Failed to check if CRD is deleted", zap.String("es", req.String()), zap.Error(err))
-		sentry.CaptureException(err)
 		return res, err
 	} else if isDeleted {
 		r.Logger.Info("[CRD is deleted successfully]", zap.String("es", req.String()))
@@ -102,7 +102,6 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// We also check if the CRD has finalizer, and if not, we add the finalizer
 	if err := r.addCRDFinalizer(ctx, es); err != nil {
 		r.Logger.Error("Failed to finalize CRD", zap.String("es", req.String()), zap.Error(err))
-		sentry.CaptureException(err)
 		return res, err
 	}
 	r.Logger.Info("Finalizer added to CRD", zap.String("es", req.String()))
@@ -110,7 +109,6 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Add watch for public service, so when the public service is modified, we can update the private service
 	if err := r.watchScaleTargetRef(ctx, es, req); err != nil {
 		r.Logger.Error("Failed to add watch for ScaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef), zap.Error(err))
-		sentry.CaptureException(err)
 		return res, err
 	}
 	r.Logger.Info("Watch added for ScaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
@@ -149,6 +147,7 @@ func (r *ElastiServiceReconciler) Initialize(ctx context.Context) error {
 	if err := r.InformerManager.InitializeResolverInformer(r.getResolverChangeHandler(ctx)); err != nil {
 		return fmt.Errorf("failed to initialize resolver informer: %w", err)
 	}
+	r.ScaleHandler.StartScaleDownWatcher(ctx)
 	return nil
 }
 

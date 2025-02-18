@@ -4,6 +4,7 @@ metadata:
   name: {{ include "elasti.fullname" . }}-resolver-service
   namespace: '{{ .Release.Namespace }}'
   labels:
+    app.kubernetes.io/prometheus: elasti-resolver # used serviceMonitor to define the jobLabel
     {{- include "elasti.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.elastiResolver.service.type }}

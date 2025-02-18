@@ -2,8 +2,6 @@ package logger
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
@@ -43,68 +41,72 @@ func NewLogger(env string, sentryEnabled bool) (*zap.Logger, error) {
 	}
 
 	if sentryEnabled {
-		logger = logger.WithOptions(zap.Hooks(func(entry zapcore.Entry) error {
-			if entry.Level >= zapcore.ErrorLevel {
-				event := &sentry.Event{
-					Message:   entry.Message,
-					Level:     sentry.LevelError,
-					Timestamp: entry.Time,
-				}
-
-				if entry.Stack != "" {
-					stackTrace, err := parseStackTrace(entry.Stack)
-					if err != nil {
-						return err
-					}
-					event.Exception = []sentry.Exception{
-						{
-							Value:      entry.Message,
-							Type:       "error",
-							Stacktrace: stackTrace,
-						},
-					}
-				}
-
-				sentry.CaptureEvent(event)
-			}
-			return nil
-		}))
+		return zap.New(&CustomCore{Core: logger.Core()}), nil
 	}
-
 	return logger, nil
 }
 
-func parseStackTrace(stack string) (*sentry.Stacktrace, error) {
-	var frames []sentry.Frame
-	lines := strings.Split(stack, "\n")
+type CustomCore struct {
+	zapcore.Core
+}
 
-	for i := 0; i < len(lines); i += 2 {
-		funcName := strings.TrimSpace(lines[i])
-		fileName := strings.TrimSpace(lines[i+1])
-
-		parts := strings.Split(fileName, ":")
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid stack trace line: %s", fileName)
-		}
-
-		lineNumber, err := strconv.Atoi(parts[1])
-		if err != nil {
-			return nil, fmt.Errorf("invalid stack trace line: %s", fileName)
-		}
-
-		frame := sentry.Frame{
-			Function: funcName,
-			Filename: parts[0],
-			Lineno:   lineNumber,
-		}
-
-		frames = append(frames, frame)
+func (c *CustomCore) Check(entry zapcore.Entry, checked *zapcore.CheckedEntry) *zapcore.CheckedEntry {
+	if c.Enabled(entry.Level) {
+		return checked.AddCore(entry, c)
 	}
+	return checked
+}
 
-	// Reverse the order of the frames for sentry to display them in the correct order
-	for i, j := 0, len(frames)-1; i < j; i, j = i+1, j-1 {
-		frames[i], frames[j] = frames[j], frames[i]
+func (c *CustomCore) Write(entry zapcore.Entry, fields []zapcore.Field) error {
+	if entry.Level >= zapcore.ErrorLevel {
+		sentry.WithScope(func(scope *sentry.Scope) {
+			context := make(sentry.Context) // map[string]interface{}
+			var err error
+
+			// Convert Zap fields to Sentry context
+			for _, field := range fields {
+				switch field.Type {
+				case zapcore.StringType:
+					context[field.Key] = field.String
+				case zapcore.Int64Type, zapcore.Int32Type, zapcore.Int16Type, zapcore.Int8Type:
+					context[field.Key] = field.Integer
+				case zapcore.ErrorType:
+					fieldErr := field.Interface.(error)
+					context[field.Key] = fieldErr.Error()
+					if err == nil { // Using only the first error
+						err = fieldErr
+					}
+				default:
+					context[field.Key] = field.String
+				}
+			}
+
+			scope.SetLevel(sentry.LevelError)
+			scope.SetContext("details", context)
+
+			stacktrace := sentry.NewStacktrace()
+			stacktrace.Frames = stacktrace.Frames[:len(stacktrace.Frames)-4]
+
+			exception := sentry.Exception{
+				Type:       entry.Message,
+				Stacktrace: stacktrace,
+			}
+			if err != nil {
+				exception.Value = err.Error()
+			} else {
+				exception.Value = entry.Message
+			}
+
+			event := &sentry.Event{
+				Message: entry.Message,
+				Level:   sentry.LevelError,
+				Exception: []sentry.Exception{
+					exception,
+				},
+			}
+
+			sentry.CaptureEvent(event)
+		})
 	}
-
-	return &sentry.Stacktrace{Frames: frames}, nil
+	return fmt.Errorf("failed to write entry: %w", c.Core.Write(entry, fields))
 }
