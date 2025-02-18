@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -48,11 +49,14 @@ func (r *ElastiServiceReconciler) updateCRDStatus(ctx context.Context, crdNamesp
 		r.Logger.Error("Failed to get ElastiService for status update", zap.String("es", crdNamespacedName.String()), zap.Error(err))
 		return fmt.Errorf("failed to get elastiService for status update")
 	}
+	original := es.DeepCopy()
+
 	es.Status.LastReconciledTime = metav1.Now()
 	es.Status.Mode = mode
-	if err = r.Status().Update(ctx, es); err != nil {
-		r.Logger.Error("Failed to update status", zap.String("es", crdNamespacedName.String()), zap.Error(err))
-		return fmt.Errorf("failed to update CRD status")
+
+	if err = r.Status().Patch(ctx, es, client.MergeFrom(original)); err != nil {
+		r.Logger.Error("Failed to patch status", zap.String("es", crdNamespacedName.String()), zap.Error(err))
+		return fmt.Errorf("failed to patch CRD status")
 	}
 
 	r.Logger.Info("CRD Status updated successfully")
