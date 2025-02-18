@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -76,10 +78,8 @@ type ElastiServiceList struct {
 }
 
 type ScaleTrigger struct {
-	Type string `json:"type"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	Metadata any `json:"metadata,omitempty"`
+	Type     string          `json:"type"`
+	Metadata json.RawMessage `json:"metadata,omitempty"`
 }
 
 type AutoscalerSpec struct {
