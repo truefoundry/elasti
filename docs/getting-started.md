@@ -100,7 +100,7 @@ spec:
         threshold: <threshold>
   autoscaler:
     type: <autoscaler-type>
-    objectName: <autoscaler-object-name>
+    name: <autoscaler-object-name>
 ```
 
 - `<service-name>`: Replace it with the service you want managed by elasti.
