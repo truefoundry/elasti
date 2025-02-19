@@ -21,10 +21,18 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"testing"
+	"time"
+	"truefoundry/elasti/operator/internal/crddirectory"
+	"truefoundry/elasti/operator/internal/informer"
+
+	uberZap "go.uber.org/zap"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,6 +51,11 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 var namespaceName = "elasti-test"
 
+var mgrCtx context.Context
+var mgrCancel context.CancelFunc
+var informerManager *informer.Manager
+var controllerReconciler *ElastiServiceReconciler
+
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Controller Suite", Label("controller"))
@@ -54,8 +67,9 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing: true,
+		CRDDirectoryPaths:       []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		ErrorIfCRDPathMissing:   true,
+		ControlPlaneStopTimeout: 1 * time.Minute,
 		BinaryAssetsDirectory: filepath.Join("..", "..", "bin", "k8s",
 			fmt.Sprintf("1.29.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
 	}
@@ -80,10 +94,40 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
+	informerManager = informer.NewInformerManager(uberZap.NewExample(), cfg)
+	informerManager.Start()
+	crddirectory.InitDirectory(uberZap.NewExample())
+
+	mgrCtx, mgrCancel = context.WithCancel(context.Background())
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme: k8sClient.Scheme(),
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	go func() {
+		defer GinkgoRecover()
+		err = mgr.Start(mgrCtx)
+		Expect(err).NotTo(HaveOccurred())
+		gexec.KillAndWait(5 * time.Second)
+
+		err := testEnv.Stop()
+		Expect(err).NotTo(HaveOccurred())
+	}()
+
+	controllerReconciler = &ElastiServiceReconciler{
+		Client:             k8sClient,
+		Scheme:             k8sClient.Scheme(),
+		Logger:             uberZap.NewExample(),
+		InformerManager:    informerManager,
+		SwitchModeLocks:    sync.Map{},
+		InformerStartLocks: sync.Map{},
+		ReconcileLocks:     sync.Map{},
+	}
+	Expect(controllerReconciler.SetupWithManager(mgr)).To(Succeed())
 })
 
 var _ = AfterSuite(func() {
-	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
+	informerManager.Stop()
+	mgrCancel()
 })

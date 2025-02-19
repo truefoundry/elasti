@@ -18,11 +18,13 @@ package controller
 
 import (
 	"context"
-	"sync"
+	//"sync"
+	//"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.uber.org/zap"
+	//"github.com/onsi/gomega/gexec"
+	//"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -30,12 +32,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	elastiv1alpha1 "truefoundry/elasti/operator/api/v1alpha1"
-	"truefoundry/elasti/operator/internal/crddirectory"
-	"truefoundry/elasti/operator/internal/informer"
+	//"truefoundry/elasti/operator/internal/crddirectory"
+	//"truefoundry/elasti/operator/internal/informer"
 
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
+	//ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var _ = Describe("ElastiService Controller", func() {
@@ -54,7 +56,6 @@ var _ = Describe("ElastiService Controller", func() {
 		elastiservice := &elastiv1alpha1.ElastiService{}
 		deployment := &v1.Deployment{}
 		service := &corev1.Service{}
-		informerManager := &informer.Manager{}
 
 		BeforeEach(func() {
 			By("cleaning up any existing resources")
@@ -153,14 +154,10 @@ var _ = Describe("ElastiService Controller", func() {
 			Expect(k8sClient.Get(ctx, namespacedName, deployment)).To(Succeed())
 			Expect(k8sClient.Get(ctx, namespacedName, service)).To(Succeed())
 
-			informerManager = informer.NewInformerManager(zap.NewExample(), cfg)
-			informerManager.Start()
-			crddirectory.InitDirectory(zap.NewExample())
 		})
 
 		AfterEach(func() {
 			By("Cleaning up all resources")
-			informerManager.Stop()
 			// Delete ElastiService
 			resource := &elastiv1alpha1.ElastiService{}
 			err := k8sClient.Get(ctx, namespacedName, resource)
@@ -185,26 +182,11 @@ var _ = Describe("ElastiService Controller", func() {
 
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-				Scheme: k8sClient.Scheme(),
-			})
-			Expect(err).NotTo(HaveOccurred())
-			controllerReconciler := &ElastiServiceReconciler{
-				Client:             k8sClient,
-				Scheme:             k8sClient.Scheme(),
-				Logger:             zap.NewExample(),
-				InformerManager:    informerManager,
-				SwitchModeLocks:    sync.Map{},
-				InformerStartLocks: sync.Map{},
-				ReconcileLocks:     sync.Map{},
-			}
-			Expect(controllerReconciler.Initialize(ctx)).To(Succeed())
-			Expect(controllerReconciler.SetupWithManager(mgr)).To(Succeed())
 			By("getting the deployment")
-			Expect(k8sClient.Get(ctx, namespacedName, deployment)).To(Succeed())
+			Expect(k8sClient.Get(mgrCtx, namespacedName, deployment)).To(Succeed())
 
 			By("reconciling the resource")
-			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := controllerReconciler.Reconcile(mgrCtx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
