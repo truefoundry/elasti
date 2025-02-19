@@ -36,3 +36,24 @@ spec:
           image: kennethreitz/httpbin
           ports:
             - containerPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: httpbin-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/service-upstream: "true"
+    nginx.ingress.kubernetes.io/upstream-vhost: "httpbin.elasti-demo.svc.cluster.local" # needed for elasti to route to the correct service
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /httpbin(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: httpbin
+                port:
+                  number: 80
