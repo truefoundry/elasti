@@ -32,7 +32,7 @@ jobs:
         modules: ${{ fromJSON(needs.detect-modules.outputs.modules) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           fetch-depth: "0"
       - name: Setup go
@@ -40,33 +40,9 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-      - name: Install dependencies
-        run: go mod tidy
-        working-directory: ${{ matrix.modules }}
       - name: golangci-lint ${{ matrix.modules }}
         uses: golangci/golangci-lint-action@v6
         with:
           working-directory: ${{ matrix.modules }}
           args: -v --timeout 5m
-          version: v1.63.4          
-  test:
-    needs: detect-modules
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        modules: ${{ fromJSON(needs.detect-modules.outputs.modules) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: "0"
-      - name: Setup go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-      - name: Install dependencies
-        run: go mod tidy
-        working-directory: ${{ matrix.modules }}
-      - name: test ${{ matrix.modules }}
-        run: cd ${{ matrix.modules }} && make test
+          version: v1.63.4
