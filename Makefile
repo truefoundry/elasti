@@ -26,3 +26,18 @@ deploy: ## Deploy the operator and resolver
 undeploy: ## Undeploy the operator and resolver
 	kubectl delete -f ./install.yaml
 
+.PHONY: test
+test: test-operator test-resolver test-pkg ## Run all tests
+
+.PHONY: test-operator
+test-operator: ## Run operator tests
+	cd operator && make test
+
+.PHONY: test-resolver
+test-resolver: ## Run resolver tests
+	cd resolver && make test
+
+.PHONY: test-pkg
+test-pkg: ## Run pkg tests
+	cd pkg && make test
+
