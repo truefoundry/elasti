@@ -1,43 +1,27 @@
----
-title: Elasti Architecture
----
+# Elasti Architecture
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Elasti Project Documentation](#elasti-project-documentation)
-  - [1. Introduction](#1-introduction)
-    - [Overview](#overview)
-    - [Key Components](#key-components)
-  - [2. Architecture](#2-architecture)
-    - [Flow Description](#flow-description)
-  - [3. Controller](#3-controller)
-  - [4. Resolver](#4-resolver)
-  - [5. Helm Values](#5-helm-values)
+Elasti comprises of two main components: operator and resolver.
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-# Elasti Project Documentation
-
-## 1. Introduction
-
-### Overview
-The Elasti project is designed to enable serverless capability for Kubernetes services by dynamically scaling services based on incoming requests. It comprises two main components: operator and resolver. The elasti-operator manages the scaling of target services, while the resolver intercepts and queues requests when the target service is scaled down to zero replicas.
-
-### Key Components
-- **Operator**: A Kubernetes controller built using kubebuilder. It monitors ElastiService resources and scales target services as needed.
-- **Resolver**: A service that intercepts incoming requests for scaled-down services, queues them, and notifies the elasti-operator to scale up the target service.
+- **Controller**: A Kubernetes controller built using kubebuilder. It monitors ElastiService resources and scaled them to 0 or 1 as needed.
+- **Resolver**: A service that intercepts incoming requests for scaled-down services, queues them, and notifies the elasti-controller to scale up the target service.
 
 <div align="center">
-<img src="./assets/components.png" width="500px">
+<img src="./assets/architecture/1.png" width="1000px">
 </div>
 
-
-## 2. Architecture
 <div align="center">
-<img src="./assets/hld.png" width="1000px">
+<img src="./assets/architecture/2.png" width="1000px">
 </div>
+
+<div align="center">
+<img src="./assets/architecture/3.png" width="1000px">
+</div>
+
+<div align="center">
+<img src="./assets/architecture/4.png" width="1000px">
+</div>
+
 
 ### Flow Description
 

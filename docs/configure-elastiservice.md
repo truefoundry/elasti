@@ -41,9 +41,9 @@ The key fields to be specified in the spec are:
   - `<autoscaler-type>`: keda
   - `<autoscaler-object-name>`: Name of the KEDA ScaledObject
 
-The ElastiService defines the following parameters for the elasti-controller:
+The configuration helps define the different functionalities of Elasti.
 
-**1. Which service to apply elasti on** 
+### Which service to apply elasti on
 
 This is defined using the `scaleTargetRef` field in the spec. 
 
@@ -51,7 +51,7 @@ This is defined using the `scaleTargetRef` field in the spec.
 - `scaleTargetRef.apiVersion` will be `apps/v1` if you are using deployments or `argoproj.io/v1alpha1` in case you are using argo-rollouts. 
 - `scaleTargetRef.name` should exactly match the name of the deployment or rollout. 
 
-**1. When to scale down the service to 0**
+### When to scale down the service to 0
 
 This is defined uing the triggers field in the spec. Currently, Elasti supports only one trigger type - `prometheus`. The metadata field of the trigger defines the trigger data. The `query` field is the prometheus query to use for the trigger. The `serverAddress` field is the address of the prometheus server. The `threshold` field is the threshold value to use for the trigger. So we can define a query to check for the number of requests per second and the threshold to be 0. Elasti will check this metric every 30 seconds and if the values is less than 0(`threshold`) it will scale down the service to 0.
 
@@ -71,7 +71,7 @@ Once the service is scaled down to 0, we also need to pause the current autoscal
 - autoscaler.name: Name of the keda scaled object
 - autoscaler.type: keda
 
-**2. When to scale up the service to 1**
+### When to scale up the service to 1
 
 As soon as the service is scaled down to 0, Elasti resolved will start accepting requests for that service. On receiving the first request, it will scale up the service to `minTargetReplicas`. Once the pod is up, the new requests are handled by the service pods and do not pass through the elasti-resolver. The requests that came before the pod scaled up are held in memory of the elasti-resolver and are processed once the pod is up.
 
