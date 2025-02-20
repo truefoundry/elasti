@@ -21,9 +21,9 @@ type prometheusScaler struct {
 }
 
 type prometheusMetadata struct {
-	ServerAddress string  `json:"serverAddress"`
-	Query         string  `json:"query"`
-	Threshold     float64 `json:"threshold,string"`
+	ServerAddress string
+	Query         string
+	Threshold     float64
 }
 
 var promQueryResponse struct {
@@ -37,7 +37,7 @@ var promQueryResponse struct {
 	} `json:"data"`
 }
 
-func NewPrometheusScaler(metadata json.RawMessage) (Scaler, error) {
+func NewPrometheusScaler(metadata any) (Scaler, error) {
 	parsedMetadata, err := parsePrometheusMetadata(metadata)
 	if err != nil {
 		return nil, fmt.Errorf("error creating prometheus scaler: %w", err)
@@ -53,13 +53,38 @@ func NewPrometheusScaler(metadata json.RawMessage) (Scaler, error) {
 	}, nil
 }
 
-func parsePrometheusMetadata(jsonMetadata json.RawMessage) (*prometheusMetadata, error) {
-	metadata := &prometheusMetadata{}
-	err := json.Unmarshal(jsonMetadata, metadata)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse metadata: %w", err)
+func parsePrometheusMetadata(metadata any) (*prometheusMetadata, error) {
+	// TODO implement a generic way to parse metadata
+	metadataMap, ok := metadata.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("error parsing prometheus metadata: expected map[string]interface{}, got %T", metadata)
 	}
-	return metadata, nil
+
+	serverAddress, ok := metadataMap["serverAddress"].(string)
+	if !ok || serverAddress == "" {
+		return nil, fmt.Errorf("missing serverAddress")
+	}
+
+	query, ok := metadataMap["query"].(string)
+	if !ok || query == "" {
+		return nil, fmt.Errorf("missing query")
+	}
+
+	thresholdStr, ok := metadataMap["threshold"].(string)
+	if !ok {
+		return nil, fmt.Errorf("missing threshold")
+	}
+
+	threshold, err := strconv.ParseFloat(thresholdStr, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse threshold: %w", err)
+	}
+
+	return &prometheusMetadata{
+		ServerAddress: serverAddress,
+		Query:         query,
+		Threshold:     threshold,
+	}, nil
 }
 
 func (s *prometheusScaler) executePromQuery(ctx context.Context) (float64, error) {

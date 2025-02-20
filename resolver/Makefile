@@ -14,18 +14,6 @@ help:
 		printf "  %-15s %s\n", target, helpMsg; \
 	}' $(MAKEFILE_LIST) | column -s ':' -t
 
-.PHONY: fmt
-fmt: ## Run go fmt against code.
-	go fmt ./...
-
-.PHONY: vet
-vet: ## Run go vet against code.
-	go vet ./...
-
-.PHONY: test
-test: fmt vet ## Run tests.
-	go test ./... -race
-
 .PHONY: run
 run: ## Run resolver locally
 	go run ./cmd/
