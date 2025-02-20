@@ -49,7 +49,7 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
-var namespaceName = "elasti-test"
+var namespace = "elasti-test"
 
 var mgrCtx context.Context
 var mgrCancel context.CancelFunc
@@ -89,7 +89,7 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).NotTo(BeNil())
 	err = k8sClient.Create(context.Background(), &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: namespaceName,
+			Name: namespace,
 		},
 	})
 	Expect(err).NotTo(HaveOccurred())

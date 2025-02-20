@@ -18,13 +18,12 @@ package controller
 
 import (
 	"context"
-	//"sync"
-	//"time"
+	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	//"github.com/onsi/gomega/gexec"
-	//"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -32,12 +31,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	elastiv1alpha1 "truefoundry/elasti/operator/api/v1alpha1"
-	//"truefoundry/elasti/operator/internal/crddirectory"
-	//"truefoundry/elasti/operator/internal/informer"
 
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	//ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var _ = Describe("ElastiService Controller", func() {
@@ -51,35 +47,13 @@ var _ = Describe("ElastiService Controller", func() {
 
 		namespacedName := types.NamespacedName{
 			Name:      resourceName,
-			Namespace: namespaceName,
+			Namespace: namespace,
 		}
 		elastiservice := &elastiv1alpha1.ElastiService{}
 		deployment := &v1.Deployment{}
 		service := &corev1.Service{}
 
 		BeforeEach(func() {
-			By("cleaning up any existing resources")
-			// Clean up ElastiService
-			existing := &elastiv1alpha1.ElastiService{}
-			err := k8sClient.Get(ctx, namespacedName, existing)
-			if err == nil {
-				Expect(k8sClient.Delete(ctx, existing)).To(Succeed())
-			}
-
-			// Clean up Deployment
-			existingDeployment := &v1.Deployment{}
-			err = k8sClient.Get(ctx, namespacedName, existingDeployment)
-			if err == nil {
-				Expect(k8sClient.Delete(ctx, existingDeployment)).To(Succeed())
-			}
-
-			// Clean up Service
-			existingService := &corev1.Service{}
-			err = k8sClient.Get(ctx, namespacedName, existingService)
-			if err == nil {
-				Expect(k8sClient.Delete(ctx, existingService)).To(Succeed())
-			}
-
 			By("creating a new Deployment")
 			deployment = &v1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
@@ -124,7 +98,7 @@ var _ = Describe("ElastiService Controller", func() {
 					Ports: []corev1.ServicePort{
 						{
 							Port:       80,
-							TargetPort: intstr.FromInt(80),
+							TargetPort: intstr.FromInt32(80),
 						},
 					},
 				},
@@ -163,6 +137,9 @@ var _ = Describe("ElastiService Controller", func() {
 			err := k8sClient.Get(ctx, namespacedName, resource)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+			} else if !errors.IsNotFound(err) {
+				fmt.Println("error deleting elastiService: ", err)
+				Fail("Error deleting elastiService")
 			}
 
 			// Delete Deployment
@@ -170,6 +147,9 @@ var _ = Describe("ElastiService Controller", func() {
 			err = k8sClient.Get(ctx, namespacedName, deploymentResource)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, deploymentResource)).To(Succeed())
+			} else if !errors.IsNotFound(err) {
+				fmt.Println("error deleting deployment: ", err)
+				Fail("Error deleting deployment")
 			}
 
 			// Delete Service
@@ -177,6 +157,9 @@ var _ = Describe("ElastiService Controller", func() {
 			err = k8sClient.Get(ctx, namespacedName, serviceResource)
 			if err == nil {
 				Expect(k8sClient.Delete(ctx, serviceResource)).To(Succeed())
+			} else if !errors.IsNotFound(err) {
+				fmt.Println("error deleting service: ", err)
+				Fail("Error deleting service")
 			}
 		})
 
