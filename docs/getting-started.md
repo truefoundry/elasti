@@ -1,6 +1,6 @@
 # Getting Started
 
-With Elasti, you can easily manage and scale your Kubernetes services by using a proxy mechanism that queues and holds requests for scaled-down services, bringing them up only when needed. Get started by following below steps:
+Get started by following below steps:
 
 ## Prerequisites
 
@@ -12,12 +12,13 @@ With Elasti, you can easily manage and scale your Kubernetes services by using a
 
 ### 1. Install Elasti using helm
 
-Use Helm to install elasti into your Kubernetes cluster. Replace `<release-name>` with your desired release name and `<namespace>` with the Kubernetes namespace you want to use:
+Use Helm to install elasti into your Kubernetes cluster. 
 
 ```bash
 helm install elasti oci://tfy.jfrog.io/tfy-helm/elasti --namespace elasti --create-namespace
 ```
-Check out [values.yaml](./charts/elasti/values.yaml) to see config in the helm value file.
+
+Check out [values.yaml](https://github.com/truefoundry/elasti/blob/main/charts/elasti/values.yaml) to see config in the helm value file.
 
 ### 2. Verify the Installation
 
@@ -78,43 +79,6 @@ This will deploy a httpbin service in the `elasti-demo` namespace.
 ### 6. Define an ElastiService
 
 To configure a service to handle its traffic via elasti, you'll need to create and apply a `ElastiService` custom resource:
-```yaml
-apiVersion: elasti.truefoundry.com/v1alpha1
-kind: ElastiService
-metadata:
-  name: <service-name>-elasti
-  namespace: <service-namespace>
-spec:
-  minTargetReplicas: 1
-  service: <service-name>
-  cooldownPeriod: 300 
-  scaleTargetRef:
-    apiVersion: <api-version>
-    kind: <kind>
-    name: <deployment-or-rollout-name>
-  triggers:
-    - type: <trigger-type>
-      metadata:
-        query: <prometheus-query>
-        serverAddress: <prometheus-server-address>
-        threshold: <threshold>
-  autoscaler:
-    type: <autoscaler-type>
-    name: <autoscaler-object-name>
-```
-
-- `<service-name>`: Replace it with the service you want managed by elasti.
-- `<min-target-replicas>`: Min replicas to bring up when first request arrives.
-- `<service-namespace>`: Replace by namespace of the service.
-- `<scaleTargetRef>`: Reference to the scale target similar to the one used in HorizontalPodAutoscaler.
-- `<kind>`: Replace by `rollouts` or `deployments`
-- `<apiVersion>`: Replace with `argoproj.io/v1alpha1` or `apps/v1`
-- `<deployment-or-rollout-name>`: Replace with name of the rollout or the deployment for the service. This will be scaled up to min-target-replicas when first request comes
-- `cooldownPeriod`: Minimum time (in seconds) to wait after scaling up before considering scale down
-- `triggers`: List of conditions that determine when to scale down (currently supports only Prometheus metrics)
-- `autoscaler`: **Optional** integration with an external autoscaler (HPA/KEDA) if needed
-  - `<autoscaler-type>`: hpa/keda
-  - `<autoscaler-object-name>`: name of the KEDA ScaledObject or HPA HorizontalPodAutoscaler object
   
 Create a file named `httpbin-elasti.yaml` and apply the configuration.
 ```yaml
@@ -170,7 +134,7 @@ curl -v http://localhost:8080/httpbin
 ```
 
 You should see the pods being created and scaled up to 1 replica. A response from the httpbin service should be visible for the curl command.
-The service should be scaled down to 0 replicas if there is no traffic for `cooldownPeriod` seconds.
+The service should be scaled down to 0 replicas if there is no traffic for 5 (`cooldownPeriod` in elastiService) seconds.
 
 ## Uninstall
 

@@ -1,14 +1,17 @@
----
-layout: default
----
-
 # Elasti
+Enable Scale to 0 on Kubernetes while using HPA or Keda. 
 
 
-- [Introduction to Elasti](introduction.md)
+- [Introduction](introduction.md)
 - [Getting Started](getting-started.md)
-- [Monitoring Elasti](monitoring.md)
+- [Configure ElastiService](configure-elastiservice.md)
 - [Architecture](architecture.md)
+- [Monitoring Elasti](monitoring.md)
 - [Integrations](integrations.md)
+    - [HPA](integrations.md#hpa) 
+    - [Keda](integrations.md#keda)
 - [Comparisons](comparisons.md)
+    - [Knative](./comparisons.md#)
+    - [OpenFaas](./comparisons.md#openfaas)
+    - [Keda Http Add-on](./comparisons.md#keda-http-add-on)
 - [Development](../DEVELOPMENT.md)
