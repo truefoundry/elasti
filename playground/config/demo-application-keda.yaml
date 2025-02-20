@@ -1,0 +1,19 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: httpbin-scaled-object
+spec:
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  pollingInterval: 30
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: httpbin
+  triggers:
+    - type: prometheus
+      metadata:
+        query: sum(rate(nginx_ingress_controller_nginx_process_requests_total[1m])) or vector(0)
+        serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+        threshold: "0.5"
+```
