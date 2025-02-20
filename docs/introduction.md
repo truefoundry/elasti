@@ -27,13 +27,13 @@ This allows Elasti to optimize resource consumption by scaling services down whe
 
 - **Seamless Integration:** Elasti integrates effortlessly with your existing Kubernetes setup. It takes just a few steps to enable scale to zero for any service.
 
-- **Development and Argo Rollouts Support:** Elasti supports two target references: Deployment and Argo Rollouts, making it versatile for various deployment scenarios.
+- **Deployment and Argo Rollouts Support:** Elasti supports two target references: Deployment and Argo Rollouts, making it versatile for various deployment scenarios.
 
 - **HTTP API Support:** Currently, Elasti supports only HTTP API types, ensuring straightforward and efficient handling of web traffic.
 
 - **Prometheus Metrics Export:** Elasti exports Prometheus metrics for easy out-of-the-box monitoring. You can also import a pre-built dashboard into Grafana for comprehensive visualization.
 
-- **Istio Support:** Elasti is compatible with Istio. It also supports East-West traffic using cluster-local service DNS, ensuring robust and flexible traffic management across your services.
+- **Generic Service Support:** Elasti works at the kubernetes service level. It also supports East-West traffic using cluster-local service DNS, ensuring robust and flexible traffic management across your services. So any ingress or service mesh solution can be used with Elasti.
 
 
 # Why use Elasti?
@@ -42,9 +42,4 @@ Kubernetes clusters can become costly, especially when running multiple services
 
 > The name Elasti comes from a superhero "Elasti-Girl" from DC Comics. Her superpower is to expand or shrink her body at will—from hundreds of feet tall to mere inches in height.
 
-<div align="center"> <b> Demo </b></div>
-<div align="center">
-    <a href="https://www.loom.com/share/6dae33a27a5847f081f7381f8d9510e6">
-      <img style="max-width:640px;" src="https://cdn.loom.com/sessions/thumbnails/6dae33a27a5847f081f7381f8d9510e6-adf9e85a899f85fd-full-play.gif">
-    </a>
-  </div>
+Please checkout the comparison [here](comparisons.md) to see how Elasti compares to other Kubernetes autoscaling solutions.
