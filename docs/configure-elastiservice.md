@@ -41,7 +41,10 @@ The key fields to be specified in the spec are:
   - `<autoscaler-type>`: keda
   - `<autoscaler-object-name>`: Name of the KEDA ScaledObject
 
-The configuration helps define the different functionalities of Elasti.
+
+## Configuration Explanation
+
+The section below explains how are the different configuration options used in Elasti.
 
 ### Which service to apply elasti on
 
