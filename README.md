@@ -74,3 +74,7 @@ Contribution details can be found in the [Contribution](./CONTRIBUTING.md) guide
 # Getting Help
 
 We have a dedicated [Discussions](https://github.com/truefoundry/elasti/discussions) section for getting help and discussing ideas.
+
+# Roadmap
+
+We are maintaining the future roadmap using the [issues](https://github.com/truefoundry/elasti/issues) and [milestones](https://github.com/truefoundry/elasti/milestones). You can also suggest ideas and vote for them by adding a 👍 reaction to the issue.
