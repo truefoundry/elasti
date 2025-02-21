@@ -6,7 +6,9 @@
  <a>
     <img src="https://img.shields.io/badge/license-MIT-blue" align="center">
  </a>
-
+ <a>
+    <img src="https://github.com/truefoundry/elasti/actions/workflows/lint-and-test.yaml/badge.svg" align="center">
+ </a>
 </p>
 
 > This project is in Alpha right now.
