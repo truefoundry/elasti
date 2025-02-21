@@ -30,6 +30,8 @@ Kubernetes clusters can become costly, especially when running multiple services
 - [Monitoring](#monitoring)
 - [Development](#development)
 - [Contribution](#contribution)
+- [Getting Help](#getting-help)
+- [Roadmap](#roadmap)
 
 # Introduction
 
