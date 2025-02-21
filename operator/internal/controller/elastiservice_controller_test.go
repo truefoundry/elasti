@@ -116,7 +116,7 @@ var _ = Describe("ElastiService Controller", func() {
 					Service:           resourceName,
 					ScaleTargetRef: elastiv1alpha1.ScaleTargetRef{
 						APIVersion: "apps/v1",
-						Kind:       "Deployment",
+						Kind:       "deployments",
 						Name:       resourceName,
 					},
 				},

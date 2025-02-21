@@ -18,7 +18,7 @@ Use Helm to install elasti into your Kubernetes cluster.
 helm install elasti oci://tfy.jfrog.io/tfy-helm/elasti --namespace elasti --create-namespace
 ```
 
-Check out [values.yaml](https://github.com/truefoundry/elasti/blob/main/charts/elasti/values.yaml) to see config in the helm value file.
+Check out [values.yaml](https://github.com/truefoundry/elasti/blob/main/charts/elasti/values.yaml) to see configuration options in the helm value file.
 
 ### 2. Verify the Installation
 
@@ -93,7 +93,7 @@ spec:
   cooldownPeriod: 5
   scaleTargetRef:
     apiVersion: apps/v1
-    kind: Deployments
+    kind: deployments
     name: httpbin
   triggers:
     - type: prometheus
