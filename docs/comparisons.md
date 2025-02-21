@@ -28,7 +28,6 @@ OpenFaaS is a framework for building serverless functions with Docker and Kubern
 KEDA HTTP Add-on is an extension to KEDA that enables HTTP-based scaling, including scale-to-zero functionality.
 
 ### Key Differences
-- **Maturity**: KEDA HTTP Add-on is in beta and not recommended for production use
 - **Request Handling**: 
   - KEDA http add-on inserts itself in the http path and handles requests even when the service has been scaled up.
   - Elasti takes itself out of the http path once the service has been scaled up.

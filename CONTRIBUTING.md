@@ -10,6 +10,10 @@ Open source is at the heart of Elasti. We appreciate feedback, ideas, and enhanc
 
 Before contributing, please take a moment to read through the [README](./README.md) as it provides a comprehensive understanding of the project and are essential reading to ensure that we're all on the same page.
 
+## 💻 Development
+
+Refer to [DEVELOPMENT.md](./DEVELOPMENT.md) to get started with the development on Elasti code base.
+
 ## 🐛 Reporting Issues
 
 If you've identified a bug or have an idea for an enhancement, please begin by creating an Issue. Here's how:
@@ -43,6 +47,10 @@ To maintain the quality of the codebase, we ask that all contributors:
 -   PRs are reviewed on a regular basis.
 -   Engage in the conversation and make requested updates to your PR if needed.
 -   Once approved, your PR will be merged into the main branch by a maintainer.
+
+### 📝 Changelog
+
+Every change should be added to our changelog under `Unreleased` which is located in `CHANGELOG.md`. All such changes will be added to the next release.
 
 ## 🗨️ Stay Connected
 
