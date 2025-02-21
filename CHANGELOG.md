@@ -9,7 +9,6 @@ All the unreleased changes are listed under `Unreleased` section.
 ## History
 
 - [Unreleased](#unreleased)
-- [v0.1.11](#v0111)
 
 ## Unreleased
 
