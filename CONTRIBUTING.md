@@ -48,6 +48,10 @@ To maintain the quality of the codebase, we ask that all contributors:
 -   Engage in the conversation and make requested updates to your PR if needed.
 -   Once approved, your PR will be merged into the main branch by a maintainer.
 
+### 📝 Changelog
+
+Every change should be added to our changelog under `Unreleased` which is located in `CHANGELOG.md`. All such changes will be added to the next release.
+
 ## 🗨️ Stay Connected
 
 We encourage you to participate in discussions. Stay connected, share ideas, and get to know fellow contributors.
