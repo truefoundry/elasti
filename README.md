@@ -21,29 +21,21 @@ Kubernetes clusters can become costly, especially when running multiple services
 
 - [Why use Elasti?](#why-use-elasti)
 - [Contents](#contents)
-- [Introduction](#introduction)
   - [Key Features](#key-features)
+- [Introduction](#introduction)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Install](#install)
-    - [1. Add the Elasti Helm Repository](#1-add-the-elasti-helm-repository)
-    - [2. Install Elasti](#2-install-elasti)
-    - [3. Verify the Installation](#3-verify-the-installation)
-  - [Configuration](#configuration)
-    - [1. Define a ElastiService](#1-define-a-elastiservice)
-    - [2. Apply the configuration](#2-apply-the-configuration)
-    - [3. Check Logs](#3-check-logs)
-  - [Monitoring](#monitoring)
-  - [Uninstall](#uninstall)
+- [Configure Elasti](#configure-elasti)
+- [Monitoring](#monitoring)
 - [Development](#development)
 - [Contribution](#contribution)
-  - [Getting Started](#getting-started-1)
-  - [Acknowledgements](#acknowledgements)
-- [Future Developments](#future-developments)
 
 # Introduction
 
-Elasti monitors the target service for which you want to enable scale-to-zero. When the target service is scaled down to zero, Elasti automatically switches to Proxy mode, redirecting all incoming traffic to itself. In this mode, Elasti queues the incoming requests and scales up the target service. Once the service is back online, Elasti processes the queued requests, sending them to the now-active service. After the target service is scaled up, Elasti switches to Serve mode, where traffic is directly handled by the service, removing any redirection. This seamless transition between modes ensures efficient handling of requests while optimizing resource usage.
+Elasti is a Kubernetes-native solution that offers scale-to-zero functionality when there is no traffic and automatic scale up to 0 when traffic arrives. Most Kubernetes autoscaling solutions like HPA or Keda can scale from 1 to n replicas based on cpu utilization or memory usage. However, these solutions do not offer a way to scale to 0 when there is no traffic. Elasti solves this problem by dynamically managing service replicas based on real-time traffic conditions. It only handles scaling the application down to 0 replicas and scaling it back up to 1 replica when traffic is detected again. The scaling after 1 replica is handled by the autoscaler like HPA or Keda.
+
+> The name Elasti comes from a superhero "Elasti-Girl" from DC Comics. Her superpower is to expand or shrink her body at will—from hundreds of feet tall to mere inches in height.
+
+Elasti uses a proxy mechanism that queues and holds requests for scaled-down services, bringing them up only when needed. The proxy is used only when the service is scaled down to 0. When the service is scaled up to 1, the proxy is disabled and the requests are processed directly by the pods of the service.
 
 <div align="center">
 <img src="./docs/assets/modes.png" width="400px">
@@ -51,25 +43,23 @@ Elasti monitors the target service for which you want to enable scale-to-zero. W
 
 ## Key Features
 
-- **Seamless Integration:** Elasti integrates effortlessly with your existing Kubernetes setup. It takes just a few steps to enable scale to zero for any service.
+- **Seamless Integration:** Elasti integrates effortlessly with your existing Kubernetes setup - whether you are using HPA or Keda. It takes just a few steps to enable scale to zero for any service.
 
-- **Development and Argo Rollouts Support:** Elasti supports two target references: Deployment and Argo Rollouts, making it versatile for various deployment scenarios.
-
-- **HTTP API Support:** Currently, Elasti supports only HTTP API types, ensuring straightforward and efficient handling of web traffic.
+- **Deployment and Argo Rollouts Support:** Elasti supports two scale target references: Deployment and Argo Rollouts, making it versatile for various deployment scenarios.
 
 - **Prometheus Metrics Export:** Elasti exports Prometheus metrics for easy out-of-the-box monitoring. You can also import a pre-built dashboard into Grafana for comprehensive visualization.
 
-- **Istio Support:** Elasti is compatible with Istio. It also supports East-West traffic using cluster-local service DNS, ensuring robust and flexible traffic management across your services.
+- **Generic Service Support:** Elasti works at the kubernetes service level. It also supports East-West traffic using cluster-local service DNS, ensuring robust and flexible traffic management across your services. So any ingress or service mesh solution can be used with Elasti.
 
 # Getting Started
 
 Details on how to install and configure Elasti can be found in the [Getting Started](./docs/getting-started.md) guide.
 
-## Configuration
+# Configure Elasti
 
 Check out the different ways to configure Elasti in the [Configuration](./docs/configure-elastiservice.md) guide.
 
-## Monitoring
+# Monitoring
 
 Monitoring details can be found in the [Monitoring](./docs/monitoring.md) guide.
 
