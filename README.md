@@ -11,8 +11,6 @@
  </a>
 </p>
 
-> This project is in Alpha right now.
-
 # Why use Elasti?
 
 Kubernetes clusters can become costly, especially when running multiple services continuously. Elasti addresses this issue by giving you the confidence to scale down services during periods of low or no traffic, as it can bring them back up when demand increases. This optimization minimizes resource usage without compromising on service availability. Additionally, Elasti ensures reliability by acting as a proxy that queues incoming requests for scaled-down services. Once these services are reactivated, Elasti processes the queued requests, so that no request is lost. This combination of cost savings and dependable performance makes Elasti an invaluable tool for efficient Kubernetes service management.
@@ -54,6 +52,8 @@ Elasti uses a proxy mechanism that queues and holds requests for scaled-down ser
 - **Prometheus Metrics Export:** Elasti exports Prometheus metrics for easy out-of-the-box monitoring. You can also import a pre-built dashboard into Grafana for comprehensive visualization.
 
 - **Generic Service Support:** Elasti works at the kubernetes service level. It also supports East-West traffic using cluster-local service DNS, ensuring robust and flexible traffic management across your services. So any ingress or service mesh solution can be used with Elasti.
+
+- **Autoscaler Integration:** Elasti can work seamlessly with [HPA][./docs/integrations.md#hpa] and [Keda][./docs/integrations.md#keda].
 
 # Getting Started
 
