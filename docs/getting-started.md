@@ -71,7 +71,7 @@ We will use a sample httpbin service to demonstrate how to configure a service t
 
 ```bash
 kubectl create namespace elasti-demo
-kubectl apply -n elasti-demo -f ../playground/config/demo-application.yaml
+kubectl apply -n elasti-demo -f https://raw.githubusercontent.com/truefoundry/elasti/refs/heads/main/playground/config/demo-application.yaml
 ```
 
 This will deploy a httpbin service in the `elasti-demo` namespace.
