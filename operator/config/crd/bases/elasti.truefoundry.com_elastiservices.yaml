@@ -44,6 +44,9 @@ spec:
                   name:
                     type: string
                   type:
+                    enum:
+                    - hpa
+                    - keda
                     type: string
                 required:
                 - name
@@ -63,6 +66,9 @@ spec:
                   apiVersion:
                     type: string
                   kind:
+                    enum:
+                    - deployments
+                    - rollouts
                     type: string
                   name:
                     type: string
@@ -75,6 +81,8 @@ spec:
                     metadata:
                       x-kubernetes-preserve-unknown-fields: true
                     type:
+                      enum:
+                      - prometheus
                       type: string
                   required:
                   - type
