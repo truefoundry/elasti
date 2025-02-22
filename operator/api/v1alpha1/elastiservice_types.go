@@ -43,8 +43,9 @@ type ElastiServiceSpec struct {
 
 type ScaleTargetRef struct {
 	APIVersion string `json:"apiVersion,omitempty"`
-	Kind       string `json:"kind,omitempty"`
-	Name       string `json:"name,omitempty"`
+	// +kubebuilder:validation:Enum=deployments;rollouts
+	Kind string `json:"kind,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 // ElastiServiceStatus defines the observed state of ElastiService
@@ -78,6 +79,7 @@ type ElastiServiceList struct {
 }
 
 type ScaleTrigger struct {
+	// +kubebuilder:validation:Enum=prometheus
 	Type string `json:"type"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
@@ -85,7 +87,8 @@ type ScaleTrigger struct {
 }
 
 type AutoscalerSpec struct {
-	Type string `json:"type"` // keda/hpa
+	// +kubebuilder:validation:Enum=hpa;keda
+	Type string `json:"type"`
 	Name string `json:"name"` // Name of the ScaledObject/HorizontalPodAutoscaler
 }
 
