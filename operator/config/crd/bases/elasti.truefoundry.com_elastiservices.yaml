@@ -64,6 +64,9 @@ spec:
                   Important: Run "make" to regenerate code after modifying this file
                 properties:
                   apiVersion:
+                    enum:
+                    - apps/v1
+                    - argoproj.io/v1alpha1
                     type: string
                   kind:
                     enum:
