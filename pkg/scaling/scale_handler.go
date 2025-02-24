@@ -131,12 +131,16 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 	for _, trigger := range es.Spec.Triggers {
 		scaler, err := h.createScalerForTrigger(&trigger)
 		if err != nil {
-			return fmt.Errorf("failed to create scaler for %s: %w", namespacedName.String(), err)
+			// Return nil as this error cannot be fixed or acted upon by elasti
+			h.logger.Warn("failed to create scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			return nil
 		}
 
 		scalerResult, err := scaler.ShouldScaleToZero(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to check scaler for %s: %w", namespacedName.String(), err)
+			// Return nil as this error cannot be fixed or acted upon by elasti
+			h.logger.Warn("failed to check scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			return nil
 		}
 		if !scalerResult {
 			shouldScale = false
@@ -145,7 +149,7 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 
 		err = scaler.Close(ctx)
 		if err != nil {
-			h.logger.Error("failed to close scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			h.logger.Warn("failed to close scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 		}
 	}
 	if !shouldScale {
@@ -195,14 +199,14 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 	for _, trigger := range es.Spec.Triggers {
 		scaler, err := h.createScalerForTrigger(&trigger)
 		if err != nil {
-			h.logger.Error("failed to create scaler for trigger", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			h.logger.Warn("failed to create scaler for trigger", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 			shouldScale = true
 			break
 		}
 
 		scalerResult, err := scaler.ShouldScaleFromZero(ctx)
 		if err != nil {
-			h.logger.Error("failed to check scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			h.logger.Warn("failed to check scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 			shouldScale = true
 			break
 		}
@@ -213,7 +217,7 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 
 		err = scaler.Close(ctx)
 		if err != nil {
-			h.logger.Error("failed to close scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			h.logger.Warn("failed to close scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 		}
 	}
 	if !shouldScale {
