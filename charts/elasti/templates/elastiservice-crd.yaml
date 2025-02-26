@@ -45,6 +45,9 @@ spec:
                   name:
                     type: string
                   type:
+                    enum:
+                      - hpa
+                      - keda
                     type: string
                 required:
                   - name
@@ -62,8 +65,14 @@ spec:
                   Important: Run "make" to regenerate code after modifying this file
                 properties:
                   apiVersion:
+                    enum:
+                      - apps/v1
+                      - argoproj.io/v1alpha1
                     type: string
                   kind:
+                    enum:
+                      - deployments
+                      - rollouts
                     type: string
                   name:
                     type: string
@@ -76,6 +85,8 @@ spec:
                     metadata:
                       x-kubernetes-preserve-unknown-fields: true
                     type:
+                      enum:
+                        - prometheus
                       type: string
                   required:
                     - type
