@@ -17,15 +17,15 @@ elastiController:
           - ALL
     image:
       repository: tfy.jfrog.io/tfy-images/elasti-operator
-      tag: 689e0f7a2f6b5d4274afa03491723a245e4350b5
+      tag: 986886f7d2072fd9e86c649cf2e63ccb620d1e6b
     imagePullPolicy: IfNotPresent
     resources:
       limits:
-        cpu: 500m
-        memory: 128Mi
+        cpu: 200m
+        memory: 80Mi
       requests:
-        cpu: 10m
-        memory: 64Mi
+        cpu: 100m
+        memory: 40Mi
     sentry:
       enabled: false
       environment: ""
@@ -55,15 +55,15 @@ elastiResolver:
       trafficReEnableDuration: "5"
     image:
       repository: tfy.jfrog.io/tfy-images/elasti-resolver
-      tag: 689e0f7a2f6b5d4274afa03491723a245e4350b5
+      tag: 986886f7d2072fd9e86c649cf2e63ccb620d1e6b
     imagePullPolicy: IfNotPresent
     resources:
       limits:
-        cpu: 750m
-        memory: 1Gi
+        cpu: 200m
+        memory: 80Mi
       requests:
-        cpu: 250m
-        memory: 500Mi
+        cpu: 100m
+        memory: 40Mi
     sentry:
       enabled: false
       environment: ""
