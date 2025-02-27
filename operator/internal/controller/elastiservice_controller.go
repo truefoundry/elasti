@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/truefoundry/elasti/pkg/scaling"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -74,7 +73,7 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		e := values.Success
 		if err != nil {
 			e = err.Error()
-			sentry.CaptureException(err)
+			r.Logger.Error("Error reconciling ElastiService.", zap.String("es", req.NamespacedName.String()), zap.Error(err))
 		}
 		duration := time.Since(startTime).Seconds()
 		prom.CRDReconcileHistogram.WithLabelValues(req.String(), e).Observe(duration)
