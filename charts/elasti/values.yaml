@@ -21,11 +21,11 @@ elastiController:
     imagePullPolicy: IfNotPresent
     resources:
       limits:
-        cpu: 500m
-        memory: 128Mi
+        cpu: 200m
+        memory: 80Mi
       requests:
-        cpu: 10m
-        memory: 64Mi
+        cpu: 100m
+        memory: 40Mi
     sentry:
       enabled: false
       environment: ""
@@ -59,11 +59,11 @@ elastiResolver:
     imagePullPolicy: IfNotPresent
     resources:
       limits:
-        cpu: 750m
-        memory: 1Gi
+        cpu: 200m
+        memory: 80Mi
       requests:
-        cpu: 250m
-        memory: 500Mi
+        cpu: 100m
+        memory: 40Mi
     sentry:
       enabled: false
       environment: ""
