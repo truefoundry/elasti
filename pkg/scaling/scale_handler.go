@@ -23,7 +23,8 @@ import (
 )
 
 const (
-	kedaPausedAnnotation = "autoscaling.keda.sh/paused"
+	kedaPausedAnnotation         = "autoscaling.keda.sh/paused"
+	kedaPausedReplicasAnnotation = "autoscaling.keda.sh/paused-replicas"
 )
 
 type ScaleHandler struct {
@@ -382,8 +383,28 @@ func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, ns, targetName stri
 }
 
 func (h *ScaleHandler) UpdateKedaScaledObjectPausedState(ctx context.Context, scaledObjectName, namespace string, paused bool) error {
-	patchBytes := []byte(fmt.Sprintf(`{"metadata": {"annotations": {"%s": "%s"}}}`, kedaPausedAnnotation, strconv.FormatBool(paused)))
-	_, err := h.kDynamicClient.Resource(values.ScaledObjectGVR).Namespace(namespace).Patch(ctx, scaledObjectName, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+	var patchBytes []byte
+	if paused {
+		// When pausing, set both annotations: paused=true and paused-replicas="0"
+		patchBytes = []byte(fmt.Sprintf(`{"metadata": {"annotations": {"%s": "%s", "%s": "0"}}}`,
+			kedaPausedAnnotation,
+			strconv.FormatBool(paused),
+			kedaPausedReplicasAnnotation))
+	} else {
+		// When unpausing, set paused=false and remove the paused-replicas annotation
+		patchBytes = []byte(fmt.Sprintf(`{"metadata": {"annotations": {"%s": "%s", "%s": null}}}`,
+			kedaPausedAnnotation,
+			strconv.FormatBool(paused),
+			kedaPausedReplicasAnnotation))
+	}
+
+	_, err := h.kDynamicClient.Resource(values.ScaledObjectGVR).Namespace(namespace).Patch(
+		ctx,
+		scaledObjectName,
+		types.MergePatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	)
 	if err != nil {
 		return fmt.Errorf("failed to patch ScaledObject: %w", err)
 	}
