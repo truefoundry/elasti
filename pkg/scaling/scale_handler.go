@@ -208,7 +208,6 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 		scalerResult, err := scaler.ShouldScaleFromZero(ctx)
 		if err != nil {
 			h.logger.Warn("failed to check scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
-			shouldScale = true
 			break
 		}
 		if scalerResult {
