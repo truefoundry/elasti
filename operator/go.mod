@@ -1,6 +1,6 @@
 module truefoundry/elasti/operator
 
-go 1.22.3
+go 1.23.8
 
 require (
 	github.com/getsentry/sentry-go v0.31.1

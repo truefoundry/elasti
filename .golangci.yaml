@@ -1,7 +1,7 @@
 run:
   tests: false
   timeout: 5m
-  go: "1.22"
+  go: "1.23"
   modules-download-mode: readonly
 linters:
   # Enable specific linter
