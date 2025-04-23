@@ -17,7 +17,7 @@ elastiController:
           - ALL
     image:
       repository: tfy.jfrog.io/tfy-images/elasti-operator
-      tag: c556f2caee04e63fd9e3dff99bc787ab0c7026ef
+      tag: d1c3675c46c8dec262eaa35a2ce22b7a3327cefc
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -55,7 +55,7 @@ elastiResolver:
       trafficReEnableDuration: "5"
     image:
       repository: tfy.jfrog.io/tfy-images/elasti-resolver
-      tag: c556f2caee04e63fd9e3dff99bc787ab0c7026ef
+      tag: d1c3675c46c8dec262eaa35a2ce22b7a3327cefc
     imagePullPolicy: IfNotPresent
     resources:
       limits:
