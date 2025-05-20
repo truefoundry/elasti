@@ -1,6 +1,7 @@
 name: Scan and Generate Grype Report
 
 on:
+  push:
   workflow_dispatch:
   schedule:
     - cron: '0 9 * * *'
