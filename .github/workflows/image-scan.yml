@@ -1,0 +1,22 @@
+name: Scan and Generate Grype Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * *'
+
+jobs:
+  image-scan-build-resolver:
+    name: Image Vulnerability Scan for Build Resolver
+    uses: truefoundry/workflows/.github/workflows/update-grype-report.yml@add-vul-report
+    with:
+      grype_config_file: resolver-grype-config.yaml
+      image_artifact_name: 'elasti-resolver'
+      artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
+  image-scan-build-operator:
+    name: Image Vulnerability Scan for Build Operator
+    uses: truefoundry/workflows/.github/workflows/update-grype-report.yml@add-vul-report
+    with:
+      grype_config_file: operator-grype-config.yaml
+      image_artifact_name: 'elasti-operator'
+      artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
