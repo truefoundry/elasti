@@ -12,6 +12,7 @@ jobs:
     uses: truefoundry/github-workflows-public/.github/workflows/update-grype-report.yml@add-vul-report
     with:
       grype_config_file: resolver-grype-config.yaml
+      dockerfile_path: 'resolver/Dockerfile'
       image_artifact_name: 'elasti-resolver'
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
   image-scan-build-operator:
@@ -19,5 +20,6 @@ jobs:
     uses: truefoundry/github-workflows-public/.github/workflows/update-grype-report.yml@add-vul-report
     with:
       grype_config_file: operator-grype-config.yaml
+      dockerfile_path: 'operator/Dockerfile'
       image_artifact_name: 'elasti-operator'
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
