@@ -12,7 +12,7 @@ permissions:
 jobs:
   build-operator:
     name: Build and Push Operator Docker Images
-    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@v0.1.6
+    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}
       image_artifact_name: 'elasti-operator'
@@ -25,7 +25,7 @@ jobs:
 
   build-resolver:
     name: Build and Push Resolver Docker Images
-    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@v0.1.6
+    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}
       image_artifact_name: 'elasti-resolver'
