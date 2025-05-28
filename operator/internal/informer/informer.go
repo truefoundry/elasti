@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kRuntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
@@ -57,11 +58,11 @@ type (
 
 	// RequestWatch is the request body sent to the informer
 	RequestWatch struct {
-		Req                  ctrl.Request
-		ResourceName         string
-		ResourceNamespace    string
-		GroupVersionResource *schema.GroupVersionResource
-		Handlers             cache.ResourceEventHandlerFuncs
+		ElastiServiceNamespacedName types.NamespacedName
+		ResourceName                string
+		ResourceNamespace           string
+		GroupVersionResource        *schema.GroupVersionResource
+		Handlers                    cache.ResourceEventHandlerFuncs
 	}
 )
 
@@ -229,9 +230,9 @@ func (m *Manager) monitorInformers() {
 // WatchDeployment is to add a watch on a deployment
 func (m *Manager) WatchDeployment(req ctrl.Request, deploymentName, namespace string, handlers cache.ResourceEventHandlerFuncs) error {
 	request := &RequestWatch{
-		Req:               req,
-		ResourceName:      deploymentName,
-		ResourceNamespace: namespace,
+		ElastiServiceNamespacedName: req.NamespacedName,
+		ResourceName:                deploymentName,
+		ResourceNamespace:           namespace,
 		GroupVersionResource: &schema.GroupVersionResource{
 			Group:    "apps",
 			Version:  "v1",
@@ -258,7 +259,7 @@ func (m *Manager) Add(req *RequestWatch) (err error) {
 		zap.String("resource", req.GroupVersionResource.Resource),
 		zap.String("resourceName", req.ResourceName),
 		zap.String("resourceNamespace", req.ResourceNamespace),
-		zap.String("crd", req.Req.String()),
+		zap.String("crd", req.ElastiServiceNamespacedName.String()),
 	)
 
 	// Proceed only if the informer is not already running, we verify by checking the map
@@ -333,10 +334,10 @@ func (m *Manager) enableInformer(req *RequestWatch) error {
 // CRDname.resourcerName.Namespace
 func (m *Manager) getKeyFromRequestWatch(req *RequestWatch) string {
 	return fmt.Sprintf("%s/%s/%s/%s",
-		strings.ToLower(req.Req.Name),                      // CRD Name
-		strings.ToLower(req.ResourceNamespace),             // Namespace
-		strings.ToLower(req.GroupVersionResource.Resource), // Resource Type
-		strings.ToLower(req.ResourceName))                  // Resource Name
+		strings.ToLower(req.ElastiServiceNamespacedName.Name),      // CRD Name
+		strings.ToLower(req.ElastiServiceNamespacedName.Namespace), // Namespace
+		strings.ToLower(req.GroupVersionResource.Resource),         // Resource Type
+		strings.ToLower(req.ResourceName))                          // Resource Name
 }
 
 type KeyParams struct {

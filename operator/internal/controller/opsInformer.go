@@ -8,8 +8,8 @@ import (
 
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"truefoundry/elasti/operator/api/v1alpha1"
 	"truefoundry/elasti/operator/internal/informer"
@@ -31,12 +31,12 @@ func (r *ElastiServiceReconciler) resetMutexForInformer(key string) {
 	r.InformerStartLocks.Delete(key)
 }
 
-func (r *ElastiServiceReconciler) getMutexKeyForPublicSVC(req ctrl.Request) string {
-	return req.String() + lockKeyPostfixForPublicSVC
+func (r *ElastiServiceReconciler) getMutexKeyForPublicSVC(namespacedName types.NamespacedName) string {
+	return namespacedName.String() + lockKeyPostfixForPublicSVC
 }
 
-func (r *ElastiServiceReconciler) getMutexKeyForTargetRef(req ctrl.Request) string {
-	return req.String() + lockKeyPostfixForTargetRef
+func (r *ElastiServiceReconciler) getMutexKeyForTargetRef(namespacedName types.NamespacedName) string {
+	return namespacedName.String() + lockKeyPostfixForTargetRef
 }
 func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context) cache.ResourceEventHandlerFuncs {
 	return cache.ResourceEventHandlerFuncs{
@@ -66,10 +66,10 @@ func (r *ElastiServiceReconciler) getResolverChangeHandler(ctx context.Context) 
 	}
 }
 
-func (r *ElastiServiceReconciler) getPublicServiceChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) cache.ResourceEventHandlerFuncs {
+func (r *ElastiServiceReconciler) getPublicServiceChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, namespacedName types.NamespacedName) cache.ResourceEventHandlerFuncs {
 	key := r.InformerManager.GetKey(informer.KeyParams{
 		Namespace:    resolverNamespace,
-		CRDName:      req.Name,
+		CRDName:      es.GetObjectMeta().GetName(),
 		ResourceName: es.Spec.Service,
 		Resource:     values.KindService,
 	})
@@ -77,64 +77,64 @@ func (r *ElastiServiceReconciler) getPublicServiceChangeHandler(ctx context.Cont
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			errStr := values.Success
-			err := r.handlePublicServiceChanges(ctx, obj, es.Spec.Service, req.Namespace)
+			err := r.handlePublicServiceChanges(ctx, obj, es.Spec.Service, es.GetObjectMeta().GetNamespace())
 			if err != nil {
 				errStr = err.Error()
 				r.Logger.Error("Failed to handle public service changes", zap.Error(err))
 			} else {
-				r.Logger.Info("Public service added", zap.String("service", es.Spec.Service), zap.String("es", req.String()))
+				r.Logger.Info("Public service added", zap.String("service", es.Spec.Service), zap.String("es", namespacedName.String()))
 			}
-			prom.InformerHandlerCounter.WithLabelValues(req.String(), key, errStr).Inc()
+			prom.InformerHandlerCounter.WithLabelValues(namespacedName.String(), key, errStr).Inc()
 		},
 		UpdateFunc: func(_, newObj interface{}) {
 			errStr := values.Success
-			err := r.handlePublicServiceChanges(ctx, newObj, es.Spec.Service, req.Namespace)
+			err := r.handlePublicServiceChanges(ctx, newObj, es.Spec.Service, es.GetObjectMeta().GetNamespace())
 			if err != nil {
 				errStr = err.Error()
 				r.Logger.Error("Failed to handle public service changes", zap.Error(err))
 			} else {
-				r.Logger.Info("Public service updated", zap.String("service", es.Spec.Service), zap.String("es", req.String()))
+				r.Logger.Info("Public service updated", zap.String("service", es.Spec.Service), zap.String("es", namespacedName.String()))
 			}
-			prom.InformerHandlerCounter.WithLabelValues(req.String(), key, errStr).Inc()
+			prom.InformerHandlerCounter.WithLabelValues(namespacedName.String(), key, errStr).Inc()
 		},
 		DeleteFunc: func(_ interface{}) {
-			r.Logger.Debug("public deployment deleted",
-				zap.String("es", req.String()),
+			r.Logger.Debug("public service deleted",
+				zap.String("es", namespacedName.String()),
 				zap.String("service", es.Spec.Service))
 		},
 	}
 }
 
-func (r *ElastiServiceReconciler) getScaleTargetRefChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, req ctrl.Request) cache.ResourceEventHandlerFuncs {
+func (r *ElastiServiceReconciler) getScaleTargetRefChangeHandler(ctx context.Context, es *v1alpha1.ElastiService, elastiServiceNamespacedName types.NamespacedName) cache.ResourceEventHandlerFuncs {
 	key := r.InformerManager.GetKey(informer.KeyParams{
-		Namespace:    req.Namespace,
-		CRDName:      req.Name,
+		Namespace:    elastiServiceNamespacedName.Namespace,
+		CRDName:      elastiServiceNamespacedName.Name,
 		ResourceName: es.Spec.ScaleTargetRef.Kind,
 		Resource:     es.Spec.ScaleTargetRef.Name,
 	})
 	return cache.ResourceEventHandlerFuncs{
 		UpdateFunc: func(_, newObj interface{}) {
 			errStr := values.Success
-			err := r.handleScaleTargetRefChanges(ctx, newObj, es, req)
+			err := r.handleScaleTargetRefChanges(ctx, newObj, elastiServiceNamespacedName, es)
 			if err != nil {
 				errStr = err.Error()
 				r.Logger.Error("Failed to handle ScaleTargetRef changes", zap.Error(err))
 			} else {
-				r.Logger.Info("ScaleTargetRef updated", zap.String("es", req.String()), zap.String("scaleTargetRef", es.Spec.ScaleTargetRef.Name))
+				r.Logger.Info("ScaleTargetRef updated", zap.String("es", elastiServiceNamespacedName.String()), zap.String("scaleTargetRef", es.Spec.ScaleTargetRef.Name))
 			}
 
-			prom.InformerHandlerCounter.WithLabelValues(req.String(), key, errStr).Inc()
+			prom.InformerHandlerCounter.WithLabelValues(elastiServiceNamespacedName.String(), key, errStr).Inc()
 		},
 	}
 }
 
-func (r *ElastiServiceReconciler) handleScaleTargetRefChanges(ctx context.Context, obj interface{}, es *v1alpha1.ElastiService, req ctrl.Request) error {
-	r.Logger.Info("ScaleTargetRef changes detected", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
+func (r *ElastiServiceReconciler) handleScaleTargetRefChanges(ctx context.Context, obj interface{}, elastiServiceNamespacedName types.NamespacedName, es *v1alpha1.ElastiService) error {
+	r.Logger.Info("ScaleTargetRef changes detected", zap.String("es", elastiServiceNamespacedName.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
 	switch strings.ToLower(es.Spec.ScaleTargetRef.Kind) {
 	case values.KindDeployments:
-		return r.handleTargetDeploymentChanges(ctx, obj, es, req)
+		return r.handleTargetDeploymentChanges(ctx, obj, elastiServiceNamespacedName, es)
 	case values.KindRollout:
-		return r.handleTargetRolloutChanges(ctx, obj, es, req)
+		return r.handleTargetRolloutChanges(ctx, obj, elastiServiceNamespacedName, es)
 	default:
 		return fmt.Errorf("unsupported target kind: %s", es.Spec.ScaleTargetRef.Kind)
 	}
