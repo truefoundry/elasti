@@ -13,13 +13,13 @@ import (
 	"github.com/truefoundry/elasti/pkg/scaling/scalers"
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -28,9 +28,7 @@ const (
 )
 
 type ScaleHandler struct {
-	kClient        *kubernetes.Clientset
-	kDynamicClient *dynamic.DynamicClient
-
+	client     client.Client
 	scaleLocks sync.Map
 
 	logger *zap.Logger
@@ -43,21 +41,10 @@ func (h *ScaleHandler) getMutexForScale(key string) *sync.Mutex {
 }
 
 // NewScaleHandler creates a new instance of the ScaleHandler
-func NewScaleHandler(logger *zap.Logger, config *rest.Config) *ScaleHandler {
-	kClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
-	}
-
-	kDynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
-	}
-
+func NewScaleHandler(logger *zap.Logger, config *rest.Config, client client.Client) *ScaleHandler {
 	return &ScaleHandler{
-		logger:         logger.Named("ScaleHandler"),
-		kClient:        kClient,
-		kDynamicClient: kDynamicClient,
+		logger: logger.Named("ScaleHandler"),
+		client: client,
 	}
 }
 
@@ -89,26 +76,20 @@ func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
 }
 
 func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
-	elastiServiceList, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).List(ctx, metav1.ListOptions{})
-	if err != nil {
+	elastiServiceList := &v1alpha1.ElastiServiceList{}
+	if err := h.client.List(ctx, elastiServiceList, client.InNamespace("shub-ws")); err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
 	}
 
-	for _, item := range elastiServiceList.Items {
-		es := &v1alpha1.ElastiService{}
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, es); err != nil {
-			h.logger.Error("failed to convert unstructured to ElastiService", zap.Error(err))
-			continue
-		}
-
+	for _, es := range elastiServiceList.Items {
 		if es.Status.Mode == values.ServeMode {
-			err := h.handleScaleToZero(ctx, es)
+			err := h.handleScaleToZero(ctx, &es)
 			if err != nil {
 				h.logger.Error("failed to check and scale from zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 				continue
 			}
 		} else {
-			err := h.handleScaleFromZero(ctx, es)
+			err := h.handleScaleFromZero(ctx, &es)
 			if err != nil {
 				h.logger.Error("failed to check and scale to zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 				continue
@@ -275,19 +256,19 @@ func (h *ScaleHandler) ScaleTargetFromZero(ctx context.Context, namespacedName t
 	}
 
 	if err != nil {
-		eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Warning", "ScaleFromZeroFailed", fmt.Sprintf("Failed to scale %s from zero to %d replicas: %v", targetKind, replicas, err))
+		eventErr := h.createEvent(ctx, namespacedName.Namespace, elastiServiceName, "Warning", "ScaleFromZeroFailed", fmt.Sprintf("Failed to scale %s from zero to %d replicas: %v", targetKind, replicas, err))
 		if eventErr != nil {
 			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
 		}
 		return fmt.Errorf("ScaleTargetFromZero - %s: %w", targetKind, err)
 	}
 
-	eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Normal", "ScaledUpFromZero", fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas))
+	eventErr := h.createEvent(ctx, namespacedName.Namespace, elastiServiceName, "Normal", "ScaledUpFromZero", fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas))
 	if eventErr != nil {
 		h.logger.Error("Failed to create success event", zap.Error(eventErr))
 	}
 
-	if err := h.UpdateLastScaledUpTime(ctx, elastiServiceName, namespacedName.Namespace); err != nil {
+	if err := h.updateLastScaledUpTime(ctx, elastiServiceName, namespacedName.Namespace); err != nil {
 		h.logger.Error("Failed to update LastScaledUpTime", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
 	}
 
@@ -313,14 +294,14 @@ func (h *ScaleHandler) ScaleTargetToZero(ctx context.Context, namespacedName typ
 	}
 
 	if err != nil {
-		eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Warning", "ScaleToZeroFailed", fmt.Sprintf("Failed to scale %s to zero: %v", targetKind, err))
+		eventErr := h.createEvent(ctx, namespacedName.Namespace, elastiServiceName, "Warning", "ScaleToZeroFailed", fmt.Sprintf("Failed to scale %s to zero: %v", targetKind, err))
 		if eventErr != nil {
 			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
 		}
 		return fmt.Errorf("ScaleTargetToZero - %s: %w", targetKind, err)
 	}
 
-	eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Normal", "ScaledDownToZero", fmt.Sprintf("Successfully scaled %s to zero", targetKind))
+	eventErr := h.createEvent(ctx, namespacedName.Namespace, elastiServiceName, "Normal", "ScaledDownToZero", fmt.Sprintf("Successfully scaled %s to zero", targetKind))
 	if eventErr != nil {
 		h.logger.Error("Failed to create success event", zap.Error(eventErr))
 	}
@@ -331,16 +312,15 @@ func (h *ScaleHandler) ScaleTargetToZero(ctx context.Context, namespacedName typ
 // ScaleDeployment scales the deployment to the provided replicas
 // TODO: use a generic logic to perform scaling similar to HPA/KEDA
 func (h *ScaleHandler) ScaleDeployment(ctx context.Context, ns, targetName string, replicas int32) error {
-	deploymentClient := h.kClient.AppsV1().Deployments(ns)
-	deploy, err := deploymentClient.Get(ctx, targetName, metav1.GetOptions{})
-	if err != nil {
+	deploy := &appsv1.Deployment{}
+	if err := h.client.Get(ctx, types.NamespacedName{Namespace: ns, Name: targetName}, deploy); err != nil {
 		return fmt.Errorf("ScaleDeployment - GET: %w", err)
 	}
 
 	h.logger.Debug("Deployment found", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas), zap.Int32("desired replicas", replicas))
 	if deploy.Spec.Replicas != nil && *deploy.Spec.Replicas != replicas {
 		patchBytes := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
-		_, err = deploymentClient.Patch(ctx, targetName, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+		err := h.client.Patch(ctx, deploy, client.RawPatch(types.MergePatchType, patchBytes))
 		if err != nil {
 			return fmt.Errorf("ScaleDeployment - Patch: %w", err)
 		}
@@ -353,31 +333,29 @@ func (h *ScaleHandler) ScaleDeployment(ctx context.Context, ns, targetName strin
 
 // ScaleArgoRollout scales the rollout to the provided replicas
 func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, ns, targetName string, replicas int32) error {
-	rollout, err := h.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Get(ctx, targetName, metav1.GetOptions{})
-	if err != nil {
+	rollout := &unstructured.Unstructured{}
+	rollout.SetGroupVersionKind(values.RolloutGVK)
+
+	if err := h.client.Get(ctx, types.NamespacedName{Namespace: ns, Name: targetName}, rollout); err != nil {
 		return fmt.Errorf("ScaleArgoRollout - GET: %w", err)
 	}
 
-	currentReplicas := rollout.Object["spec"].(map[string]interface{})["replicas"].(int64)
+	currentReplicas, _, err := unstructured.NestedInt64(rollout.Object, "spec", "replicas")
+	if err != nil {
+		return fmt.Errorf("ScaleArgoRollout - failed to get replicas: %w", err)
+	}
+
 	h.logger.Info("Rollout found", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
 
 	if currentReplicas != int64(replicas) {
 		patchBytes := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
-		_, err = h.kDynamicClient.Resource(values.RolloutGVR).Namespace(ns).Patch(
-			ctx,
-			targetName,
-			types.MergePatchType,
-			patchBytes,
-			metav1.PatchOptions{},
-		)
-		if err != nil {
+		if err := h.client.Patch(ctx, rollout, client.RawPatch(types.MergePatchType, patchBytes)); err != nil {
 			return fmt.Errorf("ScaleArgoRollout - Patch: %w", err)
 		}
 		h.logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
 		return nil
 	}
 	h.logger.Info("Rollout already scaled", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas))
-
 	return nil
 }
 
@@ -397,34 +375,29 @@ func (h *ScaleHandler) UpdateKedaScaledObjectPausedState(ctx context.Context, sc
 			kedaPausedReplicasAnnotation))
 	}
 
-	_, err := h.kDynamicClient.Resource(values.ScaledObjectGVR).Namespace(namespace).Patch(
-		ctx,
-		scaledObjectName,
-		types.MergePatchType,
-		patchBytes,
-		metav1.PatchOptions{},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to patch ScaledObject: %w", err)
+	if err := h.client.Patch(ctx, &v1alpha1.ElastiService{}, client.RawPatch(types.MergePatchType, patchBytes)); err != nil {
+		return fmt.Errorf("failed to patch ElastiService: %w", err)
 	}
 	return nil
 }
 
-func (h *ScaleHandler) UpdateLastScaledUpTime(ctx context.Context, crdName, namespace string) error {
+func (h *ScaleHandler) updateLastScaledUpTime(ctx context.Context, crdName, namespace string) error {
 	now := metav1.Now()
 	patchBytes := []byte(fmt.Sprintf(`{"status": {"lastScaledUpTime": "%s"}}`, now.Format(time.RFC3339Nano)))
 
-	_, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).
-		Namespace(namespace).
-		Patch(ctx, crdName, types.MergePatchType, patchBytes, metav1.PatchOptions{}, "status")
-	if err != nil {
+	elastiService := &v1alpha1.ElastiService{}
+	if err := h.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: crdName}, elastiService); err != nil {
+		return fmt.Errorf("failed to get ElastiService: %w", err)
+	}
+
+	if err := h.client.Patch(ctx, elastiService, client.RawPatch(types.MergePatchType, patchBytes)); err != nil {
 		return fmt.Errorf("failed to patch ElastiService status: %w", err)
 	}
 	return nil
 }
 
 // createEvent creates a new event on scaling up or down
-func (h *ScaleHandler) createEvent(namespace, name, eventType, reason, message string) error {
+func (h *ScaleHandler) createEvent(ctx context.Context, namespace, name, eventType, reason, message string) error {
 	h.logger.Info("createEvent", zap.String("eventType", eventType), zap.String("reason", reason), zap.String("message", message))
 	event := &v1.Event{
 		ObjectMeta: metav1.ObjectMeta{
@@ -446,8 +419,7 @@ func (h *ScaleHandler) createEvent(namespace, name, eventType, reason, message s
 		},
 	}
 
-	_, err := h.kClient.CoreV1().Events(namespace).Create(context.TODO(), event, metav1.CreateOptions{})
-	if err != nil {
+	if err := h.client.Create(ctx, event); err != nil {
 		return fmt.Errorf("failed to create event: %w", err)
 	}
 	return nil

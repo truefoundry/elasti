@@ -30,6 +30,12 @@ var (
 		Resource: "rollouts",
 	}
 
+	RolloutGVK = schema.GroupVersionKind{
+		Group:   "argoproj.io",
+		Version: "v1alpha1",
+		Kind:    "Rollout",
+	}
+
 	ServiceGVR = schema.GroupVersionResource{
 		Group:    "",
 		Version:  "v1",
