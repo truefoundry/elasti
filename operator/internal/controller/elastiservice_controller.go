@@ -25,7 +25,6 @@ import (
 )
 
 type (
-	SwitchModeFunc          func(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error)
 	ElastiServiceReconciler struct {
 		client.Client
 		Scheme             *kRuntime.Scheme
