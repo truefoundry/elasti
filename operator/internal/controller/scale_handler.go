@@ -1,4 +1,4 @@
-package scaling
+package controller
 
 import (
 	"context"
@@ -18,7 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,33 +26,18 @@ const (
 	kedaPausedReplicasAnnotation = "autoscaling.keda.sh/paused-replicas"
 )
 
-type ScaleHandler struct {
-	client     client.Client
-	scaleLocks sync.Map
-
-	logger *zap.Logger
-}
-
 // getMutexForScale returns a mutex for scaling based on the input key
-func (h *ScaleHandler) getMutexForScale(key string) *sync.Mutex {
-	l, _ := h.scaleLocks.LoadOrStore(key, &sync.Mutex{})
+func (h *ElastiServiceReconciler) getMutexForScale(key string) *sync.Mutex {
+	l, _ := h.ScaleLocks.LoadOrStore(key, &sync.Mutex{})
 	return l.(*sync.Mutex)
 }
 
-// NewScaleHandler creates a new instance of the ScaleHandler
-func NewScaleHandler(logger *zap.Logger, config *rest.Config, client client.Client) *ScaleHandler {
-	return &ScaleHandler{
-		logger: logger.Named("ScaleHandler"),
-		client: client,
-	}
-}
-
-func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
+func (h *ElastiServiceReconciler) StartScaleDownWatcher(ctx context.Context) {
 	pollingInterval := 30 * time.Second
 	if envInterval := os.Getenv("POLLING_VARIABLE"); envInterval != "" {
 		duration, err := time.ParseDuration(envInterval)
 		if err != nil {
-			h.logger.Warn("Invalid POLLING_VARIABLE value, using default 30s", zap.Error(err))
+			h.Logger.Warn("Invalid POLLING_VARIABLE value, using default 30s", zap.Error(err))
 		} else {
 			pollingInterval = duration
 		}
@@ -68,16 +52,16 @@ func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
 				return
 			case <-ticker.C:
 				if err := h.checkAndScale(ctx); err != nil {
-					h.logger.Error("failed to run the scale down check", zap.Error(err))
+					h.Logger.Error("failed to run the scale down check", zap.Error(err))
 				}
 			}
 		}
 	}()
 }
 
-func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
+func (h *ElastiServiceReconciler) checkAndScale(ctx context.Context) error {
 	elastiServiceList := &v1alpha1.ElastiServiceList{}
-	if err := h.client.List(ctx, elastiServiceList, client.InNamespace("shub-ws")); err != nil {
+	if err := h.List(ctx, elastiServiceList, client.InNamespace("shub-ws")); err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
 	}
 
@@ -85,13 +69,13 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 		if es.Status.Mode == values.ServeMode {
 			err := h.handleScaleToZero(ctx, &es)
 			if err != nil {
-				h.logger.Error("failed to check and scale from zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
+				h.Logger.Error("failed to check and scale from zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 				continue
 			}
 		} else {
 			err := h.handleScaleFromZero(ctx, &es)
 			if err != nil {
-				h.logger.Error("failed to check and scale to zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
+				h.Logger.Error("failed to check and scale to zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 				continue
 			}
 		}
@@ -100,28 +84,28 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 	return nil
 }
 
-func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.ElastiService) error {
+func (h *ElastiServiceReconciler) handleScaleToZero(ctx context.Context, es *v1alpha1.ElastiService) error {
 	namespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
 	}
 	shouldScale := true
 	if len(es.Spec.Triggers) == 0 {
-		h.logger.Info("No triggers found, skipping scale to zero", zap.String("namespacedName", namespacedName.String()))
+		h.Logger.Info("No triggers found, skipping scale to zero", zap.String("namespacedName", namespacedName.String()))
 		return nil
 	}
 	for _, trigger := range es.Spec.Triggers {
 		scaler, err := h.createScalerForTrigger(&trigger)
 		if err != nil {
 			// Return nil as this error cannot be fixed or acted upon by elasti
-			h.logger.Warn("failed to create scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			h.Logger.Warn("failed to create scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 			return nil
 		}
 
 		scalerResult, err := scaler.ShouldScaleToZero(ctx)
 		if err != nil {
 			// Return nil as this error cannot be fixed or acted upon by elasti
-			h.logger.Warn("failed to check scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			h.Logger.Warn("failed to check scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 			return nil
 		}
 		if !scalerResult {
@@ -131,7 +115,7 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 
 		err = scaler.Close(ctx)
 		if err != nil {
-			h.logger.Error("failed to close scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			h.Logger.Error("failed to close scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 		}
 	}
 	if !shouldScale {
@@ -154,7 +138,7 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 		}
 
 		if time.Since(es.Status.LastScaledUpTime.Time) < cooldownPeriod {
-			h.logger.Debug("Skipping scale down as minimum cooldownPeriod not met",
+			h.Logger.Debug("Skipping scale down as minimum cooldownPeriod not met",
 				zap.String("service", namespacedName.String()),
 				zap.Duration("cooldown", cooldownPeriod),
 				zap.Time("last scaled up time", es.Status.LastScaledUpTime.Time))
@@ -168,27 +152,27 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 	return nil
 }
 
-func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.ElastiService) error {
+func (h *ElastiServiceReconciler) handleScaleFromZero(ctx context.Context, es *v1alpha1.ElastiService) error {
 	namespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
 	}
 	shouldScale := false
 	if len(es.Spec.Triggers) == 0 {
-		h.logger.Info("No triggers found, skipping scale from zero", zap.String("namespacedName", namespacedName.String()))
+		h.Logger.Info("No triggers found, skipping scale from zero", zap.String("namespacedName", namespacedName.String()))
 		return nil
 	}
 	for _, trigger := range es.Spec.Triggers {
 		scaler, err := h.createScalerForTrigger(&trigger)
 		if err != nil {
-			h.logger.Warn("failed to create scaler for trigger", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			h.Logger.Warn("failed to create scaler for trigger", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 			shouldScale = true
 			break
 		}
 
 		scalerResult, err := scaler.ShouldScaleFromZero(ctx)
 		if err != nil {
-			h.logger.Warn("failed to check scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			h.Logger.Warn("failed to check scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 			break
 		}
 		if scalerResult {
@@ -198,7 +182,7 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 
 		err = scaler.Close(ctx)
 		if err != nil {
-			h.logger.Error("failed to close scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
+			h.Logger.Error("failed to close scaler", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 		}
 	}
 	if !shouldScale {
@@ -220,7 +204,7 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 	return nil
 }
 
-func (h *ScaleHandler) createScalerForTrigger(trigger *v1alpha1.ScaleTrigger) (scalers.Scaler, error) {
+func (h *ElastiServiceReconciler) createScalerForTrigger(trigger *v1alpha1.ScaleTrigger) (scalers.Scaler, error) {
 	var scaler scalers.Scaler
 	var err error
 
@@ -238,12 +222,12 @@ func (h *ScaleHandler) createScalerForTrigger(trigger *v1alpha1.ScaleTrigger) (s
 }
 
 // ScaleTargetFromZero scales the TargetRef to the provided replicas when it's at 0
-func (h *ScaleHandler) ScaleTargetFromZero(ctx context.Context, namespacedName types.NamespacedName, targetKind string, replicas int32, elastiServiceName string) error {
+func (h *ElastiServiceReconciler) ScaleTargetFromZero(ctx context.Context, namespacedName types.NamespacedName, targetKind string, replicas int32, elastiServiceName string) error {
 	mutex := h.getMutexForScale(namespacedName.String())
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	h.logger.Info("Scaling up from zero", zap.String("kind", targetKind), zap.String("namespacedName", namespacedName.String()), zap.Int32("replicas", replicas))
+	h.Logger.Info("Scaling up from zero", zap.String("kind", targetKind), zap.String("namespacedName", namespacedName.String()), zap.Int32("replicas", replicas))
 
 	var err error
 	switch strings.ToLower(targetKind) {
@@ -258,30 +242,30 @@ func (h *ScaleHandler) ScaleTargetFromZero(ctx context.Context, namespacedName t
 	if err != nil {
 		eventErr := h.createEvent(ctx, namespacedName.Namespace, elastiServiceName, "Warning", "ScaleFromZeroFailed", fmt.Sprintf("Failed to scale %s from zero to %d replicas: %v", targetKind, replicas, err))
 		if eventErr != nil {
-			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
+			h.Logger.Error("Failed to create failure event", zap.Error(eventErr))
 		}
 		return fmt.Errorf("ScaleTargetFromZero - %s: %w", targetKind, err)
 	}
 
 	eventErr := h.createEvent(ctx, namespacedName.Namespace, elastiServiceName, "Normal", "ScaledUpFromZero", fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas))
 	if eventErr != nil {
-		h.logger.Error("Failed to create success event", zap.Error(eventErr))
+		h.Logger.Error("Failed to create success event", zap.Error(eventErr))
 	}
 
 	if err := h.updateLastScaledUpTime(ctx, elastiServiceName, namespacedName.Namespace); err != nil {
-		h.logger.Error("Failed to update LastScaledUpTime", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
+		h.Logger.Error("Failed to update LastScaledUpTime", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
 	}
 
 	return nil
 }
 
 // ScaleTargetToZero scales the target to zero
-func (h *ScaleHandler) ScaleTargetToZero(ctx context.Context, namespacedName types.NamespacedName, targetKind string, elastiServiceName string) error {
+func (h *ElastiServiceReconciler) ScaleTargetToZero(ctx context.Context, namespacedName types.NamespacedName, targetKind string, elastiServiceName string) error {
 	mutex := h.getMutexForScale(namespacedName.String())
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	h.logger.Info("Scaling down to zero", zap.String("kind", targetKind), zap.String("namespacedName", namespacedName.String()))
+	h.Logger.Info("Scaling down to zero", zap.String("kind", targetKind), zap.String("namespacedName", namespacedName.String()))
 
 	var err error
 	switch strings.ToLower(targetKind) {
@@ -296,14 +280,14 @@ func (h *ScaleHandler) ScaleTargetToZero(ctx context.Context, namespacedName typ
 	if err != nil {
 		eventErr := h.createEvent(ctx, namespacedName.Namespace, elastiServiceName, "Warning", "ScaleToZeroFailed", fmt.Sprintf("Failed to scale %s to zero: %v", targetKind, err))
 		if eventErr != nil {
-			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
+			h.Logger.Error("Failed to create failure event", zap.Error(eventErr))
 		}
 		return fmt.Errorf("ScaleTargetToZero - %s: %w", targetKind, err)
 	}
 
 	eventErr := h.createEvent(ctx, namespacedName.Namespace, elastiServiceName, "Normal", "ScaledDownToZero", fmt.Sprintf("Successfully scaled %s to zero", targetKind))
 	if eventErr != nil {
-		h.logger.Error("Failed to create success event", zap.Error(eventErr))
+		h.Logger.Error("Failed to create success event", zap.Error(eventErr))
 	}
 
 	return nil
@@ -311,32 +295,32 @@ func (h *ScaleHandler) ScaleTargetToZero(ctx context.Context, namespacedName typ
 
 // ScaleDeployment scales the deployment to the provided replicas
 // TODO: use a generic logic to perform scaling similar to HPA/KEDA
-func (h *ScaleHandler) ScaleDeployment(ctx context.Context, ns, targetName string, replicas int32) error {
+func (h *ElastiServiceReconciler) ScaleDeployment(ctx context.Context, ns, targetName string, replicas int32) error {
 	deploy := &appsv1.Deployment{}
-	if err := h.client.Get(ctx, types.NamespacedName{Namespace: ns, Name: targetName}, deploy); err != nil {
+	if err := h.Get(ctx, types.NamespacedName{Namespace: ns, Name: targetName}, deploy); err != nil {
 		return fmt.Errorf("ScaleDeployment - GET: %w", err)
 	}
 
-	h.logger.Debug("Deployment found", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas), zap.Int32("desired replicas", replicas))
+	h.Logger.Debug("Deployment found", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas), zap.Int32("desired replicas", replicas))
 	if deploy.Spec.Replicas != nil && *deploy.Spec.Replicas != replicas {
 		patchBytes := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
-		err := h.client.Patch(ctx, deploy, client.RawPatch(types.MergePatchType, patchBytes))
+		err := h.Patch(ctx, deploy, client.RawPatch(types.MergePatchType, patchBytes))
 		if err != nil {
 			return fmt.Errorf("ScaleDeployment - Patch: %w", err)
 		}
-		h.logger.Info("Deployment scaled", zap.String("deployment", targetName), zap.Int32("replicas", replicas))
+		h.Logger.Info("Deployment scaled", zap.String("deployment", targetName), zap.Int32("replicas", replicas))
 		return nil
 	}
-	h.logger.Info("Deployment already scaled", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas))
+	h.Logger.Info("Deployment already scaled", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas))
 	return nil
 }
 
 // ScaleArgoRollout scales the rollout to the provided replicas
-func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, ns, targetName string, replicas int32) error {
+func (h *ElastiServiceReconciler) ScaleArgoRollout(ctx context.Context, ns, targetName string, replicas int32) error {
 	rollout := &unstructured.Unstructured{}
 	rollout.SetGroupVersionKind(values.RolloutGVK)
 
-	if err := h.client.Get(ctx, types.NamespacedName{Namespace: ns, Name: targetName}, rollout); err != nil {
+	if err := h.Get(ctx, types.NamespacedName{Namespace: ns, Name: targetName}, rollout); err != nil {
 		return fmt.Errorf("ScaleArgoRollout - GET: %w", err)
 	}
 
@@ -345,21 +329,21 @@ func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, ns, targetName stri
 		return fmt.Errorf("ScaleArgoRollout - failed to get replicas: %w", err)
 	}
 
-	h.logger.Info("Rollout found", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
+	h.Logger.Info("Rollout found", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
 
 	if currentReplicas != int64(replicas) {
 		patchBytes := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
-		if err := h.client.Patch(ctx, rollout, client.RawPatch(types.MergePatchType, patchBytes)); err != nil {
+		if err := h.Patch(ctx, rollout, client.RawPatch(types.MergePatchType, patchBytes)); err != nil {
 			return fmt.Errorf("ScaleArgoRollout - Patch: %w", err)
 		}
-		h.logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
+		h.Logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
 		return nil
 	}
-	h.logger.Info("Rollout already scaled", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas))
+	h.Logger.Info("Rollout already scaled", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas))
 	return nil
 }
 
-func (h *ScaleHandler) UpdateKedaScaledObjectPausedState(ctx context.Context, scaledObjectName, namespace string, paused bool) error {
+func (h *ElastiServiceReconciler) UpdateKedaScaledObjectPausedState(ctx context.Context, scaledObjectName, namespace string, paused bool) error {
 	var patchBytes []byte
 	if paused {
 		// When pausing, set both annotations: paused=true and paused-replicas="0"
@@ -375,30 +359,30 @@ func (h *ScaleHandler) UpdateKedaScaledObjectPausedState(ctx context.Context, sc
 			kedaPausedReplicasAnnotation))
 	}
 
-	if err := h.client.Patch(ctx, &v1alpha1.ElastiService{}, client.RawPatch(types.MergePatchType, patchBytes)); err != nil {
+	if err := h.Patch(ctx, &v1alpha1.ElastiService{}, client.RawPatch(types.MergePatchType, patchBytes)); err != nil {
 		return fmt.Errorf("failed to patch ElastiService: %w", err)
 	}
 	return nil
 }
 
-func (h *ScaleHandler) updateLastScaledUpTime(ctx context.Context, crdName, namespace string) error {
+func (h *ElastiServiceReconciler) updateLastScaledUpTime(ctx context.Context, crdName, namespace string) error {
 	now := metav1.Now()
 	patchBytes := []byte(fmt.Sprintf(`{"status": {"lastScaledUpTime": "%s"}}`, now.Format(time.RFC3339Nano)))
 
 	elastiService := &v1alpha1.ElastiService{}
-	if err := h.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: crdName}, elastiService); err != nil {
+	if err := h.Get(ctx, types.NamespacedName{Namespace: namespace, Name: crdName}, elastiService); err != nil {
 		return fmt.Errorf("failed to get ElastiService: %w", err)
 	}
 
-	if err := h.client.Patch(ctx, elastiService, client.RawPatch(types.MergePatchType, patchBytes)); err != nil {
+	if err := h.Patch(ctx, elastiService, client.RawPatch(types.MergePatchType, patchBytes)); err != nil {
 		return fmt.Errorf("failed to patch ElastiService status: %w", err)
 	}
 	return nil
 }
 
 // createEvent creates a new event on scaling up or down
-func (h *ScaleHandler) createEvent(ctx context.Context, namespace, name, eventType, reason, message string) error {
-	h.logger.Info("createEvent", zap.String("eventType", eventType), zap.String("reason", reason), zap.String("message", message))
+func (h *ElastiServiceReconciler) createEvent(ctx context.Context, namespace, name, eventType, reason, message string) error {
+	h.Logger.Info("createEvent", zap.String("eventType", eventType), zap.String("reason", reason), zap.String("message", message))
 	event := &v1.Event{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: name + "-",
@@ -419,7 +403,7 @@ func (h *ScaleHandler) createEvent(ctx context.Context, namespace, name, eventTy
 		},
 	}
 
-	if err := h.client.Create(ctx, event); err != nil {
+	if err := h.Create(ctx, event); err != nil {
 		return fmt.Errorf("failed to create event: %w", err)
 	}
 	return nil

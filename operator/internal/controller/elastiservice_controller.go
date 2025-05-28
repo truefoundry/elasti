@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/truefoundry/elasti/pkg/scaling"
 	"k8s.io/apimachinery/pkg/types"
 
 	"truefoundry/elasti/operator/internal/crddirectory"
@@ -31,9 +30,9 @@ type (
 		Logger             *zap.Logger
 		InformerManager    *informer.Manager
 		SwitchModeLocks    sync.Map
-		ScaleHandler       *scaling.ScaleHandler
 		InformerStartLocks sync.Map
 		ReconcileLocks     sync.Map
+		ScaleLocks         sync.Map
 	}
 )
 
@@ -145,7 +144,7 @@ func (r *ElastiServiceReconciler) Initialize(ctx context.Context) error {
 	if err := r.InformerManager.InitializeResolverInformer(r.getResolverChangeHandler(ctx)); err != nil {
 		return fmt.Errorf("failed to initialize resolver informer: %w", err)
 	}
-	r.ScaleHandler.StartScaleDownWatcher(ctx)
+	r.StartScaleDownWatcher(ctx)
 	return nil
 }
 

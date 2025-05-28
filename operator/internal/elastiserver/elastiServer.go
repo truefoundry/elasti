@@ -13,9 +13,9 @@ import (
 	"time"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
-	"github.com/truefoundry/elasti/pkg/scaling"
 	"k8s.io/apimachinery/pkg/types"
 
+	"truefoundry/elasti/operator/internal/controller"
 	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/prom"
 
@@ -33,18 +33,18 @@ type (
 	// It is used by components about certain events, like when resolver receive the request
 	// for a service, that service is scaled up if it's at 0 replicas
 	Server struct {
-		logger       *zap.Logger
-		scaleHandler *scaling.ScaleHandler
+		logger     *zap.Logger
+		reconciler *controller.ElastiServiceReconciler
 		// rescaleDuration is the duration to wait before checking to rescaling the target
 		rescaleDuration time.Duration
 	}
 )
 
-func NewServer(logger *zap.Logger, scaleHandler *scaling.ScaleHandler, rescaleDuration time.Duration) *Server {
+func NewServer(logger *zap.Logger, reconciler *controller.ElastiServiceReconciler, rescaleDuration time.Duration) *Server {
 	// Get Ops client
 	return &Server{
-		logger:       logger.Named("elastiServer"),
-		scaleHandler: scaleHandler,
+		logger:     logger.Named("elastiServer"),
+		reconciler: reconciler,
 		// rescaleDuration is the duration to wait before checking to rescaling the target
 		rescaleDuration: rescaleDuration,
 	}
@@ -158,13 +158,13 @@ func (s *Server) scaleTargetForService(ctx context.Context, serviceName, namespa
 
 	// Unpause the Keda ScaledObject if it's paused
 	if crd.Spec.Autoscaler != nil && strings.ToLower(crd.Spec.Autoscaler.Type) == "keda" {
-		err := s.scaleHandler.UpdateKedaScaledObjectPausedState(ctx, crd.Spec.Autoscaler.Name, namespace, false)
+		err := s.reconciler.UpdateKedaScaledObjectPausedState(ctx, crd.Spec.Autoscaler.Name, namespace, false)
 		if err != nil {
 			return fmt.Errorf("failed to update Keda ScaledObject for service %s: %w", namespacedName.String(), err)
 		}
 	}
 
-	if err := s.scaleHandler.ScaleTargetFromZero(ctx, namespacedName, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas, crd.CRDName); err != nil {
+	if err := s.reconciler.ScaleTargetFromZero(ctx, namespacedName, crd.Spec.ScaleTargetRef.Kind, crd.Spec.MinTargetReplicas, crd.CRDName); err != nil {
 		prom.TargetScaleCounter.WithLabelValues(serviceName, namespace, crd.Spec.ScaleTargetRef.Kind+"-"+crd.Spec.ScaleTargetRef.Name, err.Error()).Inc()
 		return fmt.Errorf("scaleTargetForService - error: %w, targetRefKind: %s, targetRefName: %s", err, crd.Spec.ScaleTargetRef.Kind, crd.Spec.ScaleTargetRef.Name)
 	}
