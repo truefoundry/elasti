@@ -246,9 +246,6 @@ func (h *ElastiServiceReconciler) ScaleTargetFromZero(ctx context.Context, names
 		}
 		return fmt.Errorf("ScaleTargetFromZero - %s: %w", targetKind, err)
 	}
-	if err = h.switchMode(ctx, namespacedName, values.ServeMode); err != nil {
-		h.Logger.Error("failed to switch mode to serve", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
-	}
 
 	eventErr := h.createEvent(ctx, namespacedName.Namespace, elastiServiceName, "Normal", "ScaledUpFromZero", fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas))
 	if eventErr != nil {
@@ -286,9 +283,6 @@ func (h *ElastiServiceReconciler) ScaleTargetToZero(ctx context.Context, namespa
 			h.Logger.Error("Failed to create failure event", zap.Error(eventErr))
 		}
 		return fmt.Errorf("ScaleTargetToZero - %s: %w", targetKind, err)
-	}
-	if err = h.switchMode(ctx, namespacedName, values.ProxyMode); err != nil {
-		h.Logger.Error("failed to switch mode to proxy", zap.String("namespacedName", namespacedName.String()), zap.Error(err))
 	}
 
 	eventErr := h.createEvent(ctx, namespacedName.Namespace, elastiServiceName, "Normal", "ScaledDownToZero", fmt.Sprintf("Successfully scaled %s to zero", targetKind))
