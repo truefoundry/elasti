@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/truefoundry/elasti/pkg/scaling"
 	"k8s.io/apimachinery/pkg/types"
 
 	"truefoundry/elasti/operator/internal/crddirectory"
@@ -25,16 +24,15 @@ import (
 )
 
 type (
-	SwitchModeFunc          func(ctx context.Context, req ctrl.Request, mode string) (res ctrl.Result, err error)
 	ElastiServiceReconciler struct {
 		client.Client
 		Scheme             *kRuntime.Scheme
 		Logger             *zap.Logger
 		InformerManager    *informer.Manager
 		SwitchModeLocks    sync.Map
-		ScaleHandler       *scaling.ScaleHandler
 		InformerStartLocks sync.Map
 		ReconcileLocks     sync.Map
+		ScaleLocks         sync.Map
 	}
 )
 
@@ -106,11 +104,11 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	r.Logger.Info("Finalizer added to CRD", zap.String("es", req.String()))
 
 	// Add watch for public service, so when the public service is modified, we can update the private service
-	if err := r.watchScaleTargetRef(ctx, es, req); err != nil {
-		r.Logger.Error("Failed to add watch for ScaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef), zap.Error(err))
-		return res, err
-	}
-	r.Logger.Info("Watch added for ScaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
+	// if err := r.watchScaleTargetRef(ctx, es, req); err != nil {
+	// 	r.Logger.Error("Failed to add watch for ScaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef), zap.Error(err))
+	// 	return res, err
+	// }
+	// r.Logger.Info("Watch added for ScaleTargetRef", zap.String("es", req.String()), zap.Any("scaleTargetRef", es.Spec.ScaleTargetRef))
 
 	// We add the CRD details to service directory, so when elasti server received a request,
 	// we can find the right resource to scale up
@@ -146,13 +144,13 @@ func (r *ElastiServiceReconciler) Initialize(ctx context.Context) error {
 	if err := r.InformerManager.InitializeResolverInformer(r.getResolverChangeHandler(ctx)); err != nil {
 		return fmt.Errorf("failed to initialize resolver informer: %w", err)
 	}
-	r.ScaleHandler.StartScaleDownWatcher(ctx)
+	r.StartScaleDownWatcher(ctx)
 	return nil
 }
 
 func (r *ElastiServiceReconciler) reconcileExistingCRDs(ctx context.Context) error {
 	crdList := &v1alpha1.ElastiServiceList{}
-	if err := r.List(ctx, crdList); err != nil {
+	if err := r.List(ctx, crdList, client.InNamespace("shub-ws")); err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
 	}
 	count := 0

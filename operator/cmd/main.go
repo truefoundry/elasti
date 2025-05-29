@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/truefoundry/elasti/pkg/scaling"
 
 	"truefoundry/elasti/operator/internal/elastiserver"
 
@@ -177,39 +176,17 @@ func mainWithError() error {
 	informerManager.Start()
 	defer informerManager.Stop()
 
-	// Initiate and start the shared scaleHandler
-	scaleHandler := scaling.NewScaleHandler(zapLogger, mgr.GetConfig())
-
 	// Set up the ElastiService controller
 	reconciler := &controller.ElastiServiceReconciler{
 		Client:          mgr.GetClient(),
 		Scheme:          mgr.GetScheme(),
 		Logger:          zapLogger,
 		InformerManager: informerManager,
-		ScaleHandler:    scaleHandler,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
 		sentry.CaptureException(err)
 		return fmt.Errorf("main: %w", err)
-	}
-
-	// Start the elasti server
-	eServer := elastiserver.NewServer(zapLogger, scaleHandler, 30*time.Second)
-	errChan := make(chan error, 1)
-	go func() {
-		if err := eServer.Start(elastiServerPort); err != nil {
-			setupLog.Error(err, "elasti server failed to start")
-			sentry.CaptureException(err)
-			errChan <- fmt.Errorf("elasti server: %w", err)
-		}
-	}()
-
-	// Add error channel check before manager start
-	select {
-	case err := <-errChan:
-		return fmt.Errorf("main: %w", err)
-	default:
 	}
 
 	//+kubebuilder:scaffold:builder
@@ -250,11 +227,23 @@ func mainWithError() error {
 	}
 	setupLog.Info("initialized controller")
 
-	if err := <-mgrErrChan; err != nil {
-		return fmt.Errorf("main: %w", err)
-	}
+	// Start the elasti server
+	eServer := elastiserver.NewServer(zapLogger, reconciler, 30*time.Second)
+	elastiServerErrChan := make(chan error, 1)
+	go func() {
+		if err := eServer.Start(elastiServerPort); err != nil {
+			setupLog.Error(err, "elasti server failed to start")
+			sentry.CaptureException(err)
+			elastiServerErrChan <- fmt.Errorf("elasti server: %w", err)
+		}
+	}()
 
-	return nil
+	select {
+	case err := <-elastiServerErrChan:
+		return fmt.Errorf("elasti server error: %w", err)
+	case err := <-mgrErrChan:
+		return fmt.Errorf("manager error: %w", err)
+	}
 }
 
 func _(mgr ctrl.Manager) healthz.Checker {

@@ -41,6 +41,7 @@ func (r *ElastiServiceReconciler) checkAndCreatePrivateService(ctx context.Conte
 	} else if errors.IsNotFound(err) {
 		r.Logger.Info("Private service not found, creating one", zap.String("private-service", privateServiceNamespacedName.String()))
 	} else {
+		// TODO: When would this happen?
 		r.Logger.Info("Private service already exists", zap.String("private-service", privateServiceNamespacedName.String()))
 		return privateServiceName, nil
 	}

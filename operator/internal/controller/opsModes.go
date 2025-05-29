@@ -12,7 +12,6 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (r *ElastiServiceReconciler) getMutexForSwitchMode(key string) *sync.Mutex {
@@ -20,42 +19,42 @@ func (r *ElastiServiceReconciler) getMutexForSwitchMode(key string) *sync.Mutex 
 	return l.(*sync.Mutex)
 }
 
-func (r *ElastiServiceReconciler) switchMode(ctx context.Context, req ctrl.Request, mode string) error {
+func (r *ElastiServiceReconciler) switchMode(ctx context.Context, elastiServiceNamespacedName types.NamespacedName, mode string) error {
 	{
-		r.Logger.Debug(fmt.Sprintf("[Switching to %s Mode]", strings.ToUpper(mode)), zap.String("es", req.NamespacedName.String()))
-		mutex := r.getMutexForSwitchMode(req.NamespacedName.String())
+		r.Logger.Debug(fmt.Sprintf("[Switching to %s Mode]", strings.ToUpper(mode)), zap.String("es", elastiServiceNamespacedName.String()))
+		mutex := r.getMutexForSwitchMode(elastiServiceNamespacedName.String())
 		mutex.Lock()
 		defer mutex.Unlock()
 	}
 
-	es, err := r.getCRD(ctx, req.NamespacedName)
+	es, err := r.getCRD(ctx, elastiServiceNamespacedName)
 	if err != nil {
-		r.Logger.Error("Failed to get CRD", zap.String("es", req.NamespacedName.String()), zap.Error(err))
+		r.Logger.Error("Failed to get CRD", zap.String("es", elastiServiceNamespacedName.String()), zap.Error(err))
 		return fmt.Errorf("failed to get CRD: %w", err)
 	}
 
 	//nolint: errcheck
-	defer r.updateCRDStatus(ctx, req.NamespacedName, mode)
+	defer r.updateCRDStatus(ctx, elastiServiceNamespacedName, mode)
 	switch mode {
 	case values.ServeMode:
-		if err = r.enableServeMode(ctx, es); err != nil {
-			r.Logger.Error("Failed to enable SERVE mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
+		if err = r.enableServeMode(ctx, elastiServiceNamespacedName, es); err != nil {
+			r.Logger.Error("Failed to enable SERVE mode", zap.String("es", elastiServiceNamespacedName.String()), zap.Error(err))
 			return err
 		}
-		r.Logger.Info("[SERVE mode enabled]", zap.String("es", req.NamespacedName.String()))
+		r.Logger.Info("[SERVE mode enabled]", zap.String("es", elastiServiceNamespacedName.String()))
 	case values.ProxyMode:
-		if err = r.enableProxyMode(ctx, req, es); err != nil {
-			r.Logger.Error("Failed to enable PROXY mode", zap.String("es", req.NamespacedName.String()), zap.Error(err))
+		if err = r.enableProxyMode(ctx, elastiServiceNamespacedName, es); err != nil {
+			r.Logger.Error("Failed to enable PROXY mode", zap.String("es", elastiServiceNamespacedName.String()), zap.Error(err))
 			return err
 		}
-		r.Logger.Info("[PROXY mode enabled]", zap.String("es", req.NamespacedName.String()))
+		r.Logger.Info("[PROXY mode enabled]", zap.String("es", elastiServiceNamespacedName.String()))
 	default:
-		r.Logger.Error("Invalid mode", zap.String("mode", mode), zap.String("es", req.NamespacedName.String()))
+		r.Logger.Error("Invalid mode", zap.String("mode", mode), zap.String("es", elastiServiceNamespacedName.String()))
 	}
 	return nil
 }
 
-func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.Request, es *v1alpha1.ElastiService) error {
+func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, elastiServiceNamespacedName types.NamespacedName, es *v1alpha1.ElastiService) error {
 	targetNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
@@ -71,7 +70,7 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.
 	r.Logger.Info("1. Checked and created private service", zap.String("public service", targetSVC.Name), zap.String("private service", PVTName))
 
 	// Check if Public Service is present, and has not changed from the values in CRDDirectory
-	if err := r.watchPublicService(ctx, es, req); err != nil {
+	if err := r.watchPublicService(ctx, es, elastiServiceNamespacedName); err != nil {
 		return fmt.Errorf("failed to add watch on public service: %w", err)
 	}
 	r.Logger.Info("2. Added watch on public service", zap.String("service", targetSVC.Name))
@@ -84,14 +83,10 @@ func (r *ElastiServiceReconciler) enableProxyMode(ctx context.Context, req ctrl.
 	return nil
 }
 
-func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, es *v1alpha1.ElastiService) error {
-	targetNamespacedName := types.NamespacedName{
-		Name:      es.Spec.Service,
-		Namespace: es.Namespace,
-	}
-	if err := r.deleteEndpointsliceToResolver(ctx, targetNamespacedName); err != nil {
+func (r *ElastiServiceReconciler) enableServeMode(ctx context.Context, elastiServiceNamespacedName types.NamespacedName, es *v1alpha1.ElastiService) error {
+	if err := r.deleteEndpointsliceToResolver(ctx, elastiServiceNamespacedName); err != nil {
 		return fmt.Errorf("failed to delete endpointslice to resolver: %w", err)
 	}
-	r.Logger.Info("1. Deleted endpointslice to resolver", zap.String("service", targetNamespacedName.String()))
+	r.Logger.Info("1. Deleted endpointslice to resolver", zap.String("service", es.Spec.Service))
 	return nil
 }

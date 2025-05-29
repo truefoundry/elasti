@@ -13,10 +13,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Context, obj interface{}, _ *v1alpha1.ElastiService, req ctrl.Request) error {
+func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Context, obj interface{}, elastiServiceNamespacedName types.NamespacedName, es *v1alpha1.ElastiService) error {
 	targetDeployment := &appsv1.Deployment{}
 	err := k8shelper.UnstructuredToResource(obj, targetDeployment)
 	if err != nil {
@@ -24,13 +23,13 @@ func (r *ElastiServiceReconciler) handleTargetDeploymentChanges(ctx context.Cont
 	}
 	condition := targetDeployment.Status.Conditions
 	if targetDeployment.Status.Replicas == 0 {
-		r.Logger.Info("ScaleTargetRef Deployment has 0 replicas", zap.String("deployment_name", targetDeployment.Name), zap.String("es", req.String()))
-		if err := r.switchMode(ctx, req, values.ProxyMode); err != nil {
+		r.Logger.Info("ScaleTargetRef Deployment has 0 replicas", zap.String("deployment_name", targetDeployment.Name), zap.String("es", elastiServiceNamespacedName.String()))
+		if err := r.switchMode(ctx, elastiServiceNamespacedName, values.ProxyMode); err != nil {
 			return fmt.Errorf("failed to switch mode: %w", err)
 		}
 	} else if targetDeployment.Status.Replicas > 0 && condition[1].Status == values.DeploymentConditionStatusTrue {
-		r.Logger.Info("ScaleTargetRef Deployment has ready replicas", zap.String("deployment_name", targetDeployment.Name), zap.String("es", req.String()))
-		if err := r.switchMode(ctx, req, values.ServeMode); err != nil {
+		r.Logger.Info("ScaleTargetRef Deployment has ready replicas", zap.String("deployment_name", targetDeployment.Name), zap.String("es", elastiServiceNamespacedName.String()))
+		if err := r.switchMode(ctx, elastiServiceNamespacedName, values.ServeMode); err != nil {
 			return fmt.Errorf("failed to switch mode: %w", err)
 		}
 	}
