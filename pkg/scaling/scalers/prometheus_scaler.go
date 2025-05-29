@@ -65,7 +65,7 @@ func parsePrometheusMetadata(jsonMetadata json.RawMessage) (*prometheusMetadata,
 func (s *prometheusScaler) executePromQuery(ctx context.Context) (float64, error) {
 	t := time.Now().UTC().Format(time.RFC3339)
 	queryEscaped := url.QueryEscape(s.metadata.Query)
-	queryURL := fmt.Sprintf("%s/api/v1/query?query=%s&time=%s", s.metadata.ServerAddress, queryEscaped, t)
+	queryURL := fmt.Sprintf("%s/api/v1/query?query=%s&time=%s", "http://localhost:9090", queryEscaped, t)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", queryURL, nil)
 	if err != nil {

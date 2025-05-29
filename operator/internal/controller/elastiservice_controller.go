@@ -18,6 +18,7 @@ import (
 	kRuntime "k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"truefoundry/elasti/operator/api/v1alpha1"
 
@@ -127,6 +128,10 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.ElastiService{}).
+		WithEventFilter(predicate.NewPredicateFuncs(func(obj client.Object) bool {
+			es := obj.(*v1alpha1.ElastiService)
+			return es.Name == "elasti-readiness-failure-elasti-service"
+		})).
 		Complete(r)
 	if err != nil {
 		return fmt.Errorf("SetupWithManager: %w", err)
@@ -152,7 +157,7 @@ func (r *ElastiServiceReconciler) Initialize(ctx context.Context) error {
 
 func (r *ElastiServiceReconciler) reconcileExistingCRDs(ctx context.Context) error {
 	crdList := &v1alpha1.ElastiServiceList{}
-	if err := r.List(ctx, crdList); err != nil {
+	if err := r.List(ctx, crdList, client.InNamespace("shub-ws")); err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
 	}
 	count := 0
