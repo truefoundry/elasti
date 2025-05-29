@@ -130,7 +130,7 @@ func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&v1alpha1.ElastiService{}).
 		WithEventFilter(predicate.NewPredicateFuncs(func(obj client.Object) bool {
 			es := obj.(*v1alpha1.ElastiService)
-			return es.Name == "elasti-readiness-failure-elasti-service"
+			return es.Name == "elasti-trigger-failure-elasti-service"
 		})).
 		Complete(r)
 	if err != nil {

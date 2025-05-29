@@ -69,7 +69,7 @@ func NewScaleHandler(logger *zap.Logger, config *rest.Config) *ScaleHandler {
 }
 
 func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
-	pollingInterval := 600 * time.Second
+	pollingInterval := 30 * time.Second
 	if envInterval := os.Getenv("POLLING_VARIABLE"); envInterval != "" {
 		duration, err := time.ParseDuration(envInterval)
 		if err != nil {
@@ -100,7 +100,7 @@ func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
 
 func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 	elastiServiceList, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).List(ctx, metav1.ListOptions{
-		FieldSelector: "metadata.name=elasti-readiness-failure-elasti-service",
+		FieldSelector: "metadata.name=elasti-trigger-failure-elasti-service",
 	})
 	if err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
@@ -210,6 +210,11 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 		Namespace: es.Namespace,
 	}
 
+	// We update the last scaled up time every time we evaluate that the trigger evaluates to scale-up
+	if err := h.UpdateLastScaledUpTime(ctx, es.Name, es.Namespace); err != nil {
+		h.logger.Error("Failed to update LastScaledUpTime", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
+	}
+
 	// Unpause the KEDA ScaledObject if it's paused
 	if es.Spec.Autoscaler != nil && strings.ToLower(es.Spec.Autoscaler.Type) == "keda" {
 		err := h.UpdateKedaScaledObjectPausedState(ctx, es.Spec.Autoscaler.Name, es.Namespace, false)
@@ -277,10 +282,6 @@ func (h *ScaleHandler) ScaleTargetFromZero(ctx context.Context, namespacedName t
 	eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Normal", "ScaledUpFromZero", fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas))
 	if eventErr != nil {
 		h.logger.Error("Failed to create success event", zap.Error(eventErr))
-	}
-
-	if err := h.UpdateLastScaledUpTime(ctx, elastiServiceName, namespacedName.Namespace); err != nil {
-		h.logger.Error("Failed to update LastScaledUpTime", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
 	}
 
 	return nil
