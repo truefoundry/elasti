@@ -155,7 +155,7 @@ func (s *Server) scaleTargetForService(ctx context.Context, serviceName, namespa
 	if !found {
 		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, namespacedName: %s", namespacedName)
 	}
-	if err := s.scaleHandler.UpdateLastScaledUpTime(ctx, serviceName, namespace); err != nil {
+	if err := s.scaleHandler.UpdateLastScaledUpTime(ctx, crd.CRDName, namespace); err != nil {
 		return fmt.Errorf("failed to update LastScaledUpTime: %w", err)
 	}
 
