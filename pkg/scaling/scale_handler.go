@@ -128,9 +128,6 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 				h.logger.Error("failed to scale target from zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 				continue
 			}
-		default:
-			h.logger.Error("unknown scaled direction encountered: ", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.String("scaleDirection", string(scaleDirection)))
-			continue
 		}
 	}
 
@@ -209,7 +206,7 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 		Namespace: es.Namespace,
 	}
 
-	// We update the last scaled up time every time we evaluate that the trigger evaluates to scale-up
+	// We update the last scaled up time every time we evaluate that the trigger evaluates to scale-up. This means even if the scale-up is not successful, we update the last scaled up time to avoid the cooldown period increment
 	if err := h.UpdateLastScaledUpTime(ctx, es.Name, es.Namespace); err != nil {
 		h.logger.Error("Failed to update LastScaledUpTime", zap.Error(err), zap.String("namespacedName", namespacedName.String()))
 	}
@@ -296,7 +293,7 @@ func (h *ScaleHandler) ScaleTargetToZero(ctx context.Context, namespacedName typ
 	h.logger.Info("Scaling down to zero", zap.String("kind", targetKind), zap.String("namespacedName", namespacedName.String()))
 
 	var err error
-	var scaled bool = false
+	scaled := false
 	switch strings.ToLower(targetKind) {
 	case values.KindDeployments:
 		scaled, err = h.ScaleDeployment(ctx, namespacedName.Namespace, namespacedName.Name, 0)
