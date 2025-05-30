@@ -140,7 +140,7 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, es *v1alpha1.ElastiService) (ScaleDirection, error) {
 	if len(es.Spec.Triggers) == 0 {
 		h.logger.Info("No triggers found, skipping scale to zero", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service))
-		return ScaleDown, fmt.Errorf("no triggers found")
+		return "", fmt.Errorf("no triggers found")
 	}
 
 	for _, trigger := range es.Spec.Triggers {
@@ -173,6 +173,7 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 		Namespace: es.Namespace,
 	}
 
+	// If the cooldown period is not met, we skip the scale down
 	if es.Status.LastScaledUpTime != nil {
 		cooldownPeriod := time.Second * time.Duration(es.Spec.CooldownPeriod)
 		if cooldownPeriod == 0 {
@@ -254,7 +255,8 @@ func (h *ScaleHandler) ScaleTargetFromZero(ctx context.Context, namespacedName t
 	h.logger.Info("Scaling up from zero", zap.String("kind", targetKind), zap.String("namespacedName", namespacedName.String()), zap.Int32("replicas", replicas))
 
 	var err error
-	var scaled bool = false
+	// This variable tracks whether the scale target was scaled or not. This is to prevent the scaled up event from being created multiple times.
+	scaled := false
 	switch strings.ToLower(targetKind) {
 	case values.KindDeployments:
 		scaled, err = h.ScaleDeployment(ctx, namespacedName.Namespace, namespacedName.Name, replicas)
