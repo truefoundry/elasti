@@ -41,6 +41,7 @@ type ScaleHandler struct {
 	scaleLocks sync.Map
 
 	logger *zap.Logger
+	watchNamespace string
 }
 
 // getMutexForScale returns a mutex for scaling based on the input key
@@ -50,7 +51,7 @@ func (h *ScaleHandler) getMutexForScale(key string) *sync.Mutex {
 }
 
 // NewScaleHandler creates a new instance of the ScaleHandler
-func NewScaleHandler(logger *zap.Logger, config *rest.Config) *ScaleHandler {
+func NewScaleHandler(logger *zap.Logger, config *rest.Config, watchNamespace string) *ScaleHandler {
 	kClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
@@ -65,6 +66,7 @@ func NewScaleHandler(logger *zap.Logger, config *rest.Config) *ScaleHandler {
 		logger:         logger.Named("ScaleHandler"),
 		kClient:        kClient,
 		kDynamicClient: kDynamicClient,
+		watchNamespace: watchNamespace,
 	}
 }
 
@@ -99,9 +101,7 @@ func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
 }
 
 func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
-	elastiServiceList, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).List(ctx, metav1.ListOptions{
-		FieldSelector: "metadata.name=elasti-trigger-failure-elasti-service",
-	})
+	elastiServiceList, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).Namespace(h.watchNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
 	}

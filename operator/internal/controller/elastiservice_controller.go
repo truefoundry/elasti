@@ -125,12 +125,15 @@ func (r *ElastiServiceReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return res, nil
 }
 
-func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager, watchNamespace string) error {
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.ElastiService{}).
 		WithEventFilter(predicate.NewPredicateFuncs(func(obj client.Object) bool {
 			es := obj.(*v1alpha1.ElastiService)
-			return es.Name == "elasti-trigger-failure-elasti-service"
+			if watchNamespace == "" || es.Namespace == watchNamespace {
+				return true
+			}
+			return false
 		})).
 		Complete(r)
 	if err != nil {
@@ -144,8 +147,8 @@ func (r *ElastiServiceReconciler) getMutexForReconcile(key string) *sync.Mutex {
 	return l.(*sync.Mutex)
 }
 
-func (r *ElastiServiceReconciler) Initialize(ctx context.Context) error {
-	if err := r.reconcileExistingCRDs(ctx); err != nil {
+func (r *ElastiServiceReconciler) Initialize(ctx context.Context, watchNamespace string) error {
+	if err := r.reconcileExistingCRDs(ctx, watchNamespace); err != nil {
 		return fmt.Errorf("failed to reconcile existing CRDs: %w", err)
 	}
 	if err := r.InformerManager.InitializeResolverInformer(r.getResolverChangeHandler(ctx)); err != nil {
@@ -155,9 +158,9 @@ func (r *ElastiServiceReconciler) Initialize(ctx context.Context) error {
 	return nil
 }
 
-func (r *ElastiServiceReconciler) reconcileExistingCRDs(ctx context.Context) error {
+func (r *ElastiServiceReconciler) reconcileExistingCRDs(ctx context.Context, watchNamespace string) error {
 	crdList := &v1alpha1.ElastiServiceList{}
-	if err := r.List(ctx, crdList, client.InNamespace("shub-ws")); err != nil {
+	if err := r.List(ctx, crdList, client.InNamespace(watchNamespace)); err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
 	}
 	count := 0
