@@ -30,8 +30,8 @@ const (
 type ScaleDirection string
 
 const (
-	ScaleUp   ScaleDirection = "scale-up"
-	ScaleDown ScaleDirection = "scale-down"
+	ScaleUp   ScaleDirection = "scaleup"
+	ScaleDown ScaleDirection = "scaledown"
 )
 
 type ScaleHandler struct {
@@ -40,7 +40,7 @@ type ScaleHandler struct {
 
 	scaleLocks sync.Map
 
-	logger *zap.Logger
+	logger         *zap.Logger
 	watchNamespace string
 }
 
@@ -80,9 +80,6 @@ func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
 			pollingInterval = duration
 		}
 	}
-	if err := h.checkAndScale(ctx); err != nil {
-		h.logger.Error("failed to run the scale down check", zap.Error(err))
-	}
 	ticker := time.NewTicker(pollingInterval)
 
 	go func() {
@@ -118,20 +115,21 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 			h.logger.Error("failed to calculate scale direction", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 			continue
 		}
-		if scaleDirection == ScaleDown {
+		switch scaleDirection {
+		case ScaleDown:
 			err := h.handleScaleToZero(ctx, es)
 			if err != nil {
 				h.logger.Error("failed to scale target to zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 				continue
 			}
-		} else if scaleDirection == ScaleUp {
+		case ScaleUp:
 			err := h.handleScaleFromZero(ctx, es)
 			if err != nil {
 				h.logger.Error("failed to scale target from zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 				continue
 			}
-		} else {
-			h.logger.Error("failed to calculate scale direction", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
+		default:
+			h.logger.Error("unknown scaled direction encountered: ", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.String("scaleDirection", string(scaleDirection)))
 			continue
 		}
 	}
@@ -141,24 +139,24 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 
 func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, es *v1alpha1.ElastiService) (ScaleDirection, error) {
 	if len(es.Spec.Triggers) == 0 {
-		h.logger.Info("No triggers found, skipping scale to zero", zap.String("namespacedName", es.Namespace+"/"+es.Spec.Service))
+		h.logger.Info("No triggers found, skipping scale to zero", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service))
 		return ScaleDown, fmt.Errorf("no triggers found")
 	}
 
 	for _, trigger := range es.Spec.Triggers {
 		scaler, err := h.createScalerForTrigger(&trigger)
 		if err != nil {
-			h.logger.Warn("failed to create scaler", zap.String("namespacedName", es.Namespace+"/"+es.Spec.Service), zap.Error(err))
+			h.logger.Warn("failed to create scaler", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service), zap.Error(err))
 			return "", fmt.Errorf("failed to create scaler: %w", err)
 		}
 
 		scaleToZero, err := scaler.ShouldScaleToZero(ctx)
 		if err != nil {
-			h.logger.Warn("failed to check scaler", zap.String("namespacedName", es.Namespace+"/"+es.Spec.Service), zap.Error(err))
+			h.logger.Warn("failed to check scaler", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service), zap.Error(err))
 			return "", fmt.Errorf("failed to check scaler: %w", err)
 		}
 		if err = scaler.Close(ctx); err != nil {
-			h.logger.Error("failed to close scaler", zap.String("namespacedName", es.Namespace+"/"+es.Spec.Service), zap.Error(err))
+			h.logger.Error("failed to close scaler", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service), zap.Error(err))
 		}
 
 		if !scaleToZero {

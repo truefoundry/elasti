@@ -156,7 +156,7 @@ func (s *Server) scaleTargetForService(ctx context.Context, serviceName, namespa
 		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, namespacedName: %s", namespacedName)
 	}
 	if err := s.scaleHandler.UpdateLastScaledUpTime(ctx, crd.CRDName, namespace); err != nil {
-		return fmt.Errorf("failed to update LastScaledUpTime: %w", err)
+		return fmt.Errorf("failed to update LastScaledUpTime namespacedName: %s - %w", namespacedName, err)
 	}
 
 	// Unpause the Keda ScaledObject if it's paused
