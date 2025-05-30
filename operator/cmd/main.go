@@ -39,6 +39,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -94,6 +95,9 @@ func mainWithError() error {
 		defer sentry.Flush(2 * time.Second)
 	}
 
+	var watchNamespace string
+	flag.StringVar(&watchNamespace, "watch-namespace", metav1.NamespaceAll, "Namespace to watch for resources")
+
 	zapLogger, err := tfLogger.NewLogger("dev", sentryEnabled)
 	if err != nil {
 		setupLog.Error(err, "unable to create logger")
@@ -148,20 +152,10 @@ func mainWithError() error {
 			SecureServing: secureMetrics,
 			TLSOpts:       tlsOpts,
 		},
-		WebhookServer:          webhookServer,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "acf50383.truefoundry.io",
-		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-		// when the manager ends. This requires the binary to immediately end when the
-		// manager is stopped, otherwise, this setting is unsafe. Setting this significantly
-		// speeds up voluntary leader transitions as the new leader don't have to wait
-		// LeaseDuration time first.
-		//
-		// In the default scaffold provided, the program ends immediately after
-		// the manager stops, so would be fine to enable this option. However,
-		// if you are doing or is intended to do any operation such as perform cleanups
-		// after the manager stops then its usage might be unsafe.
+		WebhookServer:                 webhookServer,
+		HealthProbeBindAddress:        probeAddr,
+		LeaderElection:                enableLeaderElection,
+		LeaderElectionID:              "acf50383.truefoundry.io",
 		LeaderElectionReleaseOnCancel: true,
 	})
 	if err != nil {
@@ -178,7 +172,7 @@ func mainWithError() error {
 	defer informerManager.Stop()
 
 	// Initiate and start the shared scaleHandler
-	scaleHandler := scaling.NewScaleHandler(zapLogger, mgr.GetConfig())
+	scaleHandler := scaling.NewScaleHandler(zapLogger, mgr.GetConfig(), watchNamespace)
 
 	// Set up the ElastiService controller
 	reconciler := &controller.ElastiServiceReconciler{
@@ -188,7 +182,8 @@ func mainWithError() error {
 		InformerManager: informerManager,
 		ScaleHandler:    scaleHandler,
 	}
-	if err = reconciler.SetupWithManager(mgr); err != nil {
+
+	if err = reconciler.SetupWithManager(mgr, watchNamespace); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
 		sentry.CaptureException(err)
 		return fmt.Errorf("main: %w", err)
@@ -244,7 +239,7 @@ func mainWithError() error {
 		return fmt.Errorf("failed to sync cache")
 	}
 
-	if err = reconciler.Initialize(context.Background()); err != nil {
+	if err = reconciler.Initialize(context.Background(), watchNamespace); err != nil {
 		setupLog.Error(err, "unable to initialize controller")
 		return fmt.Errorf("main: %w", err)
 	}

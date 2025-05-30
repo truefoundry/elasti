@@ -155,11 +155,13 @@ func (s *Server) scaleTargetForService(ctx context.Context, serviceName, namespa
 	if !found {
 		return fmt.Errorf("scaleTargetForService - error: failed to get CRD details from directory, namespacedName: %s", namespacedName)
 	}
+	if err := s.scaleHandler.UpdateLastScaledUpTime(ctx, crd.CRDName, namespace); err != nil {
+		s.logger.Error("failed to update LastScaledUpTime", zap.String("service", namespacedName.String()), zap.Error(err))
+	}
 
 	// Unpause the Keda ScaledObject if it's paused
 	if crd.Spec.Autoscaler != nil && strings.ToLower(crd.Spec.Autoscaler.Type) == "keda" {
-		err := s.scaleHandler.UpdateKedaScaledObjectPausedState(ctx, crd.Spec.Autoscaler.Name, namespace, false)
-		if err != nil {
+		if err := s.scaleHandler.UpdateKedaScaledObjectPausedState(ctx, crd.Spec.Autoscaler.Name, namespace, false); err != nil {
 			return fmt.Errorf("failed to update Keda ScaledObject for service %s: %w", namespacedName.String(), err)
 		}
 	}
