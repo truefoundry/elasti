@@ -23,6 +23,7 @@ import (
 	"truefoundry/elasti/operator/api/v1alpha1"
 
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type (
@@ -129,8 +130,11 @@ func (r *ElastiServiceReconciler) SetupWithManager(mgr ctrl.Manager, watchNamesp
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.ElastiService{}).
 		WithEventFilter(predicate.NewPredicateFuncs(func(obj client.Object) bool {
-			es := obj.(*v1alpha1.ElastiService)
-			if watchNamespace == "" || es.Namespace == watchNamespace {
+			es, ok := obj.(*v1alpha1.ElastiService)
+			if !ok {
+				return false
+			}
+			if watchNamespace == metav1.NamespaceAll || es.Namespace == watchNamespace {
 				return true
 			}
 			return false
