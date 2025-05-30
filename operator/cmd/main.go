@@ -39,6 +39,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -94,7 +95,11 @@ func mainWithError() error {
 		defer sentry.Flush(2 * time.Second)
 	}
 
-	watchNamespace := os.Getenv("WATCH_NAMESPACE")
+	var watchNamespace string
+	flag.StringVar(&watchNamespace, "watch-namespace", watchNamespace, "Namespace to watch for resources")
+	if watchNamespace == "" {
+		watchNamespace = metav1.NamespaceAll
+	}
 
 	zapLogger, err := tfLogger.NewLogger("dev", sentryEnabled)
 	if err != nil {
@@ -150,10 +155,10 @@ func mainWithError() error {
 			SecureServing: secureMetrics,
 			TLSOpts:       tlsOpts,
 		},
-		WebhookServer:          webhookServer,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "acf50383.truefoundry.io",
+		WebhookServer:                 webhookServer,
+		HealthProbeBindAddress:        probeAddr,
+		LeaderElection:                enableLeaderElection,
+		LeaderElectionID:              "acf50383.truefoundry.io",
 		LeaderElectionReleaseOnCancel: true,
 	})
 	if err != nil {
@@ -180,6 +185,7 @@ func mainWithError() error {
 		InformerManager: informerManager,
 		ScaleHandler:    scaleHandler,
 	}
+
 	if err = reconciler.SetupWithManager(mgr, watchNamespace); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ElastiService")
 		sentry.CaptureException(err)
