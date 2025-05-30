@@ -96,10 +96,7 @@ func mainWithError() error {
 	}
 
 	var watchNamespace string
-	flag.StringVar(&watchNamespace, "watch-namespace", watchNamespace, "Namespace to watch for resources")
-	if watchNamespace == "" {
-		watchNamespace = metav1.NamespaceAll
-	}
+	flag.StringVar(&watchNamespace, "watch-namespace", metav1.NamespaceAll, "Namespace to watch for resources")
 
 	zapLogger, err := tfLogger.NewLogger("dev", sentryEnabled)
 	if err != nil {
