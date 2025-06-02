@@ -27,7 +27,7 @@ type config struct {
 	MaxIdleProxyConns        int `split_words:"true" default:"1000"`
 	MaxIdleProxyConnsPerHost int `split_words:"true" default:"100"`
 	// ReqTimeout is the timeout for each request
-	ReqTimeout int `split_words:"true" default:"10"`
+	ReqTimeout int `split_words:"true" default:"600"`
 	// TrafficReEnableDuration is the duration for which the traffic is disabled for a host
 	// This is also duration for which we don't recheck readiness of the service
 	TrafficReEnableDuration int `split_words:"true" default:"30"`
