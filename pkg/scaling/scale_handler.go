@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
 )
 
 const (
@@ -37,6 +38,7 @@ const (
 type ScaleHandler struct {
 	kClient        *kubernetes.Clientset
 	kDynamicClient *dynamic.DynamicClient
+	EventRecorder  record.EventRecorder
 
 	scaleLocks sync.Map
 
@@ -51,7 +53,7 @@ func (h *ScaleHandler) getMutexForScale(key string) *sync.Mutex {
 }
 
 // NewScaleHandler creates a new instance of the ScaleHandler
-func NewScaleHandler(logger *zap.Logger, config *rest.Config, watchNamespace string) *ScaleHandler {
+func NewScaleHandler(logger *zap.Logger, config *rest.Config, watchNamespace string, eventRecorder record.EventRecorder) *ScaleHandler {
 	kClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
@@ -67,6 +69,7 @@ func NewScaleHandler(logger *zap.Logger, config *rest.Config, watchNamespace str
 		kClient:        kClient,
 		kDynamicClient: kDynamicClient,
 		watchNamespace: watchNamespace,
+		EventRecorder:  eventRecorder,
 	}
 }
 
@@ -421,29 +424,12 @@ func (h *ScaleHandler) UpdateLastScaledUpTime(ctx context.Context, crdName, name
 // createEvent creates a new event on scaling up or down
 func (h *ScaleHandler) createEvent(namespace, name, eventType, reason, message string) error {
 	h.logger.Info("createEvent", zap.String("eventType", eventType), zap.String("reason", reason), zap.String("message", message))
-	event := &v1.Event{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: name + "-",
-			Namespace:    namespace,
-		},
-		InvolvedObject: v1.ObjectReference{
-			APIVersion: "elasti.truefoundry.com/v1alpha1",
-			Kind:       "ElastiService",
-			Name:       name,
-			Namespace:  namespace,
-		},
-		Type:    eventType, // Normal or Warning
-		Reason:  reason,
-		Message: message,
-		Action:  "Scale",
-		Source: v1.EventSource{
-			Component: "elasti-operator",
-		},
+	ref := &v1.ObjectReference{
+		APIVersion: "elasti.truefoundry.com/v1alpha1",
+		Kind:       "ElastiService",
+		Name:       name,
+		Namespace:  namespace,
 	}
-
-	_, err := h.kClient.CoreV1().Events(namespace).Create(context.TODO(), event, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create event: %w", err)
-	}
+	h.EventRecorder.Event(ref, eventType, reason, message)
 	return nil
 }
