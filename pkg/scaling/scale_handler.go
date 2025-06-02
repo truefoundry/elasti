@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
 )
 
 const (
@@ -37,6 +38,7 @@ const (
 type ScaleHandler struct {
 	kClient        *kubernetes.Clientset
 	kDynamicClient *dynamic.DynamicClient
+	EventRecorder  record.EventRecorder
 
 	scaleLocks sync.Map
 
@@ -51,7 +53,7 @@ func (h *ScaleHandler) getMutexForScale(key string) *sync.Mutex {
 }
 
 // NewScaleHandler creates a new instance of the ScaleHandler
-func NewScaleHandler(logger *zap.Logger, config *rest.Config, watchNamespace string) *ScaleHandler {
+func NewScaleHandler(logger *zap.Logger, config *rest.Config, watchNamespace string, eventRecorder record.EventRecorder) *ScaleHandler {
 	kClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
@@ -67,6 +69,7 @@ func NewScaleHandler(logger *zap.Logger, config *rest.Config, watchNamespace str
 		kClient:        kClient,
 		kDynamicClient: kDynamicClient,
 		watchNamespace: watchNamespace,
+		EventRecorder:  eventRecorder,
 	}
 }
 
@@ -264,10 +267,7 @@ func (h *ScaleHandler) ScaleTargetFromZero(ctx context.Context, serviceNamespace
 	}
 
 	if err != nil {
-		eventErr := h.createEvent(serviceNamespacedName.Namespace, elastiServiceName, "Warning", "ScaleFromZeroFailed", fmt.Sprintf("Failed to scale %s from zero to %d replicas: %v", targetKind, replicas, err))
-		if eventErr != nil {
-			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
-		}
+		h.createEvent(serviceNamespacedName.Namespace, elastiServiceName, "Warning", "ScaleFromZeroFailed", fmt.Sprintf("Failed to scale %s from zero to %d replicas: %v", targetKind, replicas, err))
 		return fmt.Errorf("ScaleTargetFromZero - %s: %w", targetKind, err)
 	}
 
@@ -276,10 +276,7 @@ func (h *ScaleHandler) ScaleTargetFromZero(ctx context.Context, serviceNamespace
 		return nil
 	}
 
-	eventErr := h.createEvent(serviceNamespacedName.Namespace, elastiServiceName, "Normal", "ScaledUpFromZero", fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas))
-	if eventErr != nil {
-		h.logger.Error("Failed to create success event", zap.Error(eventErr))
-	}
+	h.createEvent(serviceNamespacedName.Namespace, elastiServiceName, "Normal", "ScaledUpFromZero", fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas))
 
 	return nil
 }
@@ -304,10 +301,7 @@ func (h *ScaleHandler) ScaleTargetToZero(ctx context.Context, serviceNamespacedN
 	}
 
 	if err != nil {
-		eventErr := h.createEvent(serviceNamespacedName.Namespace, elastiServiceName, "Warning", "ScaleToZeroFailed", fmt.Sprintf("Failed to scale %s to zero: %v", targetKind, err))
-		if eventErr != nil {
-			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
-		}
+		h.createEvent(serviceNamespacedName.Namespace, elastiServiceName, "Warning", "ScaleToZeroFailed", fmt.Sprintf("Failed to scale %s to zero: %v", targetKind, err))
 		return fmt.Errorf("ScaleTargetToZero - %s: %w", targetKind, err)
 	}
 
@@ -316,10 +310,7 @@ func (h *ScaleHandler) ScaleTargetToZero(ctx context.Context, serviceNamespacedN
 		return nil
 	}
 
-	eventErr := h.createEvent(serviceNamespacedName.Namespace, elastiServiceName, "Normal", "ScaledDownToZero", fmt.Sprintf("Successfully scaled %s to zero", targetKind))
-	if eventErr != nil {
-		h.logger.Error("Failed to create success event", zap.Error(eventErr))
-	}
+	h.createEvent(serviceNamespacedName.Namespace, elastiServiceName, "Normal", "ScaledDownToZero", fmt.Sprintf("Successfully scaled %s to zero", targetKind))
 
 	return nil
 }
@@ -419,31 +410,13 @@ func (h *ScaleHandler) UpdateLastScaledUpTime(ctx context.Context, crdName, name
 }
 
 // createEvent creates a new event on scaling up or down
-func (h *ScaleHandler) createEvent(namespace, name, eventType, reason, message string) error {
+func (h *ScaleHandler) createEvent(namespace, name, eventType, reason, message string) {
 	h.logger.Info("createEvent", zap.String("eventType", eventType), zap.String("reason", reason), zap.String("message", message))
-	event := &v1.Event{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: name + "-",
-			Namespace:    namespace,
-		},
-		InvolvedObject: v1.ObjectReference{
-			APIVersion: "elasti.truefoundry.com/v1alpha1",
-			Kind:       "ElastiService",
-			Name:       name,
-			Namespace:  namespace,
-		},
-		Type:    eventType, // Normal or Warning
-		Reason:  reason,
-		Message: message,
-		Action:  "Scale",
-		Source: v1.EventSource{
-			Component: "elasti-operator",
-		},
+	ref := &v1.ObjectReference{
+		APIVersion: "elasti.truefoundry.com/v1alpha1",
+		Kind:       "ElastiService",
+		Name:       name,
+		Namespace:  namespace,
 	}
-
-	_, err := h.kClient.CoreV1().Events(namespace).Create(context.TODO(), event, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create event: %w", err)
-	}
-	return nil
+	h.EventRecorder.Event(ref, eventType, reason, message)
 }

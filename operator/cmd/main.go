@@ -172,7 +172,7 @@ func mainWithError() error {
 	defer informerManager.Stop()
 
 	// Initiate and start the shared scaleHandler
-	scaleHandler := scaling.NewScaleHandler(zapLogger, mgr.GetConfig(), watchNamespace)
+	scaleHandler := scaling.NewScaleHandler(zapLogger, mgr.GetConfig(), watchNamespace, mgr.GetEventRecorderFor("elasti-operator"))
 
 	// Set up the ElastiService controller
 	reconciler := &controller.ElastiServiceReconciler{
