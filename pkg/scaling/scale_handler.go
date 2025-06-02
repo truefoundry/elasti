@@ -267,10 +267,7 @@ func (h *ScaleHandler) ScaleTargetFromZero(ctx context.Context, namespacedName t
 	}
 
 	if err != nil {
-		eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Warning", "ScaleFromZeroFailed", fmt.Sprintf("Failed to scale %s from zero to %d replicas: %v", targetKind, replicas, err))
-		if eventErr != nil {
-			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
-		}
+		h.createEvent(namespacedName.Namespace, elastiServiceName, "Warning", "ScaleFromZeroFailed", fmt.Sprintf("Failed to scale %s from zero to %d replicas: %v", targetKind, replicas, err))
 		return fmt.Errorf("ScaleTargetFromZero - %s: %w", targetKind, err)
 	}
 
@@ -279,10 +276,7 @@ func (h *ScaleHandler) ScaleTargetFromZero(ctx context.Context, namespacedName t
 		return nil
 	}
 
-	eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Normal", "ScaledUpFromZero", fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas))
-	if eventErr != nil {
-		h.logger.Error("Failed to create success event", zap.Error(eventErr))
-	}
+	h.createEvent(namespacedName.Namespace, elastiServiceName, "Normal", "ScaledUpFromZero", fmt.Sprintf("Successfully scaled %s from zero to %d replicas", targetKind, replicas))
 
 	return nil
 }
@@ -307,10 +301,7 @@ func (h *ScaleHandler) ScaleTargetToZero(ctx context.Context, namespacedName typ
 	}
 
 	if err != nil {
-		eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Warning", "ScaleToZeroFailed", fmt.Sprintf("Failed to scale %s to zero: %v", targetKind, err))
-		if eventErr != nil {
-			h.logger.Error("Failed to create failure event", zap.Error(eventErr))
-		}
+		h.createEvent(namespacedName.Namespace, elastiServiceName, "Warning", "ScaleToZeroFailed", fmt.Sprintf("Failed to scale %s to zero: %v", targetKind, err))
 		return fmt.Errorf("ScaleTargetToZero - %s: %w", targetKind, err)
 	}
 
@@ -319,10 +310,7 @@ func (h *ScaleHandler) ScaleTargetToZero(ctx context.Context, namespacedName typ
 		return nil
 	}
 
-	eventErr := h.createEvent(namespacedName.Namespace, elastiServiceName, "Normal", "ScaledDownToZero", fmt.Sprintf("Successfully scaled %s to zero", targetKind))
-	if eventErr != nil {
-		h.logger.Error("Failed to create success event", zap.Error(eventErr))
-	}
+	h.createEvent(namespacedName.Namespace, elastiServiceName, "Normal", "ScaledDownToZero", fmt.Sprintf("Successfully scaled %s to zero", targetKind))
 
 	return nil
 }
@@ -422,7 +410,7 @@ func (h *ScaleHandler) UpdateLastScaledUpTime(ctx context.Context, crdName, name
 }
 
 // createEvent creates a new event on scaling up or down
-func (h *ScaleHandler) createEvent(namespace, name, eventType, reason, message string) error {
+func (h *ScaleHandler) createEvent(namespace, name, eventType, reason, message string) {
 	h.logger.Info("createEvent", zap.String("eventType", eventType), zap.String("reason", reason), zap.String("message", message))
 	ref := &v1.ObjectReference{
 		APIVersion: "elasti.truefoundry.com/v1alpha1",
@@ -431,5 +419,4 @@ func (h *ScaleHandler) createEvent(namespace, name, eventType, reason, message s
 		Namespace:  namespace,
 	}
 	h.EventRecorder.Event(ref, eventType, reason, message)
-	return nil
 }
