@@ -110,7 +110,7 @@ docker run -d -p 5001:5000 --name registry registry:2
 
 > You will need to add this registry to Minikube and Kind. With Docker-Desktop, it is automatically picked up if running in same context.
 
-> Note: In MacOs, 5000 is not available, so we use 5001 instead.
+> Note: In MacOS, 5000 is not available, so we use 5001 instead.
 
 <!-- ### 3. Install NGINX Ingress Controller:
 Install the NGINX Ingress Controller using Helm:
