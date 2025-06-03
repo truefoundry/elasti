@@ -325,17 +325,30 @@ func (h *ScaleHandler) ScaleDeployment(ctx context.Context, namespace, targetNam
 	}
 
 	h.logger.Debug("Deployment found", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas), zap.Int32("desired replicas", replicas))
-	if deploy.Spec.Replicas != nil && *deploy.Spec.Replicas != replicas {
-		patchBytes := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
-		_, err = deploymentClient.Patch(ctx, targetName, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
-		if err != nil {
-			return false, fmt.Errorf("ScaleDeployment - Patch: %w", err)
-		}
-		h.logger.Info("Deployment scaled", zap.String("deployment", targetName), zap.Int32("replicas", replicas))
-		return true, nil
+	if deploy.Spec.Replicas == nil {
+		return false, fmt.Errorf("ScaleDeployment - no replicas found for deployment %s", targetName)
 	}
-	h.logger.Info("Deployment already scaled", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas))
-	return false, nil
+	if *deploy.Spec.Replicas == replicas {
+		h.logger.Info("Deployment already scaled", zap.String("deployment", targetName), zap.Int32("current replicas", *deploy.Spec.Replicas))
+		return false, nil
+	}
+	if replicas > 0 && *deploy.Spec.Replicas > replicas {
+		h.logger.Info(
+			"Deployment already scaled beyond desired replicas",
+			zap.String("deployment", targetName),
+			zap.Int32("current replicas", *deploy.Spec.Replicas),
+			zap.Int32("desired replicas", replicas),
+		)
+		return false, nil
+	}
+
+	patchBytes := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
+	_, err = deploymentClient.Patch(ctx, targetName, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+	if err != nil {
+		return false, fmt.Errorf("ScaleDeployment - Patch: %w", err)
+	}
+	h.logger.Info("Deployment scaled", zap.String("deployment", targetName), zap.Int32("replicas", replicas))
+	return true, nil
 }
 
 // ScaleArgoRollout scales the rollout to the provided replicas
@@ -345,26 +358,35 @@ func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, namespace, targetNa
 		return false, fmt.Errorf("ScaleArgoRollout - GET: %w", err)
 	}
 
+	if rollout.Object["spec"] == nil || rollout.Object["spec"].(map[string]interface{})["replicas"] == nil {
+		return false, fmt.Errorf("ScaleArgoRollout - no replicas found for rollout %s", targetName)
+	}
 	currentReplicas := rollout.Object["spec"].(map[string]interface{})["replicas"].(int64)
 	h.logger.Info("Rollout found", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
 
-	if currentReplicas != int64(replicas) {
-		patchBytes := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
-		_, err = h.kDynamicClient.Resource(values.RolloutGVR).Namespace(namespace).Patch(
-			ctx,
-			targetName,
-			types.MergePatchType,
-			patchBytes,
-			metav1.PatchOptions{},
-		)
-		if err != nil {
-			return false, fmt.Errorf("ScaleArgoRollout - Patch: %w", err)
-		}
-		h.logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
-		return true, nil
+	if replicas > 0 && currentReplicas > int64(replicas) {
+		h.logger.Info("Rollout already scaled beyond desired replicas", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
+		return false, nil
 	}
-	h.logger.Info("Rollout already scaled", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas))
-	return false, nil
+
+	if currentReplicas == int64(replicas) {
+		h.logger.Info("Rollout already scaled", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas))
+		return false, nil
+	}
+
+	patchBytes := []byte(fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas))
+	_, err = h.kDynamicClient.Resource(values.RolloutGVR).Namespace(namespace).Patch(
+		ctx,
+		targetName,
+		types.MergePatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	)
+	if err != nil {
+		return false, fmt.Errorf("ScaleArgoRollout - Patch: %w", err)
+	}
+	h.logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
+	return true, nil
 }
 
 func (h *ScaleHandler) UpdateKedaScaledObjectPausedState(ctx context.Context, scaledObjectName, namespace string, paused bool) error {
