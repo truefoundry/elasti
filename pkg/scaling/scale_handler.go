@@ -155,7 +155,14 @@ func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, cooldownPeri
 		// TODO: Cache the health of the scaler if the server address has already been checked
 		healthy, err := scaler.IsHealthy(ctx)
 		if err != nil {
-			h.logger.Warn("failed to check scaler health", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service), zap.Error(err))
+			h.logger.Warn(
+				"failed to check scaler health",
+				zap.String("namespace", es.Namespace),
+				zap.String("service", es.Spec.Service),
+				zap.String("scaler", trigger.Type),
+				zap.Duration("cooldownPeriod", cooldownPeriod),
+				zap.Error(err),
+			)
 			return "", fmt.Errorf("failed to check scaler health: %w", err)
 		}
 		if !healthy {
