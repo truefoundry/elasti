@@ -385,7 +385,7 @@ func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, namespace, targetNa
 	if err != nil {
 		return false, fmt.Errorf("ScaleArgoRollout - Patch: %w", err)
 	}
-	h.logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int64("replicas", currentReplicas))
+	h.logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
 	return true, nil
 }
 
