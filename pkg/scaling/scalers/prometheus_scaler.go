@@ -13,7 +13,7 @@ import (
 
 const (
 	httpClientTimeout = 5 * time.Second
-	uptimeQuery       = "min_over_time((max(up{job=\"prometheus\"}) or vector(0))[%dh:1m])"
+	uptimeQuery       = "min_over_time((max(up{job=\"prometheus\"}) or vector(0))[%dm:1m])"
 )
 
 type prometheusScaler struct {
@@ -158,12 +158,13 @@ func (s *prometheusScaler) Close(_ context.Context) error {
 }
 
 func (s *prometheusScaler) IsHealthy(ctx context.Context) (bool, error) {
+	cooldownPeriodMinutes := int(math.Ceil(s.cooldownPeriod.Minutes()))
 	metricValue, err := s.executePromQuery(
 		ctx,
-		fmt.Sprintf(uptimeQuery, int(math.Ceil(s.cooldownPeriod.Hours()))),
+		fmt.Sprintf(uptimeQuery, cooldownPeriodMinutes),
 	)
 	if err != nil {
-		return false, fmt.Errorf("failed to execute prometheus query %s: %w", fmt.Sprintf(uptimeQuery, int(math.Ceil(s.cooldownPeriod.Hours()))), err)
+		return false, fmt.Errorf("failed to execute prometheus query %s: %w", fmt.Sprintf(uptimeQuery, cooldownPeriodMinutes), err)
 	}
 	return metricValue == 1, nil
 }
