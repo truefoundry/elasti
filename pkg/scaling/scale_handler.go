@@ -33,7 +33,6 @@ type ScaleDirection string
 const (
 	ScaleUp   ScaleDirection = "scaleup"
 	ScaleDown ScaleDirection = "scaledown"
-	NoScale   ScaleDirection = "noscale"
 )
 
 type ScaleHandler struct {
@@ -119,9 +118,6 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 			h.logger.Error("failed to calculate scale direction", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 			continue
 		}
-		if scaleDirection == NoScale {
-			continue
-		}
 
 		switch scaleDirection {
 		case ScaleDown:
@@ -163,7 +159,7 @@ func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, es *v1alpha1
 		}
 		if !healthy {
 			h.logger.Warn("scaler is not healthy, skipping scale to zero", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service))
-			return NoScale, nil
+			return "", fmt.Errorf("scaler: %s, cooldownPeriod: %d, is not healthy", trigger.Type, es.Spec.CooldownPeriod)
 		}
 
 		scaleToZero, err := scaler.ShouldScaleToZero(ctx)
