@@ -361,16 +361,16 @@ func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, namespace, targetNa
 	if rollout.Object["spec"] == nil || rollout.Object["spec"].(map[string]interface{})["replicas"] == nil {
 		return false, fmt.Errorf("ScaleArgoRollout - no replicas found for rollout %s", targetName)
 	}
-	currentReplicas := rollout.Object["spec"].(map[string]interface{})["replicas"].(int32)
-	h.logger.Info("Rollout found", zap.String("rollout", targetName), zap.Int32("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
+	currentReplicas := rollout.Object["spec"].(map[string]interface{})["replicas"].(int64)
+	h.logger.Info("Rollout found", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
 
-	if currentReplicas == replicas {
-		h.logger.Info("Rollout already scaled", zap.String("rollout", targetName), zap.Int32("current replicas", currentReplicas))
+	if currentReplicas == int64(replicas) {
+		h.logger.Info("Rollout already scaled", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas))
 		return false, nil
 	}
 
-	if replicas > 0 && currentReplicas > replicas {
-		h.logger.Info("Rollout already scaled beyond desired replicas", zap.String("rollout", targetName), zap.Int32("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
+	if replicas > 0 && currentReplicas > int64(replicas) {
+		h.logger.Info("Rollout already scaled beyond desired replicas", zap.String("rollout", targetName), zap.Int64("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
 		return false, nil
 	}
 
@@ -385,7 +385,7 @@ func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, namespace, targetNa
 	if err != nil {
 		return false, fmt.Errorf("ScaleArgoRollout - Patch: %w", err)
 	}
-	h.logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int32("replicas", replicas))
+	h.logger.Info("Rollout scaled", zap.String("rollout", targetName), zap.Int64("replicas", currentReplicas))
 	return true, nil
 }
 
