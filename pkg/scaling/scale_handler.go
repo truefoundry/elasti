@@ -112,8 +112,9 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 			h.logger.Error("failed to convert unstructured to ElastiService", zap.Error(err))
 			continue
 		}
+		cooldownPeriod := resolveCooldownPeriod(es)
 
-		scaleDirection, err := h.calculateScaleDirection(ctx, es)
+		scaleDirection, err := h.calculateScaleDirection(ctx, cooldownPeriod, es)
 		if err != nil {
 			h.logger.Error("failed to calculate scale direction", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 			continue
@@ -121,7 +122,7 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 
 		switch scaleDirection {
 		case ScaleDown:
-			err := h.handleScaleToZero(ctx, es)
+			err := h.handleScaleToZero(ctx, cooldownPeriod, es)
 			if err != nil {
 				h.logger.Error("failed to scale target to zero", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 				continue
@@ -138,14 +139,14 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 	return nil
 }
 
-func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, es *v1alpha1.ElastiService) (ScaleDirection, error) {
+func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, cooldownPeriod time.Duration, es *v1alpha1.ElastiService) (ScaleDirection, error) {
 	if len(es.Spec.Triggers) == 0 {
 		h.logger.Info("No triggers found, skipping scale to zero", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service))
 		return "", fmt.Errorf("no triggers found")
 	}
 
 	for _, trigger := range es.Spec.Triggers {
-		scaler, err := h.createScalerForTrigger(&trigger, time.Duration(es.Spec.CooldownPeriod)*time.Second)
+		scaler, err := h.createScalerForTrigger(&trigger, cooldownPeriod)
 		if err != nil {
 			h.logger.Warn("failed to create scaler", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service), zap.Error(err))
 			return "", fmt.Errorf("failed to create scaler: %w", err)
@@ -159,7 +160,7 @@ func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, es *v1alpha1
 		}
 		if !healthy {
 			h.logger.Warn("scaler is not healthy, skipping scale to zero", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service))
-			return "", fmt.Errorf("scaler: %s, cooldownPeriod: %d, is not healthy", trigger.Type, es.Spec.CooldownPeriod)
+			return "", fmt.Errorf("scaler: %s, cooldownPeriod: %d, is not healthy", trigger.Type, cooldownPeriod)
 		}
 
 		scaleToZero, err := scaler.ShouldScaleToZero(ctx)
@@ -179,17 +180,13 @@ func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, es *v1alpha1
 	return ScaleDown, nil
 }
 
-func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.ElastiService) error {
+func (h *ScaleHandler) handleScaleToZero(ctx context.Context, cooldownPeriod time.Duration, es *v1alpha1.ElastiService) error {
 	serviceNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
 	}
 
 	// Check that the ElastiService was created at least cooldownPeriod ago
-	cooldownPeriod := time.Second * time.Duration(es.Spec.CooldownPeriod)
-	if cooldownPeriod == 0 {
-		cooldownPeriod = values.DefaultCooldownPeriod
-	}
 	if es.CreationTimestamp.Time.Add(cooldownPeriod).After(time.Now()) {
 		h.logger.Debug("Skipping scale down as ElastiService was created too recently",
 			zap.String("service", serviceNamespacedName.String()),
@@ -221,6 +218,14 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 		return fmt.Errorf("failed to scale target to zero: %w", err)
 	}
 	return nil
+}
+
+func resolveCooldownPeriod(es *v1alpha1.ElastiService) time.Duration {
+	cooldownPeriod := time.Second * time.Duration(es.Spec.CooldownPeriod)
+	if cooldownPeriod == 0 {
+		cooldownPeriod = values.DefaultCooldownPeriod
+	}
+	return cooldownPeriod
 }
 
 func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.ElastiService) error {
