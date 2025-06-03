@@ -151,6 +151,7 @@ func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, cooldownPeri
 			h.logger.Warn("failed to create scaler", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service), zap.Error(err))
 			return "", fmt.Errorf("failed to create scaler: %w", err)
 		}
+		defer scaler.Close(ctx)
 
 		// TODO: Cache the health of the scaler if the server address has already been checked
 		healthy, err := scaler.IsHealthy(ctx)
@@ -174,9 +175,6 @@ func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, cooldownPeri
 		if err != nil {
 			h.logger.Warn("failed to check scaler", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service), zap.Error(err))
 			return "", fmt.Errorf("failed to check scaler: %w", err)
-		}
-		if err = scaler.Close(ctx); err != nil {
-			h.logger.Error("failed to close scaler", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service), zap.Error(err))
 		}
 
 		if !scaleToZero {
