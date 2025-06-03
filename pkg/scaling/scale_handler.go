@@ -101,7 +101,7 @@ func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
 }
 
 func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
- 	elastiServiceList, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).Namespace(h.watchNamespace).List(ctx, metav1.ListOptions{})
+	elastiServiceList, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).Namespace(h.watchNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
 	}
