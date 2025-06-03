@@ -352,7 +352,7 @@ func (h *ScaleHandler) ScaleDeployment(ctx context.Context, namespace, targetNam
 }
 
 // ScaleArgoRollout scales the rollout to the provided replicas
-func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, namespace, targetName string, replicas int) (bool, error) {
+func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, namespace, targetName string, replicas int32) (bool, error) {
 	rollout, err := h.kDynamicClient.Resource(values.RolloutGVR).Namespace(namespace).Get(ctx, targetName, metav1.GetOptions{})
 	if err != nil {
 		return false, fmt.Errorf("ScaleArgoRollout - GET: %w", err)
@@ -361,16 +361,16 @@ func (h *ScaleHandler) ScaleArgoRollout(ctx context.Context, namespace, targetNa
 	if rollout.Object["spec"] == nil || rollout.Object["spec"].(map[string]interface{})["replicas"] == nil {
 		return false, fmt.Errorf("ScaleArgoRollout - no replicas found for rollout %s", targetName)
 	}
-	currentReplicas := rollout.Object["spec"].(map[string]interface{})["replicas"].(int)
-	h.logger.Info("Rollout found", zap.String("rollout", targetName), zap.Int("current replicas", currentReplicas), zap.Int("desired replicas", replicas))
+	currentReplicas := rollout.Object["spec"].(map[string]interface{})["replicas"].(int32)
+	h.logger.Info("Rollout found", zap.String("rollout", targetName), zap.Int32("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
 
-	if replicas > 0 && currentReplicas > replicas {
-		h.logger.Info("Rollout already scaled beyond desired replicas", zap.String("rollout", targetName), zap.Int("current replicas", currentReplicas), zap.Int("desired replicas", replicas))
+	if currentReplicas == replicas {
+		h.logger.Info("Rollout already scaled", zap.String("rollout", targetName), zap.Int32("current replicas", currentReplicas))
 		return false, nil
 	}
 
-	if currentReplicas == replicas {
-		h.logger.Info("Rollout already scaled", zap.String("rollout", targetName), zap.Int("current replicas", currentReplicas))
+	if replicas > 0 && currentReplicas > replicas {
+		h.logger.Info("Rollout already scaled beyond desired replicas", zap.String("rollout", targetName), zap.Int32("current replicas", currentReplicas), zap.Int32("desired replicas", replicas))
 		return false, nil
 	}
 
