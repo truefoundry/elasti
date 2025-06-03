@@ -33,6 +33,7 @@ type ScaleDirection string
 const (
 	ScaleUp   ScaleDirection = "scaleup"
 	ScaleDown ScaleDirection = "scaledown"
+	NoScale   ScaleDirection = "noscale"
 )
 
 type ScaleHandler struct {
@@ -101,7 +102,7 @@ func (h *ScaleHandler) StartScaleDownWatcher(ctx context.Context) {
 }
 
 func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
-	elastiServiceList, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).Namespace(h.watchNamespace).List(ctx, metav1.ListOptions{})
+ 	elastiServiceList, err := h.kDynamicClient.Resource(values.ElastiServiceGVR).Namespace(h.watchNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list ElastiServices: %w", err)
 	}
@@ -118,6 +119,10 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 			h.logger.Error("failed to calculate scale direction", zap.String("service", es.Spec.Service), zap.String("namespace", es.Namespace), zap.Error(err))
 			continue
 		}
+		if scaleDirection == NoScale {
+			continue
+		}
+
 		switch scaleDirection {
 		case ScaleDown:
 			err := h.handleScaleToZero(ctx, es)
@@ -144,10 +149,21 @@ func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, es *v1alpha1
 	}
 
 	for _, trigger := range es.Spec.Triggers {
-		scaler, err := h.createScalerForTrigger(&trigger)
+		scaler, err := h.createScalerForTrigger(&trigger, time.Duration(es.Spec.CooldownPeriod)*time.Second)
 		if err != nil {
 			h.logger.Warn("failed to create scaler", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service), zap.Error(err))
 			return "", fmt.Errorf("failed to create scaler: %w", err)
+		}
+
+		// TODO: Cache the health of the scaler if the server address has already been checked
+		healthy, err := scaler.IsHealthy(ctx)
+		if err != nil {
+			h.logger.Warn("failed to check scaler health", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service), zap.Error(err))
+			return "", fmt.Errorf("failed to check scaler health: %w", err)
+		}
+		if !healthy {
+			h.logger.Warn("scaler is not healthy, skipping scale to zero", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service))
+			return NoScale, nil
 		}
 
 		scaleToZero, err := scaler.ShouldScaleToZero(ctx)
@@ -173,13 +189,21 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, es *v1alpha1.Elast
 		Namespace: es.Namespace,
 	}
 
+	// Check that the ElastiService was created at least cooldownPeriod ago
+	cooldownPeriod := time.Second * time.Duration(es.Spec.CooldownPeriod)
+	if cooldownPeriod == 0 {
+		cooldownPeriod = values.DefaultCooldownPeriod
+	}
+	if es.CreationTimestamp.Time.Add(cooldownPeriod).After(time.Now()) {
+		h.logger.Debug("Skipping scale down as ElastiService was created too recently",
+			zap.String("service", serviceNamespacedName.String()),
+			zap.Duration("cooldown", cooldownPeriod),
+			zap.Time("creation timestamp", es.CreationTimestamp.Time))
+		return nil
+	}
+
 	// If the cooldown period is not met, we skip the scale down
 	if es.Status.LastScaledUpTime != nil {
-		cooldownPeriod := time.Second * time.Duration(es.Spec.CooldownPeriod)
-		if cooldownPeriod == 0 {
-			cooldownPeriod = values.DefaultCooldownPeriod
-		}
-
 		if time.Since(es.Status.LastScaledUpTime.Time) < cooldownPeriod {
 			h.logger.Debug("Skipping scale down as minimum cooldownPeriod not met",
 				zap.String("service", serviceNamespacedName.String()),
@@ -229,13 +253,13 @@ func (h *ScaleHandler) handleScaleFromZero(ctx context.Context, es *v1alpha1.Ela
 	return nil
 }
 
-func (h *ScaleHandler) createScalerForTrigger(trigger *v1alpha1.ScaleTrigger) (scalers.Scaler, error) {
+func (h *ScaleHandler) createScalerForTrigger(trigger *v1alpha1.ScaleTrigger, cooldownPeriod time.Duration) (scalers.Scaler, error) {
 	var scaler scalers.Scaler
 	var err error
 
 	switch trigger.Type {
 	case "prometheus":
-		scaler, err = scalers.NewPrometheusScaler(trigger.Metadata)
+		scaler, err = scalers.NewPrometheusScaler(trigger.Metadata, cooldownPeriod)
 	default:
 		return nil, fmt.Errorf("unsupported trigger type: %s", trigger.Type)
 	}

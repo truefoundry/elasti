@@ -13,11 +13,13 @@ import (
 
 const (
 	httpClientTimeout = 5 * time.Second
+	uptimeQuery       = "min_over_time((max(up{job=\"prometheus\"}) or vector(0))[%dh:1m])"
 )
 
 type prometheusScaler struct {
-	httpClient *http.Client
-	metadata   *prometheusMetadata
+	httpClient     *http.Client
+	metadata       *prometheusMetadata
+	cooldownPeriod time.Duration
 }
 
 type prometheusMetadata struct {
@@ -37,7 +39,7 @@ var promQueryResponse struct {
 	} `json:"data"`
 }
 
-func NewPrometheusScaler(metadata json.RawMessage) (Scaler, error) {
+func NewPrometheusScaler(metadata json.RawMessage, cooldownPeriod time.Duration) (Scaler, error) {
 	parsedMetadata, err := parsePrometheusMetadata(metadata)
 	if err != nil {
 		return nil, fmt.Errorf("error creating prometheus scaler: %w", err)
@@ -48,8 +50,9 @@ func NewPrometheusScaler(metadata json.RawMessage) (Scaler, error) {
 	}
 
 	return &prometheusScaler{
-		metadata:   parsedMetadata,
-		httpClient: client,
+		metadata:       parsedMetadata,
+		httpClient:     client,
+		cooldownPeriod: cooldownPeriod,
 	}, nil
 }
 
@@ -62,9 +65,9 @@ func parsePrometheusMetadata(jsonMetadata json.RawMessage) (*prometheusMetadata,
 	return metadata, nil
 }
 
-func (s *prometheusScaler) executePromQuery(ctx context.Context) (float64, error) {
+func (s *prometheusScaler) executePromQuery(ctx context.Context, query string) (float64, error) {
 	t := time.Now().UTC().Format(time.RFC3339)
-	queryEscaped := url.QueryEscape(s.metadata.Query)
+	queryEscaped := url.QueryEscape(query)
 	queryURL := fmt.Sprintf("%s/api/v1/query?query=%s&time=%s", s.metadata.ServerAddress, queryEscaped, t)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", queryURL, nil)
@@ -118,7 +121,7 @@ func (s *prometheusScaler) executePromQuery(ctx context.Context) (float64, error
 }
 
 func (s *prometheusScaler) ShouldScaleToZero(ctx context.Context) (bool, error) {
-	metricValue, err := s.executePromQuery(ctx)
+	metricValue, err := s.executePromQuery(ctx, s.metadata.Query)
 	if err != nil {
 		return false, fmt.Errorf("failed to execute prometheus query %s: %w", s.metadata.Query, err)
 	}
@@ -133,7 +136,7 @@ func (s *prometheusScaler) ShouldScaleToZero(ctx context.Context) (bool, error) 
 }
 
 func (s *prometheusScaler) ShouldScaleFromZero(ctx context.Context) (bool, error) {
-	metricValue, err := s.executePromQuery(ctx)
+	metricValue, err := s.executePromQuery(ctx, s.metadata.Query)
 	if err != nil {
 		return true, fmt.Errorf("failed to execute prometheus query %s: %w", s.metadata.Query, err)
 	}
@@ -152,4 +155,15 @@ func (s *prometheusScaler) Close(_ context.Context) error {
 		s.httpClient.CloseIdleConnections()
 	}
 	return nil
+}
+
+func (s *prometheusScaler) IsHealthy(ctx context.Context) (bool, error) {
+	metricValue, err := s.executePromQuery(
+		ctx,
+		fmt.Sprintf(uptimeQuery, int(math.Ceil(s.cooldownPeriod.Hours()))),
+	)
+	if err != nil {
+		return false, fmt.Errorf("failed to execute prometheus query %s: %w", fmt.Sprintf(uptimeQuery, int(math.Ceil(s.cooldownPeriod.Hours()))), err)
+	}
+	return metricValue == 1, nil
 }
