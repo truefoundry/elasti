@@ -20,7 +20,7 @@ const (
 
 	Success = "success"
 
-	DefaultCooldownPeriod = time.Second * 300
+	DefaultCooldownPeriod = time.Second * 900
 )
 
 var (
