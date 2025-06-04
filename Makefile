@@ -18,6 +18,11 @@ generate-manifest: ## Generate deploy manifest
 setup-registry: ## Setup docker registery, where we publish our images
 	docker run -d -p 5001:5000 --name registry registry:2 
 
+.PHONY: stop-registry
+stop-registry: ## Stop docker registery
+	docker stop registry
+
+
 .PHONY: deploy
 deploy: ## Deploy the operator and resolver
 	kubectl apply -f ./install.yaml
