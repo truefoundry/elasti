@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: traffic-generator
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      containers:
+      - name: curl-client
+        image: curlimages/curl:7.83.1
+        command:
+        - "/bin/sh"
+        - "-c"
+        - |
+          # Run for 5 minutes (300 seconds)
+          END_TIME=$(($(date +%s) + 300))
+          
+          # Generate traffic every second
+          while [ $(date +%s) -lt $END_TIME ]; do
+            echo "Sending request at $(date)"
+            curl -s http://test-app.default.svc.cluster.local:80/ || echo "Request failed"
+            sleep 1
+          done
+          
+          echo "Traffic generation complete"
+      restartPolicy: Never
+  backoffLimit: 0

@@ -1,0 +1,19 @@
+apiVersion: elasti.dev/v1alpha1
+kind: ElastiService
+metadata:
+  name: test-elastiservice
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: test-app
+  minReplicas: 0
+  idleWindowDuration: 2m
+  metricConfig:
+    prometheusConfig:
+      address: http://prometheus-server.default.svc.cluster.local:9090
+      query: sum(rate(nginx_http_requests_total{pod=~"test-app-.*"}[2m]))
+      threshold: 0.001
+  resolver:
+    enabled: true
+    timeoutSeconds: 60

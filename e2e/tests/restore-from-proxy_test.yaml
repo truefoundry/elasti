@@ -1,0 +1,38 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: apply-deployment
+commands:
+  - command: kubectl apply -f ../test-deployment.yaml
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: apply-elastiservice
+commands:
+  - command: kubectl apply -f ../test-elastiservice.yaml
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: wait-for-scale-to-zero
+timeout: 150
+commands:
+  - command: make -C .. verify-scale REPLICAS=0
+    namespaced: true
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: send-test-request
+commands:
+  - command: curl -s --max-time 10 http://test-elastiservice.default.svc.cluster.local:80/
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: verify-scale-from-zero
+timeout: 120
+commands:
+  - command: make -C .. verify-scale REPLICAS=1
+    namespaced: true

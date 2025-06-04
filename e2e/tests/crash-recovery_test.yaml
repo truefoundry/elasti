@@ -1,0 +1,43 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: apply-deployment
+commands:
+  - command: kubectl apply -f ../test-deployment.yaml
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: apply-elastiservice
+commands:
+  - command: kubectl apply -f ../test-elastiservice.yaml
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: verify-deployment
+commands:
+  - command: kubectl wait --for=condition=available deployment/test-app --timeout=60s
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: kill-operator
+commands:
+  - command: kubectl -n elasti-system delete pod -l app=elasti-operator --grace-period=0 --force
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: wait-for-operator-restart
+timeout: 120
+commands:
+  - command: kubectl -n elasti-system wait --for=condition=ready pod -l app=elasti-operator --timeout=100s
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: verify-elastiservice-still-works
+commands:
+  - command: make -C .. verify-scale REPLICAS=1
+    namespaced: true
