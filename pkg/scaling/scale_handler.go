@@ -178,7 +178,7 @@ func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, cooldownPeri
 				zap.Duration("cooldownPeriod", cooldownPeriod),
 				zap.Error(err),
 			)
-			return "", fmt.Errorf("failed to check scaler health: %w", err)
+			return NoScale, nil
 		}
 		if !healthy {
 			h.logger.Warn("scaler is not healthy, skipping scale to zero", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service))
