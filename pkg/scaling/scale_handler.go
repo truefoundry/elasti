@@ -33,6 +33,7 @@ type ScaleDirection string
 const (
 	ScaleUp   ScaleDirection = "scaleup"
 	ScaleDown ScaleDirection = "scaledown"
+	NoScale   ScaleDirection = "noscale"
 )
 
 type ScaleHandler struct {
@@ -120,6 +121,10 @@ func (h *ScaleHandler) checkAndScale(ctx context.Context) error {
 			continue
 		}
 
+		if scaleDirection == NoScale {
+			continue
+		}
+
 		switch scaleDirection {
 		case ScaleDown:
 			err := h.handleScaleToZero(ctx, cooldownPeriod, es)
@@ -143,6 +148,15 @@ func (h *ScaleHandler) calculateScaleDirection(ctx context.Context, cooldownPeri
 	if len(es.Spec.Triggers) == 0 {
 		h.logger.Info("No triggers found, skipping scale to zero", zap.String("namespace", es.Namespace), zap.String("service", es.Spec.Service))
 		return "", fmt.Errorf("no triggers found")
+	}
+
+	// Check that the ElastiService was created at least cooldownPeriod ago
+	if es.CreationTimestamp.Time.Add(cooldownPeriod).After(time.Now()) {
+		h.logger.Debug("Skipping scaling decision as ElastiService was created too recently",
+			zap.String("service", es.Spec.Service),
+			zap.Duration("cooldown", cooldownPeriod),
+			zap.Time("creation timestamp", es.CreationTimestamp.Time))
+		return NoScale, nil
 	}
 
 	for _, trigger := range es.Spec.Triggers {
@@ -189,15 +203,6 @@ func (h *ScaleHandler) handleScaleToZero(ctx context.Context, cooldownPeriod tim
 	serviceNamespacedName := types.NamespacedName{
 		Name:      es.Spec.Service,
 		Namespace: es.Namespace,
-	}
-
-	// Check that the ElastiService was created at least cooldownPeriod ago
-	if es.CreationTimestamp.Time.Add(cooldownPeriod).After(time.Now()) {
-		h.logger.Debug("Skipping scale down as ElastiService was created too recently",
-			zap.String("service", serviceNamespacedName.String()),
-			zap.Duration("cooldown", cooldownPeriod),
-			zap.Time("creation timestamp", es.CreationTimestamp.Time))
-		return nil
 	}
 
 	// If the cooldown period is not met, we skip the scale down
