@@ -8,3 +8,4 @@ playground/target
 .vscode
 namespace.yaml
 install.yaml
+e2e/kubeconfig
