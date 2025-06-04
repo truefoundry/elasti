@@ -1,7 +1,7 @@
 elastiController:
   manager:
     image:
-      repository: localhost:5000/elasti-operator
+      repository: localhost:5001/elasti-operator
       tag: v1alpha1
     imagePullPolicy: IfNotPresent
     resources:
@@ -14,7 +14,7 @@ elastiController:
 elastiResolver:
   proxy:
     image:
-      repository: localhost:5000/elasti-resolver
+      repository: localhost:5001/elasti-resolver
       tag: v1alpha1
     imagePullPolicy: IfNotPresent
     resources:

@@ -105,10 +105,12 @@ Enable it in Docker-Desktop
 Run a local Docker registry container, to push our images locally and access them in our cluster.
 
 ```
-docker run -d -p 5000:5000 --name registry registry:2
+docker run -d -p 5001:5000 --name registry registry:2
 ```
 
-> You will need to add this registry to Minikube and Kind, with Docker-Desktop, it is automatically picked up if running in same context.
+> You will need to add this registry to Minikube and Kind. With Docker-Desktop, it is automatically picked up if running in same context.
+
+> Note: In MacOS, 5000 is not available, so we use 5001 instead.
 
 <!-- ### 3. Install NGINX Ingress Controller:
 Install the NGINX Ingress Controller using Helm:
@@ -156,7 +158,7 @@ Go into the resolver directory and run the build and publish command.
 
 ```bash
 cd resolver
-make docker-build docker-push IMG=localhost:5000/elasti-resolver:v1alpha1
+make docker-build docker-push IMG=localhost:5001/elasti-resolver:v1alpha1
 ```
 
 ### 6. Build & Publish Operator
@@ -165,7 +167,7 @@ Go into the operator directory and run the build and publish command.
 
 ```bash
 cd operator
-make docker-build docker-push IMG=localhost:5000/elasti-operator:v1alpha1
+make docker-build docker-push IMG=localhost:5001/elasti-operator:v1alpha1
 ```
 
 ### 7. Deploy Locally
@@ -173,6 +175,7 @@ make docker-build docker-push IMG=localhost:5000/elasti-operator:v1alpha1
 Make sure you have configured the local context in kubectl. We will be using [`./playground/infra/elasti-demo-values.yaml`](./playground/infra/elasti-demo-values.yaml) for the helm installation. Configure the image uri according to the requirement. Post that follow below steps from the project home directory:
 
 ```bash
+kubectl create namespace elasti
 helm template elasti ./charts/elasti -n elasti -f ./playground/infra/elasti-demo-values.yaml | kubectl apply -f -
 ```
 

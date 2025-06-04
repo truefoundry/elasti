@@ -16,7 +16,7 @@ generate-manifest: ## Generate deploy manifest
 
 .PHONY: setup-registry
 setup-registry: ## Setup docker registery, where we publish our images
-	docker run -d -p 5000:5000 --name elasti-registry registry:2 
+	docker run -d -p 5001:5000 --name registry registry:2 
 
 .PHONY: deploy
 deploy: ## Deploy the operator and resolver
