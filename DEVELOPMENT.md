@@ -250,4 +250,4 @@ kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="
 kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
-Post this, you can use [`./playground/infra/elasti-dashboard.yaml`](./playground//infra/elasti-dashboard.yaml) to import the elasti dashboard.
+Post this, you can use [`./playground/infra/elasti-dashboard.yaml`](./playground/infra/elasti-dashboard.yaml) to import the elasti dashboard.

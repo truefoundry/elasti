@@ -1,0 +1,46 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: apply-deployment
+commands:
+  - command: kubectl apply -f ../test-deployment.yaml
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: apply-elastiservice
+commands:
+  - command: kubectl apply -f ../test-elastiservice.yaml
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: wait-for-scale-to-zero
+timeout: 150
+commands:
+  - command: make -C .. verify-scale REPLICAS=0
+    namespaced: true
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: apply-traffic-job
+commands:
+  - command: kubectl apply -f ../traffic-job.yaml
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: verify-scaled-up
+timeout: 120
+commands:
+  - command: make -C .. verify-scale REPLICAS=1
+    namespaced: true
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+metadata:
+  name: wait-for-traffic-to-complete
+timeout: 360
+commands:
+  - command: kubectl wait --for=condition=complete job/traffic-generator --timeout=330s
