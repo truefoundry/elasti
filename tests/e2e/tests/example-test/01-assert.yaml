@@ -1,0 +1,6 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-deployment
+status:
+  readyReplicas: 4

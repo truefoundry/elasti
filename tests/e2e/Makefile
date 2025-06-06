@@ -57,7 +57,7 @@ apply-deps: apply-elasti apply-prometheus
 apply-elasti:
 	@echo "Installing Elasti Operator..."
 	@kubectl create namespace $(ELASTI_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@helm template elasti ../charts/elasti -n $(ELASTI_NAMESPACE) -f ./elasti-chart-values.yaml | kubectl apply -f -
+	@helm template elasti ../charts/elasti -n $(ELASTI_NAMESPACE) -f ./setup/elasti-chart-values.yaml | kubectl apply -f -
 	@echo "Waiting for Elasti Operator to be ready..."
 	@kubectl -n $(ELASTI_NAMESPACE) wait --for=condition=ready pod -l app.kubernetes.io/name=elasti --timeout=120s
 	@echo "Elasti Operator installed successfully."
@@ -65,7 +65,7 @@ apply-elasti:
 apply-prometheus:
 	@echo "Deploying Prometheus..."
 	@kubectl create namespace $(PROMETHEUS_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@kubectl apply -f deploy-prometheus.yaml
+	@kubectl apply -f ./setup/deploy-prometheus.yaml
 	@kubectl -n $(PROMETHEUS_NAMESPACE) wait --for=condition=available deployment/prometheus-server --timeout=120s
 	@echo "Prometheus deployed successfully."
 
@@ -96,13 +96,13 @@ e2e-test:
 # Apply the traffic job
 traffic:
 	@echo "Deploying traffic generator job..."
-	@kubectl apply -f traffic-job.yaml
+	@kubectl apply -f ./setup/traffic-job.yaml
 	@echo "Traffic job deployed. To monitor: kubectl logs -f job/traffic-generator"
 
 # Clean up resources but keep the cluster
 clean:
 	@echo "Cleaning up test resources..."
-	@kubectl delete -f test-elastiservice.yaml --ignore-not-found
-	@kubectl delete -f test-deployment.yaml --ignore-not-found
-	@kubectl delete -f traffic-job.yaml --ignore-not-found
+	@kubectl delete -f ./setup/dummy-elastiservice.yaml --ignore-not-found
+	@kubectl delete -f ./setup/dummy-deployment.yaml --ignore-not-found
+	@kubectl delete -f ./setup/traffic-job.yaml --ignore-not-found
 	@echo "Resources cleaned up."

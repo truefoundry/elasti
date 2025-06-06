@@ -2,35 +2,11 @@
 
 This directory contains an End-to-End (E2E) testing framework for the Elasti Kubernetes operator system using KUTTL (KUbernetes Test TooL). The framework provides a comprehensive way to validate Elasti's core functionality in a realistic Kubernetes environment.
 
-## Overview
-
-Elasti is a Kubernetes operator-based system that:
-- Provides a custom CRD `ElastiService` 
-- Automatically scales workloads to zero after an idle period using Prometheus metrics
-- Supports "Serve Mode" (direct traffic to app) and "Proxy Mode" (traffic goes through the Resolver)
-- Includes sophisticated Prometheus integration to prevent false scale-down due to scrape delays
-
-This testing framework validates these capabilities through automated YAML-based tests.
-
 ## Test Scenarios
 
 The framework includes the following test scenarios:
 
-1. **Scale to Zero (`scale-to-zero_test.yaml`)**:
-   - Verifies that workload scales to 0 replicas after the idle window duration
-   - Validates that the ElastiService correctly identifies and scales down idle deployments
-
-2. **Restore from Proxy (`restore-from-proxy_test.yaml`)**:
-   - Tests scaling from 0 when a request comes through the Resolver
-   - Validates that the proxy mode correctly triggers scale-up from zero
-
-3. **Delayed Traffic (`delayed-traffic_test.yaml`)**:
-   - Tests the system's response to traffic arriving after scaling to zero
-   - Confirms that the system properly scales up when traffic resumes
-
-4. **Crash Recovery (`crash-recovery_test.yaml`)**:
-   - Tests system resilience when the operator crashes and recovers
-   - Ensures that the system returns to proper functionality after disruption
+WIP
 
 ## Test Workflow
 
@@ -49,10 +25,10 @@ graph TD
     C --> D[Run Tests]
     
     subgraph "Test Execution"
-    D --> E1[Scale to Zero Test]
-    D --> E2[Restore from Proxy Test]
-    D --> E3[Delayed Traffic Test]
-    D --> E4[Crash Recovery Test]
+    D --> E1[Test 1]
+    D --> E2[Test 2]
+    D --> E3[Test 3]
+    D --> E4[Test 4]
     end
 
     E1 --> F[Cleanup Resources]
@@ -68,7 +44,7 @@ The testing environment consists of:
 ```mermaid
 flowchart TB
     subgraph "Kind Cluster"
-        subgraph "elasti-system namespace"
+        subgraph "elasti namespace"
             OP[Elasti Operator]
             CRD[Elasti CRDs]
         end
@@ -114,18 +90,17 @@ flowchart TB
 ## Project Structure
 
 ```
-elasti/e2e/
+elasti/tests/e2e/
 ├── tests/                     # KUTTL test definitions
-│   ├── scale-to-zero_test.yaml
-│   ├── restore-from-proxy_test.yaml
-│   ├── delayed-traffic_test.yaml
-│   ├── crash-recovery_test.yaml
-├── kind-config.yaml           # Kind cluster configuration
-├── deploy-prometheus.yaml     # Prometheus deployment manifest
-├── test-deployment.yaml       # Test deployment manifest
-├── test-elastiservice.yaml    # ElastiService CR manifest
-├── traffic-job.yaml           # Traffic generator job
+├── setup/
+│   ├── kind-config.yaml           # Kind cluster 
+│   ├── deploy-prometheus.yaml     # Prometheus deployment
+│   ├── dummy-deployment.yaml       # Test deployment manifest
+│   ├── dummy-elastiservice.yaml    # ElastiService CR manifest
+│   ├── elasti-chart-values.yaml    # Elasti chart values.yaml
+│   └── traffic-job.yaml           # Traffic generator job
 ├── Makefile                   # Test automation commands
+├── kuttl-test.yaml            # KUTTL test suite
 └── README.md                  # This file
 ```
 
@@ -136,7 +111,6 @@ elasti/e2e/
 To run the complete test suite:
 
 ```bash
-cd e2e
 make all
 ```
 
