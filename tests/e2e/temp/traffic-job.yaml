@@ -19,7 +19,7 @@ spec:
           # Generate traffic every second
           while [ $(date +%s) -lt $END_TIME ]; do
             echo "Sending request at $(date)"
-            curl -s http://test-app.default.svc.cluster.local:80/ || echo "Request failed"
+            curl -s http://target-deployment.default.svc.cluster.local:80/ || echo "Request failed"
             sleep 1
           done
           

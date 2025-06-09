@@ -3,14 +3,14 @@ kind: TestStep
 metadata:
   name: apply-deployment
 commands:
-  - command: kubectl apply -f ../test-deployment.yaml
+  - command: kubectl apply -f ../target-deployment.yaml
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 metadata:
   name: apply-elastiservice
 commands:
-  - command: kubectl apply -f ../test-elastiservice.yaml
+  - command: kubectl apply -f ../target-elastiservice.yaml
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestStep

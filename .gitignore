@@ -9,3 +9,4 @@ playground/target
 namespace.yaml
 install.yaml
 kubeconfig
+report.html

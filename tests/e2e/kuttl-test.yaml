@@ -1,5 +1,11 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestSuite
-testDirs:
-- ./tests/example-test
 startKIND: false
+testDirs:
+- ./tests/
+timeout: 10
+manifestDirs:
+- ./manifest/
+commands:
+  - command: kubectl apply -f ./crd/target-elastiservice.yaml
+    namespaced: true

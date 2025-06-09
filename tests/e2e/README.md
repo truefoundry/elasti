@@ -6,7 +6,39 @@ This directory contains an End-to-End (E2E) testing framework for the Elasti Kub
 
 The framework includes the following test scenarios:
 
-WIP
+### E2E Test Timeline
+
+| Task                                     | Status | Target Date | Completed Date | Est. Time | Notes                                |
+|-----------------------------------------|--------|-------------|----------------|----------|--------------------------------------|
+| Test it on GitHub Actions                | TODO   |             |                | 1-2 days | Set up CI workflow for e2e tests     |
+| Add Istio/nginx gateway in Kind setup    | TODO   |             |                | 0.5-1 days | Configure ingress for testing        |
+| Implement Test Scenarios                 | TODO   |             |                | 2 days   | See details below                    |
+
+### Test Scenario 1: Switch to Proxy Mode
+
+| Step                                    | Status | Est. Time | Description                                             |
+|-----------------------------------------|--------|----------|---------------------------------------------------------|
+| Read ElastiService                      | TODO   | 1-2 hour   | Initialize test with ElastiService configuration        |
+| Check for private service               | TODO   | 1-2 hour   | Verify private service specs match public service       |
+| Endpoint Slice to Resolver              | TODO   | 1-2 hour   | Confirm endpoint slice is correctly sent to resolver    |
+
+### Test Scenario 2: Request Coming in Proxy Mode
+
+| Step                                    | Status | Est. Time | Description                                             |
+|-----------------------------------------|--------|----------|---------------------------------------------------------|
+| Send a dummy request                    | TODO   | 1-2 hour   | Send test traffic to the service in proxy mode          |
+| Wait for processing                     | TODO   | 1-2 hour   | Allow system time to process request                    |
+| Verify K8s events                       | TODO   | 1-2 hour   | Check that appropriate K8s events are generated         |
+
+### Test Scenario 3: Switch to Serve Mode
+
+| Step                                    | Status | Est. Time | Description                                             |
+|-----------------------------------------|--------|----------|---------------------------------------------------------|
+| Send a dummy request                    | TODO   | 1-2 hour   | Send test traffic to trigger serve mode                 |
+| Wait for processing                     | TODO   | 1-2 hour   | Allow system time to process mode switch                |
+| Verify endpoint is removed              | TODO   | 1-2 hour   | Confirm endpoint is properly removed after switch       |
+
+# Total Estimated Time: 3-4 Days
 
 ## Test Workflow
 
@@ -222,3 +254,44 @@ To add a new test scenario:
    ```bash
    kuttl test --start-kind=false --namespace=default ./tests/your-new-test.yaml
    ```
+
+```bash
+krew install kuttl
+```
+
+
+```
+# Test Swtich to Proxy mode 
+
+Read EalstiService
+---
+Check for prviate service 
+- Spec are same as public svc 
+---  
+Endpoint Slice to Resolver 
+--- 
+
+
+# Test Request coming in Proxy Mode 
+
+Send a dummy request 
+---
+Wait  
+---
+k8s events 
+
+
+
+# Test switch to Serve mode 
+
+Send a dummy request 
+---
+Wait  
+---
+Endpoint is remove 
+--- 
+
+```
+
+
+

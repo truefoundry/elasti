@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: traffic-generator
+  namespace: kuttl-test
+status:
+  succeeded: 1
+
+---
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  name: test-service
+  namespace: kuttl-test
+status:
+  mode: "proxy"

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasti-operator-controller-manager
+  namespace: elasti
+status:
+  readyReplicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasti-resolver
+  namespace: elasti
+status:
+  readyReplicas: 1
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: target-deployment
+  namespace: default
+status:
+  readyReplicas: 1
+--- 
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  name: target-elastiservice
+  namespace: default
+status:
+  mode: serve
+  
+

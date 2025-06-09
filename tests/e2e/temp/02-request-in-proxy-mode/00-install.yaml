@@ -1,0 +1,29 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  # Simulate an HTTP request in proxy mode by triggering metrics
+  - command: |
+      cat <<EOF | kubectl apply -f -
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: traffic-generator
+        namespace: kuttl-test
+      spec:
+        template:
+          spec:
+            containers:
+            - name: traffic-gen
+              image: curlimages/curl:7.83.1
+              command:
+              - /bin/sh
+              - -c
+              - |
+                # Generate some test traffic
+                for i in {1..20}; do
+                  curl -s http://test-service.kuttl-test.svc.cluster.local || true
+                  sleep 1
+                done
+            restartPolicy: Never
+        backoffLimit: 0
+      EOF

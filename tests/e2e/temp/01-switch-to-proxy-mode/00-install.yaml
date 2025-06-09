@@ -1,0 +1,19 @@
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  name: test-service
+  namespace: kuttl-test
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: test-deployment
+  minTargetReplicas: 1
+  cooldownPeriod: 300
+  triggers:
+  - type: prometheus
+    metadata: |
+      {"serverAddress": "http://prometheus-operated.default.svc",
+       "metricName": "http_requests_total",
+       "threshold": "10",
+       "query": "sum(rate(http_requests_total{service=\"test-service\"}[1m]))"}

@@ -1,0 +1,67 @@
+name: E2E Tests with Kuttl
+
+on:
+  push:
+    branches:
+      - rt-test-e2e
+  pull_request:
+    branches:
+      - rt-test-e2e
+
+jobs:
+  kuttl-tests:
+    name: Run Kuttl E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start local registry
+        run: |
+          docker run -d --name kind-registry -p 5002:5000 registry:2
+          docker network create kind || true
+          docker network connect "kind" kind-registry || true
+
+      - name: Install Kind
+        uses: helm/kind-action@v1.5.0
+        with:
+          install_only: true
+
+      - name: Create Kind cluster
+        working-directory: ./tests/e2e
+        run: |
+          kind create cluster --config ./kind-config.yaml
+          kubectl config use-context kind-elasti-e2e
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Build and push images
+        working-directory: ./tests/e2e
+        run: |
+          make build-images
+
+      - name: Apply Elasti dependencies
+        working-directory: ./tests/e2e
+        run: |
+          make apply-deps
+
+      - name: Install Kuttl
+        run: |
+          curl -Lo kuttl.tar.gz https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kuttl_0.15.0_linux_x86_64.tar.gz
+          tar -xvf kuttl.tar.gz
+          sudo mv kubectl-kuttl /usr/local/bin/
+          kubectl kuttl version
+
+      - name: Run Kuttl E2E Tests
+        working-directory: ./tests/e2e
+        run: |
+          kubectl kuttl test --config ./kuttl-test.yaml
