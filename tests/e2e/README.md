@@ -40,6 +40,9 @@ The framework includes the following test scenarios:
 
 # Total Estimated Time: 3-4 Days
 
+- Things which are less likeyly to change and are heavy, put them in makefile
+- Things which are light weight, and more likely to change, but them in kuttle-config.yaml
+
 ## Test Workflow
 
 Each test follows this general pattern:

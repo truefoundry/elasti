@@ -3,12 +3,14 @@ kind: TestSuite
 startKIND: false
 testDirs:
 - ./tests/
-timeout: 10
+timeout: 60
 commands:
-  - command: kubectl apply -f ./manifest/target-elastiservice.yaml
+  - command: kubectl apply -f ./manifest/target-deployment.yaml -n default 
     namespaced: true
-  - command: kubectl apply -f ./manifest/target-deployment.yaml
+  - command: kubectl apply -f ./manifest/target-elastiservice.yaml -n default
     namespaced: true
-  - command: kubectl apply -f ./manifest/target-elastiservice.yaml
+  - command: kubectl apply -f ./manifest/istio-gateway.yaml -n istio-system
+    namespaced: true
+  - command: kubectl apply -f ./manifest/target-virtualService.yaml -n istio-system
     namespaced: true
     

@@ -6,6 +6,7 @@ ELASTI_NAMESPACE := elasti
 .PHONY: all kind-up kind-down e2e-test apply-deps traffic
 
 setup: start-registry kind-up apply-deps
+all: setup e2e-test
 
 .PHONY: start-registry
 start-registry: ## Setup docker registery, where we publish our images
@@ -41,7 +42,7 @@ kind-down:
 	@echo "Kind cluster '$(CLUSTER_NAME)' deleted."
 
 # Install Elasti and dependencies
-apply-deps: apply-elasti apply-prometheus apply-ingress
+apply-deps:apply-ingress  apply-prometheus apply-keda apply-elasti 
 
 apply-elasti:
 	@echo "Installing Elasti Operator..."
@@ -84,6 +85,16 @@ apply-ingress:
 	@kubectl -n istio-system wait --for=condition=available deployment/istiod --timeout=120s
 	@kubectl -n istio-system wait --for=condition=available deployment/istio-ingressgateway --timeout=120s
 	@echo "Istio installed successfully."
+
+apply-keda: 
+	@echo "Installing KEDA..."
+	@kubectl create namespace keda --dry-run=client -o yaml | kubectl apply -f -
+	@helm repo add kedacore https://kedacore.github.io/charts
+	@helm repo update
+	@helm install keda kedacore/keda --namespace keda --create-namespace
+	@echo "Waiting for KEDA to be ready..."
+	@kubectl -n keda wait --for=condition=ready pod -l app.kubernetes.io/name=keda --timeout=180s
+	@echo "KEDA installed successfully."
 
 # Run E2E tests
 e2e-test:
