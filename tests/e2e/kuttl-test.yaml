@@ -4,8 +4,11 @@ startKIND: false
 testDirs:
 - ./tests/
 timeout: 10
-manifestDirs:
-- ./manifest/
 commands:
-  - command: kubectl apply -f ./crd/target-elastiservice.yaml
+  - command: kubectl apply -f ./manifest/target-elastiservice.yaml
     namespaced: true
+  - command: kubectl apply -f ./manifest/target-deployment.yaml
+    namespaced: true
+  - command: kubectl apply -f ./manifest/target-elastiservice.yaml
+    namespaced: true
+    

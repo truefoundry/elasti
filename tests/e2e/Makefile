@@ -41,19 +41,58 @@ kind-down:
 	@echo "Kind cluster '$(CLUSTER_NAME)' deleted."
 
 # Install Elasti and dependencies
-apply-deps: apply-elasti
+apply-deps: apply-elasti apply-prometheus apply-ingress
 
 apply-elasti:
 	@echo "Installing Elasti Operator..."
 	@kubectl create namespace $(ELASTI_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@helm template elasti ../../charts/elasti -n $(ELASTI_NAMESPACE) -f ./values/elasti-chart-values.yaml | kubectl apply -f -
+	@helm template elasti ../../charts/elasti -n $(ELASTI_NAMESPACE) -f ./manifest/elasti-chart-values.yaml | kubectl apply -f -
 	@echo "Waiting for Elasti Operator to be ready..."
 	@kubectl -n $(ELASTI_NAMESPACE) wait --for=condition=ready pod -l app.kubernetes.io/name=elasti --timeout=120s
 	@echo "Elasti Operator installed successfully."
+
+# Setup Prometheus for metrics collection
+apply-prometheus:
+	@echo "Installing Prometheus Stack..."
+	@kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+	@helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
+	@helm repo update
+	@helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+	  --namespace monitoring \
+	  --create-namespace \
+	  --set alertmanager.enabled=false \
+	  --set grafana.enabled=false \
+	  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false
+	@kubectl -n monitoring wait --for=condition=available deployment/kube-prometheus-stack-operator --timeout=120s
+	@echo "Prometheus Stack installed successfully."
+
+# Setup Istio Service Mesh
+apply-ingress:
+	@echo "Setting up Istio..."
+	@if ! command -v istioctl &> /dev/null; then \
+		echo "istioctl not found, installing..."; \
+		curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.20.0 sh -; \
+		mv istio-1.20.0/bin/istioctl /usr/local/bin/ || sudo mv istio-1.20.0/bin/istioctl /usr/local/bin/; \
+		echo "istioctl installed successfully."; \
+	else \
+		echo "istioctl already installed, skipping download."; \
+	fi
+	@echo "Installing Istio components..."
+	@istioctl install --set profile=demo -y
+	@kubectl label namespace default istio-injection=enabled --overwrite
+	@echo "Waiting for Istio to be ready..."
+	@kubectl -n istio-system wait --for=condition=available deployment/istiod --timeout=120s
+	@kubectl -n istio-system wait --for=condition=available deployment/istio-ingressgateway --timeout=120s
+	@echo "Istio installed successfully."
 
 # Run E2E tests
 e2e-test:
 	@echo "Running KUTTL tests..."
 	@kubectl kuttl test --start-kind=false --namespace=$(NAMESPACE) ./tests
 	@echo "E2E Tests completed!"
+
+# Portforward prometheus
+portforward-prometheus:
+	@kubectl --namespace monitoring port-forward service/prometheus-operated 9090
+
 

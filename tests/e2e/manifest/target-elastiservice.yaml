@@ -17,7 +17,7 @@ spec:
   - metadata:
       query: round(sum(rate(envoy_http_downstream_rq_total{http_conn_manager_prefix="inbound_0.0.0.0_8080",label_truefoundry_com_application_id="cmbaoaomw0be801q95to2b48x",container="istio-proxy"}[1m])),0.001)
         or vector(0)
-      serverAddress: http://prometheus-operated.prometheus.svc.cluster.local:9090
+      serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
       threshold: "0.01"
     type: prometheus
 
