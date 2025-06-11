@@ -26,6 +26,7 @@ build-images: ## Build and push images
 kind-up:
 	@echo "Creating Kind cluster '$(CLUSTER_NAME)'..."
 	@if ! kind get clusters | grep -q $(CLUSTER_NAME); then \
+		docker network create kind || true; \
 		docker network connect "kind" kind-registry; \
 		kind create cluster --config ./kind-config.yaml; \
 		kubectl config use-context kind-$(CLUSTER_NAME); \
@@ -107,7 +108,17 @@ e2e-test:
 	@echo "E2E Tests completed!"
 
 # Portforward prometheus
-portforward-prometheus:
-	@kubectl --namespace monitoring port-forward service/prometheus-operated 9090
+pf-prom:
+	@echo "Portforwarding prometheus on port 9090..."
+	@kubectl --namespace monitoring port-forward service/prometheus-operated 9090:9090
+
+pf-target: 
+	@echo "Portforwarding target deployment on port 5050..."
+	@kubectl --namespace default port-forward service/target-deployment 5050:80
+
+pf-ingress: 
+	@echo "Portforwarding ingress gateway on port 8080..."
+	@kubectl --namespace istio-system port-forward service/istio-ingressgateway 8080:80
+
 
 

@@ -114,7 +114,7 @@ You can also run specific parts of the testing process:
 | `make apply-keda` | Install only KEDA |
 | `make reset-kind` | Delete and recreate the Kind cluster with dependencies |
 | `make e2e-test` | Run the KUTTL E2E tests |
-| `make portforward-prometheus` | Port-forward the Prometheus service to localhost:9090 |
+| `make pf-prom` | Port-forward the Prometheus service to localhost:9090 |
 
 
 ### Test Workflow
@@ -256,7 +256,7 @@ tests/
 ### Example Test Structure
 
 ```yaml
-# Test Switch to Proxy Mode
+# Test step to assert elasti operator, resolver and target deployment are running, and if elasti service is in serve mode.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
