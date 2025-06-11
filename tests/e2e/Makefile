@@ -94,9 +94,11 @@ apply-keda:
 	@helm install keda kedacore/keda --namespace keda --create-namespace
 	@echo "Waiting for KEDA to be ready..."
 	@kubectl -n keda wait --for=condition=ready pod -l app=keda-operator --timeout=180s
-	@kubectl -n keda wait --for=condition=ready pod -l app=keda-metrics-server --timeout=180s
+	@kubectl -n keda wait --for=condition=ready pod -l app=keda-admission-webhooks --timeout=180s
 	@kubectl -n keda wait --for=condition=ready pod -l app=keda-operator-metrics-apiserver --timeout=180s
 	@echo "KEDA installed successfully."
+
+reset-kind: kind-down kind-up apply-deps
 
 # Run E2E tests
 e2e-test:
