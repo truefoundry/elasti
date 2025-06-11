@@ -49,7 +49,7 @@ apply-elasti:
 	@kubectl create namespace $(ELASTI_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 	@helm template elasti ../../charts/elasti -n $(ELASTI_NAMESPACE) -f ./manifest/elasti-chart-values.yaml | kubectl apply -f -
 	@echo "Waiting for Elasti Operator to be ready..."
-	@kubectl -n $(ELASTI_NAMESPACE) wait --for=condition=ready pod -l app.kubernetes.io/name=elasti --timeout=120s
+	@kubectl -n $(ELASTI_NAMESPACE) wait --for=condition=ready pod -l app.kubernetes.io/name=elasti --timeout=180s
 	@echo "Elasti Operator installed successfully."
 
 # Setup Prometheus for metrics collection
@@ -82,8 +82,8 @@ apply-ingress:
 	@istioctl install --set profile=demo -y
 	@kubectl label namespace default istio-injection=enabled --overwrite
 	@echo "Waiting for Istio to be ready..."
-	@kubectl -n istio-system wait --for=condition=available deployment/istiod --timeout=120s
-	@kubectl -n istio-system wait --for=condition=available deployment/istio-ingressgateway --timeout=120s
+	@kubectl -n istio-system wait --for=condition=available deployment/istiod --timeout=180s
+	@kubectl -n istio-system wait --for=condition=available deployment/istio-ingressgateway --timeout=180s
 	@echo "Istio installed successfully."
 
 apply-keda: 
@@ -93,7 +93,9 @@ apply-keda:
 	@helm repo update
 	@helm install keda kedacore/keda --namespace keda --create-namespace
 	@echo "Waiting for KEDA to be ready..."
-	@kubectl -n keda wait --for=condition=ready pod -l app.kubernetes.io/name=keda --timeout=180s
+	@kubectl -n keda wait --for=condition=ready pod -l app=keda-operator --timeout=180s
+	@kubectl -n keda wait --for=condition=ready pod -l app=keda-metrics-server --timeout=180s
+	@kubectl -n keda wait --for=condition=ready pod -l app=keda-operator-metrics-apiserver --timeout=180s
 	@echo "KEDA installed successfully."
 
 # Run E2E tests

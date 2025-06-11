@@ -49,7 +49,7 @@ jobs:
         run: |
           make build-images
 
-      - name: Apply Elasti dependencies
+      - name: Apply dependencies | Elasti, KEDA, Istio, Prometheus
         working-directory: ./tests/e2e
         run: |
           make apply-deps

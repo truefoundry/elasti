@@ -21,4 +21,3 @@ spec:
       threshold: "0.01"
     type: prometheus
 
-  
