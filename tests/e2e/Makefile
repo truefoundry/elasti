@@ -6,7 +6,8 @@ ELASTI_NAMESPACE := elasti
 .PHONY: all kind-up kind-down e2e-test apply-deps traffic
 
 setup: start-registry kind-up apply-deps
-all: setup e2e-test
+reset-setup: kind-down kind-up apply-deps
+all: start-registry build-images kind-up apply-deps e2e-test
 
 .PHONY: start-registry
 start-registry: ## Setup docker registery, where we publish our images
@@ -98,8 +99,6 @@ apply-keda:
 	@kubectl -n keda wait --for=condition=ready pod -l app=keda-admission-webhooks --timeout=180s
 	@kubectl -n keda wait --for=condition=ready pod -l app=keda-operator-metrics-apiserver --timeout=180s
 	@echo "KEDA installed successfully."
-
-reset-kind: kind-down kind-up apply-deps
 
 # Run E2E tests
 e2e-test:

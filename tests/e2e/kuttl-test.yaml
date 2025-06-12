@@ -14,4 +14,3 @@ commands:
   - command: kubectl apply -f ./manifest/target-elastiservice.yaml -n default
     namespaced: true
 
-    

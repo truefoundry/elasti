@@ -94,14 +94,17 @@ To run the complete test suite:
 make all
 ```
 
+Post this, you can just run `make e2e-test` to run the tests.
+
 ### Individual Commands
 
 You can also run specific parts of the testing process:
 
 | Command | Description |
 | ------- | ----------- |
-| `make setup` | Sets up the environment (registry and Kind cluster with dependencies) |
 | `make all` | Complete pipeline: setup environment and run E2E tests |
+| `make setup` | Sets up the environment (registry and Kind cluster with dependencies) |
+| `make reset-setup` | Delete and recreate the Kind cluster with dependencies |
 | `make start-registry` | Set up Docker registry on port 5002 for local image publishing |
 | `make stop-registry` | Stop the Docker registry |
 | `make build-images` | Build and push Elasti operator and resolver images to local registry |
@@ -112,10 +115,10 @@ You can also run specific parts of the testing process:
 | `make apply-prometheus` | Install only Prometheus (without Grafana) |
 | `make apply-ingress` | Install only Istio ingress gateway |
 | `make apply-keda` | Install only KEDA |
-| `make reset-kind` | Delete and recreate the Kind cluster with dependencies |
 | `make e2e-test` | Run the KUTTL E2E tests |
 | `make pf-prom` | Port-forward the Prometheus service to localhost:9090 |
-
+| `make pf-target` | Port-forward the target deployment service to localhost:5050 |
+| `make pf-ingress` | Port-forward the ingress gateway service to localhost:8080 |
 
 ### Test Workflow
 
