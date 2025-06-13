@@ -53,7 +53,7 @@ kind-down:
 destroy: kind-down stop-registry 
 
 # Install Elasti and dependencies
-apply-deps:apply-ingress  apply-prometheus apply-keda apply-elasti 
+apply-deps: apply-ingress apply-prometheus apply-elasti 
 
 apply-elasti:
 	@echo "Installing Elasti Operator..."

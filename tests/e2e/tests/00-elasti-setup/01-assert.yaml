@@ -14,14 +14,6 @@ metadata:
 status:
   readyReplicas: 1
 --- 
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: target-deployment
-  namespace: default
-status:
-  readyReplicas: 1
---- 
 apiVersion: elasti.truefoundry.com/v1alpha1
 kind: ElastiService
 metadata:
