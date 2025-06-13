@@ -302,5 +302,3 @@ status:
 3. **Use Timeouts Wisely**: Set appropriate timeouts for operations that may take time
 4. **Resource Sharing**: Put shared resources in `kuttl-test.yaml` commands section
 5. **Debugging**: Use `kubectl kuttl test --debug` for verbose output during test development
-
-

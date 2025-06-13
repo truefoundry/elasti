@@ -29,6 +29,11 @@ spec:
     metadata:
       labels:
         app: target-deployment
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /stats/prometheus
+        prometheus.io/port: "15020"
+        sidecar.istio.io/statsInclusionPrefixes: "cluster,listener,server,http,tcp"
     spec:
       serviceAccountName: target-deployment
       containers:
@@ -41,10 +46,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: target-deployment-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-    nginx.ingress.kubernetes.io/service-upstream: "true"
-    nginx.ingress.kubernetes.io/upstream-vhost: "target-deployment.default.svc.cluster.local" # needed for elasti to route to the correct service
 spec:
   ingressClassName: nginx
   rules:
