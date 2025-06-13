@@ -1,13 +1,8 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestStep
-commands:
-  # Send traffic to the target service
-  - command: |
-      for i in {1..5}; do
-        curl -s -o /dev/null -w "%{http_code}\n" http://target-deployment.default.svc.cluster.local:8080
-        sleep 1
-      done
-    namespaced: true
-  # Wait for 10 seconds to allow the controller to detect traffic and switch modes
-  - command: sleep 10
-    namespaced: true
+script: |
+  #!/bin/sh
+  for i in 1 2 3 4 5; do
+    curl -s -o /dev/null -w "%{http_code}\n" http://target-deployment.default.svc.cluster.local:8080
+    sleep 1
+  done

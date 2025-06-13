@@ -2,6 +2,7 @@
 CLUSTER_NAME := elasti-e2e
 NAMESPACE := default
 ELASTI_NAMESPACE := elasti
+T ?= ./tests
 
 .PHONY: all kind-up kind-down e2e-test apply-deps traffic
 
@@ -117,10 +118,9 @@ uninstall-keda:
 	@kubectl delete namespace keda
 	@echo "KEDA uninstalled successfully."
 
-# Run E2E tests
-e2e-test:
+test:
 	@echo "Running KUTTL tests..."
-	@kubectl kuttl test --start-kind=false --namespace=$(NAMESPACE) ./tests
+	@kubectl kuttl test --start-kind=false --namespace=$(NAMESPACE) --test $(T)
 	@echo "E2E Tests completed!"
 
 # Portforward prometheus

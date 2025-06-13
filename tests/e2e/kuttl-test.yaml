@@ -3,7 +3,8 @@ kind: TestSuite
 startKIND: false
 testDirs:
 - ./tests/
-timeout: 60
+timeout: 30
+parallel: 0
 commands:
   - command: kubectl apply -f ./manifest/istio-gateway.yaml -n istio-system
     namespaced: true
