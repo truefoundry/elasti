@@ -1,0 +1,42 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: istio-ingressgateway
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: istio-ingressgateway           
+  namespaceSelector:
+    matchNames:
+    - istio-system
+  endpoints:
+  - port: http-envoy-prom
+    path: /stats/prometheus
+    interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: target-deployment-sidecar
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - default
+  selector:
+    matchLabels:
+      app: target-deployment
+  podMetricsEndpoints:
+    - targetPort: 15090
+      path: /stats/prometheus
+      interval: 15s
+
+
+
+
+

@@ -1,0 +1,7 @@
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  name: test-service
+  namespace: kuttl-test
+status:
+  mode: "proxy"
