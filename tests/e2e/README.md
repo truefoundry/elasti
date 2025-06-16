@@ -256,6 +256,11 @@ tests/
   - For example, `00-assert.yaml` is the first step in the test, `01-apply.yaml` is the second step, and so on.
   - Same apply for folders in `tests/` directory.
 
+### Run Single Test
+```
+make test T=00-elasti-setup 
+```
+
 ### Example Test Structure
 
 ```yaml
