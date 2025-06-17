@@ -13,7 +13,7 @@ import (
 
 const (
 	httpClientTimeout = 5 * time.Second
-	uptimeQuery       = "min_over_time((max(up{job=\"prometheus\"}) or vector(0))[%dm:1m])"
+	uptimeQuery       = "min_over_time((max(up{container=\"prometheus\"}) or vector(0))[%ds:])"
 )
 
 type prometheusScaler struct {
@@ -92,9 +92,9 @@ func (s *prometheusScaler) executePromQuery(ctx context.Context, query string) (
 	var v float64 = -1
 
 	if len(promQueryResponse.Data.Result) == 0 {
-		return -1, fmt.Errorf("prometheus query %s, result is empty, prometheus metrics 'prometheus' target may be lost", s.metadata.Query)
+		return -1, fmt.Errorf("prometheus query %s, result is empty, prometheus metrics 'prometheus' target may be lost", query)
 	} else if len(promQueryResponse.Data.Result) > 1 {
-		return -1, fmt.Errorf("prometheus query %s returned multiple elements", s.metadata.Query)
+		return -1, fmt.Errorf("prometheus query %s returned multiple elements", query)
 	}
 
 	valueLen := len(promQueryResponse.Data.Result[0].Value)
@@ -158,13 +158,13 @@ func (s *prometheusScaler) Close(_ context.Context) error {
 }
 
 func (s *prometheusScaler) IsHealthy(ctx context.Context) (bool, error) {
-	cooldownPeriodMinutes := int(math.Ceil(s.cooldownPeriod.Minutes()))
+	cooldownPeriodSeconds := int(math.Ceil(s.cooldownPeriod.Seconds()))
 	metricValue, err := s.executePromQuery(
 		ctx,
-		fmt.Sprintf(uptimeQuery, cooldownPeriodMinutes),
+		fmt.Sprintf(uptimeQuery, cooldownPeriodSeconds),
 	)
 	if err != nil {
-		return false, fmt.Errorf("failed to execute prometheus query %s: %w", fmt.Sprintf(uptimeQuery, cooldownPeriodMinutes), err)
+		return false, fmt.Errorf("failed to execute prometheus query %s: %w", fmt.Sprintf(uptimeQuery, cooldownPeriodSeconds), err)
 	}
 	return metricValue == 1, nil
 }
