@@ -110,7 +110,7 @@ You can also run specific parts of the testing process:
 
 | Command | Description |
 | ------- | ----------- |
-| `make all` | Complete pipeline: setup registry, build images, create Kind cluster, install dependencies, and run E2E tests |
+| `make all` | Complete pipeline: setup registry, build images, create Kind cluster, install dependencies, and run E2E tests. We recommend using this command for the first time, then using `make test` for subsequent runs. |
 | `make setup` | Sets up the environment (registry and Kind cluster with dependencies) |
 | `make reset-kind` | Delete and recreate the Kind cluster with dependencies. This won't rebuild images. |
 | `make reset-setup` | Delete and recreate docker registry, build images, Kind cluster and dependencies |
