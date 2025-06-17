@@ -37,7 +37,7 @@ The E2E testing framework is organized into the following directories:
 
 ```
 elasti/tests/e2e/
-├── tests/                     # KUTTL test definitions (numbered for execution order)
+├── tests/                     # KUTTL test definitions
 │   └── 00-elasti-setup/      # Individual test case
 │       └── 00-assert.yaml    # Test step (assertion)
 ├── temp/                      # Work-in-progress tests
@@ -56,24 +56,13 @@ elasti/tests/e2e/
 
 
 - **`manifest/`**: Contains Kubernetes manifest files and Helm values files
-  - Deployment manifests for target applications
-  - ElastiService custom resources
-  - Istio gateway and virtual service configurations
-  - Chart values for component installation
-  
 - **`tests/`**: Contains the actual KUTTL tests
-  - Each directory represents an individual test (numbered for execution order)
+  - Each directory represents an individual test
   - Each file within a test directory represents a step in that test
-  - Tests follow naming convention with prefix `00-`, `01-`, etc. for execution ordering
-
+  - Each steps follow naming convention with prefix `00-`, `01-`, etc. for execution ordering
 - **`temp/`**: Contains work-in-progress tests and experimental scenarios
-  - Used for development and debugging of new test cases
-  - Not included in automated test runs
-
 - **`kind-config.yaml`**: Configuration for the Kind cluster used in testing
-
 - **`kuttl-test.yaml`**: Configuration file for KUTTL tests
-  - Defines lightweight, persistent resources shared across tests
   - Contains commands that run before test execution
 
 ## Test Scenarios
@@ -256,17 +245,17 @@ KUTTL tests follow a specific structure:
 
 ```
 tests/
-└── 00-elasti-setup/            # Test case (folder named with ordered prefix)
-    ├── 00-assert.yaml          # First step - assertion
-    ├── 01-apply.yaml           # Second step - apply resources, created the required scenario.
+└── 00-elasti-setup/            # Test case (folder named with numbered prefix)
+    ├── 00-apply.yaml           # First step - apply resources, created the required scenario.
+    ├── 01-wait.yaml            # Second step - wait for resources to be ready.
     └── 02-assert.yaml          # Third step - assertion
 ```
 
-- Each directory represents an individual test (numbered for execution order)
-- Each file within a test directory represents a step in that test
-- Tests follow naming convention with prefix 00-, 01-, etc. for execution ordering
+- **Each directory represents an individual test** (This number doesn't determine order, that works only for steps inside the directory)
+- Each file within a test directory **represents a step in that test**
+- Steps follow naming convention with prefix 00-, 01-, etc. for execution ordering
   - For example, `00-assert.yaml` is the first step in the test, `01-apply.yaml` is the second step, and so on.
-  - Same apply for folders in `tests/` directory.
+  - Same doesn't apply for folders in `tests/` directory. We still follow the same naming for them just to keep it consistent.
 
 ### Run Single Test
 ```
@@ -314,7 +303,7 @@ status:
 
 ## Tips for Writing KUTTL Tests
 
-1. **Naming Convention**: Use numerical prefixes for test folders and files to control execution order
+1. **Naming Convention**: Use numerical prefixes for test folders to know the sequence of test cases and files to control execution of the steps.
 2. **Avoid Cross-Dependencies**: Each test folder should be independent of others
 3. **Use Timeouts Wisely**: Set appropriate timeouts for operations that may take time
 4. **Resource Sharing**: Put shared resources in `kuttl-test.yaml` commands section

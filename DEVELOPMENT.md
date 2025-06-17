@@ -231,19 +231,12 @@ This section outlines how to run integration tests, and performance tests using 
 
 3. **Run E2E tests**
 
-   Elasti includes comprehensive end-to-end tests using KUTTL (Kubernetes Test Tool) that validate core functionality in a real Kubernetes environment. The tests cover scenarios including:
-
-   - Switch to Proxy Mode: Testing Elasti's ability to switch to proxy mode when scaling deployments to zero
-   - Request Handling in Proxy Mode: Verifying proper request handling during proxy operation
-   - Switch to Serve Mode: Testing the transition back to serve mode after scaling up
-
-   To run the E2E tests:
+   Elasti includes comprehensive end-to-end tests using KUTTL (Kubernetes Test Tool) that validate core functionality in a real Kubernetes environment. To run the E2E tests:
 
    ```bash
    cd ./tests/e2e
-   make all        # Sets up environment and runs tests
-   # OR
-   make e2e-test   # Runs tests only (if environment is already set up)
+   make setup        # Sets up environment
+   make test         # Runs tests
    ```
 
    For detailed information about the E2E test framework, see [tests/e2e/README.md](./tests/e2e/README.md).
