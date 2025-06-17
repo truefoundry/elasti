@@ -80,9 +80,9 @@ elasti/tests/e2e/
 
 The framework includes the following test scenarios:
 
-1. **Switch to Proxy Mode**: Tests Elasti's ability to switch to proxy mode when scaling a deployment to zero.
-2. **Request Coming in Proxy Mode**: Tests how Elasti handles requests when operating in proxy mode.
-3. **Switch to Serve Mode**: Tests Elasti's ability to switch back to serve mode after scaling up.
+1. **Setup Check**: Test if setup is in desired state. 
+2. **Enable Proxy Mode**: Tests Elasti's ability to switch to proxy mode when scaling a deployment to zero.
+3. **Enable Serve Mode**: Tests Elasti's ability to switch back to serve mode after receiving traffic. 
 
 ## Running Tests
 
@@ -91,10 +91,18 @@ The framework includes the following test scenarios:
 To run the complete test suite:
 
 ```bash
-make all
-```
+// Setup the environment 
+// Run this only first time
+make setup
 
-Post this, you can just run `make e2e-test` to run the tests.
+// Run all tests
+make test 
+
+or 
+
+// Run specific test
+make test T=00-elasti-setup
+```
 
 ### Individual Commands
 
@@ -102,22 +110,26 @@ You can also run specific parts of the testing process:
 
 | Command | Description |
 | ------- | ----------- |
-| `make all` | Complete pipeline: setup environment and run E2E tests |
+| `make all` | Complete pipeline: setup registry, build images, create Kind cluster, install dependencies, and run E2E tests |
 | `make setup` | Sets up the environment (registry and Kind cluster with dependencies) |
-| `make reset-setup` | Delete and recreate the Kind cluster with dependencies |
+| `make reset-kind` | Delete and recreate the Kind cluster with dependencies. This won't rebuild images. |
+| `make reset-setup` | Delete and recreate docker registry, build images, Kind cluster and dependencies |
 | `make start-registry` | Set up Docker registry on port 5002 for local image publishing |
-| `make stop-registry` | Stop the Docker registry |
+| `make stop-registry` | Stop the Docker registry and remove the kind network |
 | `make build-images` | Build and push Elasti operator and resolver images to local registry |
 | `make kind-up` | Create a Kind cluster with the name `elasti-e2e` |
 | `make kind-down` | Delete the Kind cluster |
-| `make apply-deps` | Install all dependencies (Istio, Prometheus, KEDA, Elasti) |
+| `make destroy` | Delete Kind cluster and stop registry |
+| `make apply-deps` | Install all dependencies (Istio, Prometheus, Elasti) |
 | `make apply-elasti` | Install only the Elasti operator and CRDs |
-| `make apply-prometheus` | Install only Prometheus (without Grafana) |
+| `make apply-prometheus` | Install only Prometheus (with Grafana) |
 | `make apply-ingress` | Install only Istio ingress gateway |
 | `make apply-keda` | Install only KEDA |
-| `make e2e-test` | Run the KUTTL E2E tests |
+| `make uninstall-ingress` | Uninstall Istio components |
+| `make uninstall-keda` | Uninstall KEDA components |
+| `make test` | Run the KUTTL E2E tests |
 | `make pf-prom` | Port-forward the Prometheus service to localhost:9090 |
-| `make pf-target` | Port-forward the target deployment service to localhost:5050 |
+| `make pf-graf` | Port-forward the Grafana service to localhost:9001 |
 | `make pf-ingress` | Port-forward the ingress gateway service to localhost:8080 |
 
 ### Test Workflow
@@ -230,12 +242,12 @@ flowchart TB
 
 To add a new test scenario:
 
-1. Create a new YAML file in the `tests/` directory following the KUTTL format
-2. Define test steps with commands and assertions
+1. Create a new directory in the `tests/` directory following the KUTTL format, `<number>-<test-name>`.
+2. Define test steps with commands and assertions, in the directory using `<number>-<step-name>.yaml` format.
 3. Add any supporting files or manifests needed
 4. Run the test individually with:
    ```bash
-   kuttl test --start-kind=false --namespace=default ./tests/your-new-test.yaml
+   make test T=<number>-<test-name>
    ```
 
 ## KUTTL Test Files Structure

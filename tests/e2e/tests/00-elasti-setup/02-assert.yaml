@@ -21,5 +21,12 @@ metadata:
   namespace: default
 status:
   mode: serve
-  
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: target-deployment
+  namespace: default
+status:
+  readyReplicas: 1
 

@@ -4,7 +4,7 @@ elastiController:
     image:
       repository: localhost:5002/elasti-operator
       tag: v1alpha1
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
     resources:
       limits:
         cpu: 500m
@@ -17,7 +17,7 @@ elastiResolver:
     image:
       repository: localhost:5002/elasti-resolver
       tag: v1alpha1
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
     resources:
       limits:
         cpu: 500m
