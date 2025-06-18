@@ -1,0 +1,16 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestSuite
+startKIND: false
+testDirs:
+  - ./tests/
+timeout: 30
+parallel: 1
+commands:
+  - command: kubectl apply -f ./manifest/istio-gateway.yaml -n istio-system
+    namespaced: true
+  - command: kubectl apply -f ./manifest/target-deployment.yaml -n target
+    namespaced: true
+  - command: kubectl apply -f ./manifest/target-virtualService.yaml -n istio-system
+    namespaced: true
+  - command: kubectl apply -f ./manifest/target-elastiservice.yaml -n target
+    namespaced: true

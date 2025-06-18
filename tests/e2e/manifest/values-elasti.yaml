@@ -1,0 +1,27 @@
+enableMonitoring: true
+elastiController:
+  manager:
+    image:
+      repository: localhost:5002/elasti-operator
+      tag: v1alpha1
+    imagePullPolicy: Always
+    resources:
+      limits:
+        cpu: 500m
+        memory: 128Mi
+      requests:
+        cpu: 10m
+        memory: 64Mi
+elastiResolver:
+  proxy:
+    image:
+      repository: localhost:5002/elasti-resolver
+      tag: v1alpha1
+    imagePullPolicy: Always
+    resources:
+      limits:
+        cpu: 500m
+        memory: 128Mi
+      requests:
+        cpu: 10m
+        memory: 64Mi

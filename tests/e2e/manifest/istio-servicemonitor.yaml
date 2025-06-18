@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: target-deployment-sidecar
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - target
+  selector:
+    matchLabels:
+      app: target-deployment
+  podMetricsEndpoints:
+    - targetPort: 15090
+      path: /stats/prometheus
+      interval: 15s

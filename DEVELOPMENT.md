@@ -229,6 +229,18 @@ This section outlines how to run integration tests, and performance tests using 
    ./generate_load.sh
    ```
 
+3. **Run E2E tests**
+
+Use the KUTTL framework to execute Elasti's end-to-end tests in a real Kubernetes environment:
+
+```bash
+cd ./tests/e2e
+make setup   # Sets up environment
+make test    # Runs tests
+```
+
+For detailed information about the E2E test framework, see [tests/e2e/README.md](./tests/e2e/README.md).
+
 ## Monitoring
 
 ```bash
@@ -250,4 +262,4 @@ kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="
 kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
-Post this, you can use [`./playground/infra/elasti-dashboard.yaml`](./playground//infra/elasti-dashboard.yaml) to import the elasti dashboard.
+Post this, you can use [`./playground/infra/elasti-dashboard.yaml`](./playground/infra/elasti-dashboard.yaml) to import the elasti dashboard.

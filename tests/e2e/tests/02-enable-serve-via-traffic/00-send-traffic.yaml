@@ -1,0 +1,10 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+script: |
+  #!/bin/sh
+  for i in 1 2 3 4 5; do
+    code=$(curl -s -o /dev/null -w "%{http_code}" http://target-deployment.target.svc.cluster.local:8080)
+    echo "$code"
+    if [ "$code" != "200" ]; then exit 1; fi
+    sleep 1
+  done

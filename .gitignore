@@ -8,3 +8,5 @@ playground/target
 .vscode
 namespace.yaml
 install.yaml
+kubeconfig
+report.html

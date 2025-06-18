@@ -53,7 +53,7 @@ Elasti uses a proxy mechanism that queues and holds requests for scaled-down ser
 
 - **Generic Service Support:** Elasti works at the kubernetes service level. It also supports East-West traffic using cluster-local service DNS, ensuring robust and flexible traffic management across your services. So any ingress or service mesh solution can be used with Elasti.
 
-- **Autoscaler Integration:** Elasti can work seamlessly with [HPA][./docs/integrations.md#hpa] and [Keda][./docs/integrations.md#keda].
+- **Autoscaler Integration:** Elasti can work seamlessly with [HPA](./docs/integrations.md#hpa) and [Keda](./docs/integrations.md#keda).
 
 # Getting Started
 
