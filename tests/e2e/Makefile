@@ -26,8 +26,8 @@ start-registry: ## Setup docker registry, where we publish our images
 		docker run -d --restart=always -p 5002:5000 --name $(REGISTRY_NAME) registry:2; \
 	fi
 	@docker network inspect kind >/dev/null 2>&1 || docker network create kind
-	@docker network inspect kind -f "{{range .Containers}}{{.Name}}{{end}}" | grep -q kind-registry || \
-		docker network connect "kind" kind-registry
+	@docker network inspect kind -f "{{range .Containers}}{{.Name}}{{end}}" | grep -q $(REGISTRY_NAME) || \
+		docker network connect "kind" $(REGISTRY_NAME)
 	@echo "Registry setup complete"
 
 .PHONY: stop-registry

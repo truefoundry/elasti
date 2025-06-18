@@ -97,29 +97,29 @@ make test T=00-elasti-setup
 
 You can also run specific parts of the testing process:
 
-| Command | Description |
-| ------- | ----------- |
-| `make all` | Complete pipeline: setup registry, build images, create Kind cluster, install dependencies, and run E2E tests. We recommend using this command for the first time, then using `make test` for subsequent runs. |
-| `make setup` | Sets up the environment (registry and Kind cluster with dependencies) |
-| `make reset-kind` | Delete and recreate the Kind cluster with dependencies. This won't rebuild images. |
-| `make reset-setup` | Delete and recreate docker registry, build images, Kind cluster and dependencies |
-| `make start-registry` | Set up Docker registry on port 5002 for local image publishing |
-| `make stop-registry` | Stop the Docker registry and remove the kind network |
-| `make build-images` | Build and push Elasti operator and resolver images to local registry |
-| `make kind-up` | Create a Kind cluster with the name `elasti-e2e` |
-| `make kind-down` | Delete the Kind cluster |
-| `make destroy` | Delete Kind cluster and stop registry |
-| `make apply-deps` | Install all dependencies (Istio, Prometheus, Elasti) |
-| `make apply-elasti` | Install only the Elasti operator and CRDs |
-| `make apply-prometheus` | Install only Prometheus (with Grafana) |
-| `make apply-ingress` | Install only Istio ingress gateway |
-| `make apply-keda` | Install only KEDA |
-| `make uninstall-ingress` | Uninstall Istio components |
-| `make uninstall-keda` | Uninstall KEDA components |
-| `make test` | Run the KUTTL E2E tests |
-| `make pf-prom` | Port-forward the Prometheus service to localhost:9090 |
-| `make pf-graf` | Port-forward the Grafana service to localhost:9001 |
-| `make pf-ingress` | Port-forward the ingress gateway service to localhost:8080 |
+| Command                  | Description                                                                                                                                                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `make all`               | Complete pipeline: setup registry, build images, create Kind cluster, install dependencies, and run E2E tests. We recommend using this command for the first time, then using `make test` for subsequent runs. |
+| `make setup`             | Sets up the environment (registry and Kind cluster with dependencies)                                                                                                                                          |
+| `make reset-kind`        | Delete and recreate the Kind cluster with dependencies. This won't rebuild images.                                                                                                                             |
+| `make reset-setup`       | Delete and recreate docker registry, build images, Kind cluster and dependencies                                                                                                                               |
+| `make start-registry`    | Set up Docker registry on port 5002 for local image publishing                                                                                                                                                 |
+| `make stop-registry`     | Stop the Docker registry and remove the kind network                                                                                                                                                           |
+| `make build-images`      | Build and push Elasti operator and resolver images to local registry                                                                                                                                           |
+| `make kind-up`           | Create a Kind cluster with the name `elasti-e2e`                                                                                                                                                               |
+| `make kind-down`         | Delete the Kind cluster                                                                                                                                                                                        |
+| `make destroy`           | Delete Kind cluster and stop registry                                                                                                                                                                          |
+| `make apply-deps`        | Install all dependencies (Istio, Prometheus, Elasti)                                                                                                                                                           |
+| `make apply-elasti`      | Install only the Elasti operator and CRDs                                                                                                                                                                      |
+| `make apply-prometheus`  | Install only Prometheus (with Grafana)                                                                                                                                                                         |
+| `make apply-ingress`     | Install only Istio ingress gateway                                                                                                                                                                             |
+| `make apply-keda`        | Install only KEDA                                                                                                                                                                                              |
+| `make uninstall-ingress` | Uninstall Istio components                                                                                                                                                                                     |
+| `make uninstall-keda`    | Uninstall KEDA components                                                                                                                                                                                      |
+| `make test`              | Run the KUTTL E2E tests                                                                                                                                                                                        |
+| `make pf-prom`           | Port-forward the Prometheus service to localhost:9090                                                                                                                                                          |
+| `make pf-graf`           | Port-forward the Grafana service to localhost:9001                                                                                                                                                             |
+| `make pf-ingress`        | Port-forward the ingress gateway service to localhost:8080                                                                                                                                                     |
 
 ### Test Workflow
 
@@ -245,7 +245,7 @@ To add a new test scenario:
 1. Create a new directory in the `tests/e2e/tests/` directory following the KUTTL format, `<number>-<test-name>`.
 2. Define test steps with commands and assertions, in the directory using `<number>-<step-name>.yaml` format.
 3. Add any supporting files or manifests needed
-4. Run the test individually with:
+4. To run the test individually, use:
    ```bash
    make test T=<number>-<test-name>
    ```
@@ -272,7 +272,7 @@ tests/
 
 ```bash
 make test T=00-elasti-setup
-``` 
+```
 
 ### Example Test Structure
 
@@ -314,6 +314,7 @@ status:
 > Refer to [Kuttle Docs](https://kuttl.dev/docs/testing/steps.html#format) for more information.
 
 ## Tips for Writing KUTTL Tests
+
 1. **Naming Convention**: Use numerical prefixes within test folders to know the sequence of test cases and files to control execution of the steps.
 2. **Avoid Cross-Dependencies**: Each test folder should be independent of others
 3. **Use Timeouts Wisely**: Set appropriate timeouts for operations that may take time
