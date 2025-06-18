@@ -5,11 +5,11 @@ metadata:
   namespace: istio-system
 spec:
   selector:
-    istio: ingressgateway  
+    istio: ingressgateway
   servers:
-  - port:
-      number: 80
-      name: http
-      protocol: HTTP
-    hosts:
-    - "*"   
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"

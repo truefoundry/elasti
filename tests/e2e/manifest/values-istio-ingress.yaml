@@ -1,5 +1,5 @@
 service:
-    ports:
+  ports:
     ## You can add custom gateway ports in user values overrides, but it must include those ports since helm replaces.
     # Note that AWS ELB will by default perform health checks on the first port
     # on this list. Setting this to the health check port will ensure that health

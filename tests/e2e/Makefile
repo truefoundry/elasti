@@ -1,6 +1,6 @@
 # Variables
 CLUSTER_NAME := elasti-e2e
-NAMESPACE := default
+NAMESPACE := test
 ELASTI_NAMESPACE := elasti
 T ?= ./tests
 
@@ -8,7 +8,9 @@ T ?= ./tests
 all: setup test
 setup: start-registry build-images kind-up apply-deps
 destroy: kind-down stop-registry 
+# in reset-kind, we destroy the cluster.
 reset-kind: kind-down kind-up apply-deps
+# In reset-setup, we destroy the whole setup, and setup again.
 reset-setup: destroy setup
 
 .PHONY: start-registry
@@ -27,7 +29,7 @@ start-registry: ## Setup docker registry, where we publish our images
 	@echo "Registry setup complete"
 
 .PHONY: stop-registry
-stop-registry: ## Stop docker registery
+stop-registry: ## Stop docker registry
 	@echo "Stopping registry..."
 	@if docker ps -a | grep -q "kind-registry"; then \
 		echo "Registry container found, stopping it..."; \
@@ -107,7 +109,8 @@ apply-ingress:
 	@helm upgrade --install istio-base istio/base -n istio-system --create-namespace
 	@helm upgrade --install istiod istio/istiod -n istio-system
 	@helm upgrade --install istio-ingressgateway istio/gateway -n istio-system -f ./manifest/values-istio-ingress.yaml
-	@kubectl label namespace default istio-injection=enabled --overwrite
+	@kubectl create namespace target --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl label namespace target istio-injection=enabled --overwrite
 	@echo "Waiting for Istio to be ready..."
 	@kubectl -n istio-system wait --for=condition=available deployment/istiod --timeout=180s
 	@kubectl -n istio-system wait --for=condition=available deployment/istio-ingressgateway --timeout=180s
@@ -133,6 +136,7 @@ apply-keda:
 	@kubectl -n keda wait --for=condition=ready pod -l app=keda-operator-metrics-apiserver --timeout=180s
 	@echo "KEDA installed successfully."
 
+# This is for locally testing, not used in CI
 .PHONY: uninstall-keda
 uninstall-keda:
 	@echo "Uninstalling KEDA..."

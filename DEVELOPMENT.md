@@ -231,15 +231,15 @@ This section outlines how to run integration tests, and performance tests using 
 
 3. **Run E2E tests**
 
-   Elasti includes comprehensive end-to-end tests using KUTTL (Kubernetes Test Tool) that validate core functionality in a real Kubernetes environment. To run the E2E tests:
+Use the KUTTL framework to execute Elasti's end-to-end tests in a real Kubernetes environment:
 
-   ```bash
-   cd ./tests/e2e
-   make setup        # Sets up environment
-   make test         # Runs tests
-   ```
+```bash
+cd ./tests/e2e
+make setup   # Sets up environment
+make test    # Runs tests
+```
 
-   For detailed information about the E2E test framework, see [tests/e2e/README.md](./tests/e2e/README.md).
+For detailed information about the E2E test framework, see [tests/e2e/README.md](./tests/e2e/README.md).
 
 ## Monitoring
 

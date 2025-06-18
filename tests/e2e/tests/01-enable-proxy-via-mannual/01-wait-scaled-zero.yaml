@@ -1,0 +1,17 @@
+# Step 2 - wait for all pods to terminate
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+script: |
+  timeout=60
+  while [ "$timeout" -gt 0 ]; do
+    count=$(kubectl get pods -l app=target-deployment -n target --no-headers 2>/dev/null | wc -l)
+    if [ "$count" -eq 0 ]; then
+      echo "All pods terminated"
+      exit 0
+    fi
+    echo "Waiting for pods to terminate..."
+    sleep 2
+    timeout=$((timeout - 2))
+  done
+  echo "Pods did not terminate in time"
+  exit 1

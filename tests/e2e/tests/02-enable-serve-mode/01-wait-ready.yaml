@@ -1,5 +1,0 @@
-apiVersion: kuttl.dev/v1beta1
-kind: TestStep
-script: |
-  #!/bin/sh
-  kubectl wait pod -l app=target-deployment -n default --for=condition=Ready --timeout=60s

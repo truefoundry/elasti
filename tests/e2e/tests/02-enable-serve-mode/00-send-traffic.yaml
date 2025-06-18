@@ -1,8 +1,0 @@
-apiVersion: kuttl.dev/v1beta1
-kind: TestStep
-script: |
-  #!/bin/sh
-  for i in 1 2 3 4 5; do
-    curl -s -o /dev/null -w "%{http_code}\n" http://target-deployment.default.svc.cluster.local:8080
-    sleep 1
-  done

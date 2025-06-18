@@ -1,4 +1,5 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestStep
-commands:
-  - command: kubectl scale deployment target-deployment -n default --replicas=1
+script: |
+  #!/bin/sh
+  kubectl scale deployment target-deployment -n target --replicas=1

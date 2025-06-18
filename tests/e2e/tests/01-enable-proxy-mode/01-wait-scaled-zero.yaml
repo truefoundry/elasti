@@ -1,5 +1,0 @@
-apiVersion: kuttl.dev/v1beta1
-kind: TestStep
-script: |
-  #!/bin/sh
-  kubectl wait --for=delete pod -l app=target-deployment -n default --timeout=60s || exit 1

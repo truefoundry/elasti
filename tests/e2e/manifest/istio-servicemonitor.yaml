@@ -8,14 +8,14 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: istio-ingressgateway           
+      app: istio-ingressgateway
   namespaceSelector:
     matchNames:
-    - istio-system
+      - istio-system
   endpoints:
-  - port: http-envoy-prom
-    path: /stats/prometheus
-    interval: 15s
+    - port: http-envoy-prom
+      path: /stats/prometheus
+      interval: 15s
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
@@ -27,7 +27,7 @@ metadata:
 spec:
   namespaceSelector:
     matchNames:
-      - default
+      - target
   selector:
     matchLabels:
       app: target-deployment
@@ -35,8 +35,3 @@ spec:
     - targetPort: 15090
       path: /stats/prometheus
       interval: 15s
-
-
-
-
-

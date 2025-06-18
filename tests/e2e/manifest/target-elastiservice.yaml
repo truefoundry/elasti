@@ -4,16 +4,15 @@ metadata:
   name: target-elastiservice
 spec:
   cooldownPeriod: 30
-  minTargetReplicas: 2
+  minTargetReplicas: 1
   scaleTargetRef:
     apiVersion: apps/v1
     kind: deployments
     name: target-deployment
   service: target-deployment
   triggers:
-  - metadata:
-      query: round(sum(rate(envoy_http_downstream_rq_total{container="istio-proxy"}[1m])),0.001) or vector(0)
-      serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
-      threshold: "0.01"
-    type: prometheus
-
+    - metadata:
+        query: round(sum(rate(envoy_http_downstream_rq_total{container="istio-proxy"}[1m])),0.001) or vector(0)
+        serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+        threshold: "0.01"
+      type: prometheus
