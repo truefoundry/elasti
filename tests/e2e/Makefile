@@ -3,6 +3,8 @@ CLUSTER_NAME := elasti-e2e
 NAMESPACE := test
 ELASTI_NAMESPACE := elasti
 T ?= ./tests
+REGISTRY_HOST := localhost:5002
+REGISTRY_NAME := kind-registry
 
 .PHONY: all setup destroy reset-kind reset-setup
 all: setup test
@@ -16,12 +18,12 @@ reset-setup: destroy setup
 .PHONY: start-registry
 start-registry: ## Setup docker registry, where we publish our images
 	@echo "Setting up registry..."
-	@if docker ps -a | grep -q "kind-registry"; then \
+	@if docker ps -a | grep -q "$(REGISTRY_NAME)"; then \
 		echo "Registry already exists, ensuring it's running..."; \
-		docker start kind-registry 2>/dev/null || true; \
+		docker start $(REGISTRY_NAME) 2>/dev/null || true; \
 	else \
 		echo "Creating new registry container..."; \
-		docker run -d --restart=always -p 5002:5000 --name kind-registry registry:2; \
+		docker run -d --restart=always -p 5002:5000 --name $(REGISTRY_NAME) registry:2; \
 	fi
 	@docker network inspect kind >/dev/null 2>&1 || docker network create kind
 	@docker network inspect kind -f "{{range .Containers}}{{.Name}}{{end}}" | grep -q kind-registry || \
@@ -31,20 +33,20 @@ start-registry: ## Setup docker registry, where we publish our images
 .PHONY: stop-registry
 stop-registry: ## Stop docker registry
 	@echo "Stopping registry..."
-	@if docker ps -a | grep -q "kind-registry"; then \
+	@if docker ps -a | grep -q "$(REGISTRY_NAME)"; then \
 		echo "Registry container found, stopping it..."; \
-		docker stop kind-registry 2>/dev/null || true; \
+		docker stop $(REGISTRY_NAME) 2>/dev/null || true; \
 	else \
 		echo "Registry container not found, skipping stop."; \
 	fi
-	@docker network inspect kind >/dev/null 2>&1 && docker network disconnect kind kind-registry
+	@docker network inspect kind >/dev/null 2>&1 && docker network disconnect kind $(REGISTRY_NAME)
 	@docker network rm kind
 	@echo "Registry stopped and network cleaned up"
 
 .PHONY: build-images
 build-images: ## Build and push images
-	cd ../../operator && make docker-build docker-push IMG=localhost:5002/elasti-operator:v1alpha1
-	cd ../../resolver && make docker-build docker-push IMG=localhost:5002/elasti-resolver:v1alpha1
+	$(MAKE) -C ../../operator docker-build docker-push IMG=$(REGISTRY_HOST)/elasti-operator:v1alpha1
+	$(MAKE) -C ../../resolver docker-build docker-push IMG=$(REGISTRY_HOST)/elasti-resolver:v1alpha1
 
 .PHONY: kind-up
 kind-up: ## Create Kind cluster
@@ -96,9 +98,8 @@ apply-prometheus:
 	  --set alertmanager.enabled=false \
 	  --set grafana.enabled=true \
 	  --set kubeStateMetrics.enabled=false \
-	  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=true
+	  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=true --wait --timeout 180s
 	@kubectl apply -f ./manifest/istio-servicemonitor.yaml
-	@kubectl -n monitoring wait --for=condition=available deployment/kube-prometheus-stack-operator --timeout=120s
 	@echo "Prometheus Stack installed successfully."
 
 .PHONY: apply-ingress
@@ -106,14 +107,12 @@ apply-ingress:
 	@echo "Setting up Istio..."
 	@helm repo add istio https://istio-release.storage.googleapis.com/charts
 	@helm repo update
-	@helm upgrade --install istio-base istio/base -n istio-system --create-namespace
-	@helm upgrade --install istiod istio/istiod -n istio-system
-	@helm upgrade --install istio-ingressgateway istio/gateway -n istio-system -f ./manifest/values-istio-ingress.yaml
+	@helm upgrade --install istio-base istio/base -n istio-system --create-namespace --version 1.26.1 --wait --timeout 180s
+	@helm upgrade --install istiod istio/istiod -n istio-system --version 1.26.1 --wait --timeout 180s
+	@helm upgrade --install istio-ingressgateway istio/gateway -n istio-system -f ./manifest/values-istio-ingress.yaml --version 1.26.1
+	@kubectl -n istio-system wait --for=condition=available deployment/istio-ingressgateway --timeout=180s
 	@kubectl create namespace target --dry-run=client -o yaml | kubectl apply -f -
 	@kubectl label namespace target istio-injection=enabled --overwrite
-	@echo "Waiting for Istio to be ready..."
-	@kubectl -n istio-system wait --for=condition=available deployment/istiod --timeout=180s
-	@kubectl -n istio-system wait --for=condition=available deployment/istio-ingressgateway --timeout=180s
 	@echo "Istio installed successfully."
 
 .PHONY: uninstall-ingress
@@ -129,11 +128,7 @@ apply-keda:
 	@kubectl create namespace keda --dry-run=client -o yaml | kubectl apply -f -
 	@helm repo add kedacore https://kedacore.github.io/charts
 	@helm repo update
-	@helm upgrade --install keda kedacore/keda --namespace keda --create-namespace --version 2.17.1
-	@echo "Waiting for KEDA to be ready..."
-	@kubectl -n keda wait --for=condition=ready pod -l app=keda-operator --timeout=180s
-	@kubectl -n keda wait --for=condition=ready pod -l app=keda-admission-webhooks --timeout=180s
-	@kubectl -n keda wait --for=condition=ready pod -l app=keda-operator-metrics-apiserver --timeout=180s
+	@helm upgrade --install keda kedacore/keda --namespace keda --create-namespace --version 2.17.1 --wait --timeout 180s
 	@echo "KEDA installed successfully."
 
 # This is for locally testing, not used in CI

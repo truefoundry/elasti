@@ -254,7 +254,7 @@ To add a new test scenario:
 
 KUTTL tests follow a specific structure:
 
-```
+```bash
 tests/
 └── 00-elasti-setup/            # Test case (folder named with numbered prefix)
     ├── 00-apply.yaml           # First step - apply resources, created the required scenario.
@@ -270,7 +270,7 @@ tests/
 
 ### Run Single Test
 
-```
+```bash
 make test T=00-elasti-setup
 ``` 
 

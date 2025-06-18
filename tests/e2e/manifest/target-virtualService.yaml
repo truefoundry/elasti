@@ -14,6 +14,6 @@ spec:
             prefix: /
       route:
         - destination:
-            host: target-deployment.default.svc.cluster.local
+            host: target-deployment.target.svc.cluster.local
             port:
               number: 80
