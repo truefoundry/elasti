@@ -5,6 +5,10 @@ ELASTI_NAMESPACE := elasti
 T ?= ./tests
 REGISTRY_HOST := localhost:5002
 REGISTRY_NAME := kind-registry
+ISTIO_VERSION := 1.26.1
+PROMETHEUS_VERSION := 73.2.3
+KEDA_VERSION := 2.17.1
+
 
 .PHONY: all setup destroy reset-kind reset-setup
 all: setup test
@@ -92,7 +96,7 @@ apply-prometheus:
 	@kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
 	@helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
 	@helm repo update
-	@helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack --version 73.2.3 \
+	@helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack --version $(PROMETHEUS_VERSION) \
 	  --namespace monitoring \
 	  --create-namespace \
 	  --set alertmanager.enabled=false \
@@ -107,9 +111,9 @@ apply-ingress:
 	@echo "Setting up Istio..."
 	@helm repo add istio https://istio-release.storage.googleapis.com/charts
 	@helm repo update
-	@helm upgrade --install istio-base istio/base -n istio-system --create-namespace --version 1.26.1 --wait --timeout 180s
-	@helm upgrade --install istiod istio/istiod -n istio-system --version 1.26.1 --wait --timeout 180s
-	@helm upgrade --install istio-ingressgateway istio/gateway -n istio-system -f ./manifest/values-istio-ingress.yaml --version 1.26.1
+	@helm upgrade --install istio-base istio/base -n istio-system --create-namespace --version $(ISTIO_VERSION) --wait --timeout 180s
+	@helm upgrade --install istiod istio/istiod -n istio-system --version $(ISTIO_VERSION) --wait --timeout 180s
+	@helm upgrade --install istio-ingressgateway istio/gateway -n istio-system -f ./manifest/values-istio-ingress.yaml --version $(ISTIO_VERSION)
 	@kubectl -n istio-system wait --for=condition=available deployment/istio-ingressgateway --timeout=180s
 	@kubectl create namespace target --dry-run=client -o yaml | kubectl apply -f -
 	@kubectl label namespace target istio-injection=enabled --overwrite
@@ -128,7 +132,7 @@ apply-keda:
 	@kubectl create namespace keda --dry-run=client -o yaml | kubectl apply -f -
 	@helm repo add kedacore https://kedacore.github.io/charts
 	@helm repo update
-	@helm upgrade --install keda kedacore/keda --namespace keda --create-namespace --version 2.17.1 --wait --timeout 180s
+	@helm upgrade --install keda kedacore/keda --namespace keda --create-namespace --version $(KEDA_VERSION) --wait --timeout 180s
 	@echo "KEDA installed successfully."
 
 # This is for locally testing, not used in CI
