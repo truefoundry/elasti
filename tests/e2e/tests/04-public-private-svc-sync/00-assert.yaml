@@ -1,0 +1,14 @@
+apiVersion: kuttl.dev/v1beta1
+kind: Assert
+assert:
+  # The public Service exists
+  - count: 1
+    kind: Service
+    name: target-deployment
+    namespace: default
+
+  # The private Service (named `<public>-private`) exists
+  - count: 1
+    kind: Service
+    name: target-deployment-private
+    namespace: default

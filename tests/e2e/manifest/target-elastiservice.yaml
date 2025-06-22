@@ -3,7 +3,7 @@ kind: ElastiService
 metadata:
   name: target-elastiservice
 spec:
-  cooldownPeriod: 30
+  cooldownPeriod: 5
   minTargetReplicas: 1
   scaleTargetRef:
     apiVersion: apps/v1
