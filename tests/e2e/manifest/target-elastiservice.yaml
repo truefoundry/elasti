@@ -2,6 +2,7 @@ apiVersion: elasti.truefoundry.com/v1alpha1
 kind: ElastiService
 metadata:
   name: target-elastiservice
+  namespace: target
 spec:
   cooldownPeriod: 5
   minTargetReplicas: 1

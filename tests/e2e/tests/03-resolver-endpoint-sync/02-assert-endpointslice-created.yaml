@@ -1,0 +1,16 @@
+# apiVersion: discovery.k8s.io/v1
+# kind: EndpointSlice
+# metadata:
+#   namespace: target
+#   labels:
+#     kubernetes.io/service-name: target-deployment
+#   name: elasti-target-deployment-endpointslice-to-resolver-9696239e87
+# status:
+#   addressType: IPv4
+# ---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+script: |
+  #!/bin/sh
+  # Verify that the endpointslice was created after target deployment was scaled to 0
+  kubectl get endpointslice -n target elasti-target-deployment-endpointslice-to-resolver-9696239e87 -o jsonpath='{.metadata.name}' | grep "elasti-target-deployment-endpointslice-to-resolver-9696239e87" || exit 1

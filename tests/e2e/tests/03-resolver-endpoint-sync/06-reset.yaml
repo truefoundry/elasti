@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: target-deployment
+  namespace: target
+spec:
+  replicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasti-resolver
+  namespace: elasti
+spec:
+  replicas: 1
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+script: |
+  #!/bin/sh
+  kubectl wait pods -l app=target-deployment -n target --for=condition=Ready --timeout=60s
+  kubectl wait pods -l app=elasti-resolver -n elasti --for=condition=Ready --timeout=60s

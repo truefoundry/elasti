@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: target-deployment
+  namespace: target
+spec:
+  selector:
+    app: target-deployment
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+script: |
+  #!/bin/sh
+  # Wait for the service update to be applied
+  kubectl wait --for=condition=ready service/target-deployment -n target --timeout=30s || exit 1
