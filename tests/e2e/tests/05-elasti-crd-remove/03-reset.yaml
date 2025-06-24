@@ -1,12 +1,5 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: target-deployment
-  namespace: target
-spec:
-  replicas: 1
---- 
 apiVersion: kuttl.dev/v1beta1
 kind: TestStep
-apply:
-- ../../manifest/target-elastiservice.yaml
+commands:
+  - command: ../../manifest/reset.sh ../../manifest
+    namespaced: false

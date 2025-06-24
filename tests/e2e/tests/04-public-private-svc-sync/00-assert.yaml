@@ -22,12 +22,3 @@ metadata:
 spec:
   selector:
     app: target-deployment
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: elasti-target-deployment-pvt-9696239e87
-  namespace: target
-spec:
-  selector:
-    app: target-deployment

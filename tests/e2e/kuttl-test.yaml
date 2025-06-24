@@ -14,5 +14,5 @@ commands:
     namespaced: true
   - command: kubectl apply -f ./manifest/target-elastiservice.yaml -n target
     namespaced: true
-  - command: kubectl scale deployment elasti-resolver -n elasti --replicas=1
-  - command: kubectl scale deployment target-deployment -n target --replicas=1
+  - command: ./manifest/reset.sh ./manifest
+    namespaced: false
