@@ -1,0 +1,14 @@
+# KUTTL assert: waits until the live Service matches this spec exactly
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasti-target-deployment-pvt-9696239e87
+  namespace: target
+spec:
+  selector:
+    app: target-deployment
+    test-label: test-label
+  ports:
+    - port: 85
+      protocol: TCP
+      targetPort: 1111
