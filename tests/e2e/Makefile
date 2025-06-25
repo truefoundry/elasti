@@ -170,5 +170,14 @@ pf-ingress:
 	@echo "Portforwarding ingress gateway on port 8080..."
 	@kubectl --namespace istio-system port-forward service/istio-ingressgateway 8080:80
 
+.PHONY: lint-kube
+lint-kube:
+	@echo "Linting k8s manifests and kuttl tests..."
+	@kube-linter lint ./manifest
+	@kube-linter lint ./tests
 
-
+.PHONY: lint-yaml
+lint-yaml:
+	@echo "Linting k8s manifests and kuttl tests..."
+	@yamllint ./manifest
+	@yamllint ./tests

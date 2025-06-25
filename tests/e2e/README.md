@@ -327,3 +327,22 @@ status:
 4. **Use Timeouts Wisely**: Set appropriate timeouts for operations that may take time
 5. **Resource Sharing**: Put shared resources in `kuttl-test.yaml` commands section
 6. **Debugging**: Use `kubectl kuttl test --debug` for verbose output during test development
+
+# Linting
+
+We are using 
+
+- [kube-linter](https://github.com/stackrox/kube-linter)
+- [yamllint](https://github.com/adrienverge/yamllint)
+
+to lint our k8s manifests and kuttl tests. 
+
+To yaml lint, run:
+```bash
+make lint-yaml
+```
+
+To kubenetes specific lint, run:
+```bash
+make lint-kube
+```
