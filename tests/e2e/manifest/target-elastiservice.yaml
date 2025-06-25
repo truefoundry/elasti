@@ -18,3 +18,6 @@ spec:
         serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
         threshold: "0.01"
       type: prometheus
+  autoscaler:
+    name: target-scaled-object
+    type: keda
