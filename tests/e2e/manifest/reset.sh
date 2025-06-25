@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# NOTE: We are taking the argument as the path to the manifest directory.
+# This is needed as the script is called from multiple places and has different paths.
+# Maybe in future we can fix this, but for now this is fine. 
+
 # Apply ElastiService
 kubectl apply -f  $1/target-elastiservice.yaml -n target
 
