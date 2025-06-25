@@ -8,6 +8,6 @@ spec:
     app: target-deployment
     test-label: test-label
   ports:
-  - port: 85
-    protocol: TCP
-    targetPort: 1111
+    - port: 85
+      protocol: TCP
+      targetPort: 1111

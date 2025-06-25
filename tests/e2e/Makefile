@@ -81,7 +81,7 @@ kind-down:
 	fi
 
 .PHONY: apply-deps
-apply-deps: apply-ingress apply-prometheus apply-elasti 
+apply-deps: apply-ingress apply-prometheus apply-elasti apply-keda
 
 .PHONY: apply-elasti
 apply-elasti:
