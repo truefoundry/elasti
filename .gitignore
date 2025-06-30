@@ -10,4 +10,6 @@ namespace.yaml
 install.yaml
 kubeconfig
 report.html
-.cache
+.cache/
+# or, if you want it repository-wide regardless of depth
+**/.cache/
