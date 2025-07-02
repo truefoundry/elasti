@@ -1,0 +1,19 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: target-scaled-object
+  namespace: target
+spec:
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  pollingInterval: 30
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: target-deployment
+  triggers:
+    - type: prometheus
+      metadata:
+        query: round(sum(rate(envoy_http_downstream_rq_total{container="istio-proxy"}[1m])),0.001) or vector(0)
+        serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+        threshold: "0.5"

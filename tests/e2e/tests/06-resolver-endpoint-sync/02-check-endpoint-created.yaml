@@ -1,0 +1,6 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |
+      #!/bin/sh
+      kubectl get endpoints -n target elasti-target-deployment-pvt-9696239e87 > /dev/null 2>&1 || exit 1

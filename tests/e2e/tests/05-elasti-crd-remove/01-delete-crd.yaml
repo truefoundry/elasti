@@ -1,0 +1,7 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+delete:
+  - apiVersion: elasti.truefoundry.com/v1alpha1
+    kind: ElastiService
+    name: target-elastiservice
+    namespace: target
