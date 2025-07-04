@@ -17,6 +17,10 @@ Kubernetes clusters can become costly, especially when running multiple services
 
 > The name Elasti comes from a superhero "Elasti-Girl" from DC Comics. Her superpower is to expand or shrink her body at will from hundreds of feet tall to mere inches in height.
 
+<center>
+<img src="./docs/assets/intro.png" alt="elasti introduction">
+</center>
+
 # Contents
 
 - [Why use Elasti?](#why-use-elasti)
