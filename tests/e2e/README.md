@@ -249,6 +249,12 @@ To add a new test scenario:
    ```bash
    make test T=<number>-<test-name>
    ```
+  
+### Example:
+
+```bash
+make test T=00-elasti-setup
+```
 
 ## KUTTL Test Files Structure
 
@@ -316,7 +322,27 @@ status:
 ## Tips for Writing KUTTL Tests
 
 1. **Naming Convention**: Use numerical prefixes within test folders to know the sequence of test cases and files to control execution of the steps.
-2. **Avoid Cross-Dependencies**: Each test folder should be independent of others
-3. **Use Timeouts Wisely**: Set appropriate timeouts for operations that may take time
-4. **Resource Sharing**: Put shared resources in `kuttl-test.yaml` commands section
-5. **Debugging**: Use `kubectl kuttl test --debug` for verbose output during test development
+2. **Avoid Cross-Dependencies**: Each test folder should be independent of others.
+3. **Reset after each test**: Each test should reset the environment in the last step to the default state, which is same as `kuttl-test.yaml`. **This is important, so that no test affects the next test**. All tests start in the default state, and then the state is modified to test the specific scenario and reset in the end.
+4. **Use Timeouts Wisely**: Set appropriate timeouts for operations that may take time
+5. **Resource Sharing**: Put shared resources in `kuttl-test.yaml` commands section
+6. **Debugging**: Use `kubectl kuttl test --debug` for verbose output during test development
+
+# Linting
+
+We are using 
+
+- [kube-linter](https://github.com/stackrox/kube-linter)
+- [yamllint](https://github.com/adrienverge/yamllint)
+
+to lint our k8s manifests and kuttl tests. 
+
+To yaml lint, run:
+```bash
+make lint-yaml
+```
+
+To kubenetes specific lint, run:
+```bash
+make lint-kube
+```

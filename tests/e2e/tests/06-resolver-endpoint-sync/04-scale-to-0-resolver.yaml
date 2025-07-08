@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasti-resolver
+  namespace: elasti
+spec:
+  replicas: 0
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+script: |
+  #!/bin/sh
+  kubectl wait --for=delete pods -l app=elasti-resolver -n elasti --timeout=60s || exit 1
