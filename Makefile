@@ -46,3 +46,11 @@ test-resolver: ## Run resolver tests
 test-pkg: ## Run pkg tests
 	cd pkg && make test
 
+.PHONY: serve-docs 
+serve-docs: ## Serve docs
+	mkdocs serve
+	
+.PHONY: build-docs
+build-docs: ## Build docs
+	mkdocs build
+
