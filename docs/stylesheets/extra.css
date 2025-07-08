@@ -10,14 +10,41 @@
 
   /* header css */
 .md-header {
-    color: #fff;
-    background-color: #C2320A;
+    background-color: #825B21;
   }
   
 
   .md-tabs {
-    background-color: #C2320A;
-    color: #fff;
+    background-color: #825B21;
     font-weight: bold;
   }
   
+
+  /* Tame the footer and make the prev/next stand out */
+.md-footer {
+    background-color: #1f2129;
+  }
+  
+  
+  .md-footer-meta {
+    background-color: #1f2129;
+    width: 100%;
+  }
+  
+  a.md-header__button.md-logo :-webkit-any(img, svg),
+  a.md-header__button.md-logo :is(img, svg),
+  a.md-header__button.md-logo img {
+    width: 2.4rem;
+    height: 2.4rem;
+  }
+  
+  .md-header__button.md-logo {
+    transition-duration: 0.2s;
+    transition-property: transform;
+  }
+  
+  .md-header__button.md-logo:hover {
+    opacity: 1;
+    transform: rotate(5deg);
+    -webkit-transform: rotate(5deg);
+  }

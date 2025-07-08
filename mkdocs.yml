@@ -1,9 +1,9 @@
 # Site
-site_name: Elasti | Scale-to-Zero 
+site_name: KubeElasti | Serverless Kubernetes
 site_url: https://truefoundry.github.io/elasti/
 site_author: TrueFoundry
 site_description: >-
-  Elasti is a Kubernetes operator that automatically scales-to-zero your services when they are idle and scales them back up when they receive traffic.
+  KubeElasti is a Kubernetes operator that automatically scales-to-zero your services when they are idle and scales them back up when they receive traffic.
 extra_css:
   - stylesheets/extra.css
 
@@ -17,7 +17,6 @@ copyright: Copyright &copy; 2025 TrueFoundry
 
 theme:
   name: material
-  custom_dir: docs/overrides
   logo: images/logo/logo_white_full.png
   favicon: images/logo/favicon.ico
   font:
