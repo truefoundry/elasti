@@ -1,0 +1,23 @@
+:root {
+    --md-primary-fg-color: #f3f1f2;
+    --md-primary-fg-color--dark: #0D4984;
+    --md-primary-fg-color--light: #6593C8;
+    --nav-item-color: #4d4d4d;
+    --nav-bg-color: #f3f1f2;
+    --md-footer-bg-color: #081729;
+  }
+
+
+  /* header css */
+.md-header {
+    color: #fff;
+    background-color: #C2320A;
+  }
+  
+
+  .md-tabs {
+    background-color: #C2320A;
+    color: #fff;
+    font-weight: bold;
+  }
+  

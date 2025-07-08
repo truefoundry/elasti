@@ -1,3 +1,7 @@
+---
+title: Comparisons with Other Solutions
+---
+
 # Comparisons with Other Solutions
 
 This document compares Elasti with other popular serverless and scale-to-zero solutions in the Kubernetes ecosystem.

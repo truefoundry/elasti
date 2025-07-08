@@ -30,6 +30,7 @@ Kubernetes clusters can become costly, especially when running multiple services
 - [Contribution](#contribution)
 - [Getting Help](#getting-help)
 - [Roadmap](#roadmap)
+  - [Star History](#star-history)
 
 # Introduction
 
@@ -80,3 +81,7 @@ We have a dedicated [Discussions](https://github.com/truefoundry/elasti/discussi
 # Roadmap
 
 We are maintaining the future roadmap using the [issues](https://github.com/truefoundry/elasti/issues) and [milestones](https://github.com/truefoundry/elasti/milestones). You can also suggest ideas and vote for them by adding a 👍 reaction to the issue.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=truefoundry/elasti&type=Date)](https://www.star-history.com/#truefoundry/elasti&Date)

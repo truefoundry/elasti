@@ -1,0 +1,104 @@
+# Site
+site_name: Elasti | Scale-to-Zero 
+site_url: https://truefoundry.github.io/elasti/
+site_author: TrueFoundry
+site_description: >-
+  Elasti is a Kubernetes operator that automatically scales-to-zero your services when they are idle and scales them back up when they receive traffic.
+extra_css:
+  - stylesheets/extra.css
+
+# Repository
+repo_name: truefoundry/elasti
+repo_url: https://github.com/truefoundry/elasti
+
+
+# Copyright
+copyright: Copyright &copy; 2025 TrueFoundry
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  logo: images/logo/logo_white_full.png
+  favicon: images/logo/favicon.ico
+  font:
+    text: Helvetica
+    code: Helvetica Mono
+  features:
+    - announce.dismiss
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    # - content.code.select
+    # - content.footnote.tooltips
+    # - content.tabs.link
+    - content.tooltips
+    # - header.autohide
+    # - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    # - navigation.instant
+    # - navigation.instant.prefetch
+    # - navigation.instant.progress
+    # - navigation.prune
+    - navigation.sections
+    - navigation.tabs
+    # - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+    # - toc.integrate
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to system preference
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - pymdownx.blocks.caption
+
+Plugins: 
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
+
+# Additional configuration
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/truefoundry
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/truefoundry
+
+
+# Page tree
+nav:
+  - Home: index.md
+  - Getting started: 
+    - Setup: getting-started.md
+    - Configuration: configure-elastiservice.md
+  - Architecture: 
+    - Overview: architecture.md
+    - Monitoring: monitoring.md
+  - Integrations: 
+    - HPA: integration-hpa.md
+    - Keda: integration-keda.md
+  - Comparisons: comparisons.md
+  - Development: development.md
+

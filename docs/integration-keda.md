@@ -1,12 +1,8 @@
 ---
-title: Integrations
+title: Integrations with KEDA
 ---
 
 
-# Integration with HPA
-Elasti works seamlessly with Horizontal Pod Autoscaler (HPA) and handles scaling to zero on its own. Since Elasti manages the scale-to-zero functionality, you can configure HPA to handle scaling based on metrics for any number of replicas **greater than zero**, while Elasti takes care of scaling to/from zero.
-
-A setup is explained in the [getting started](getting-started.md) guide.
 
 # Integration with KEDA
 Elasti takes care of scaling up and down a service when there is some traffic. KEDA is a good candidate for performing the scaling logic for the service from minReplicas to maxReplicas based on it's triggers.

@@ -6,6 +6,8 @@ This will create two ServiceMonitor custom resources to enable Prometheus to dis
 
 Once verification is complete, you can use the [provided Grafana dashboard](https://github.com/truefoundry/elasti/blob/main/playground/infra/elasti-dashboard.yaml) to monitor the internal metrics and performance of Elasti.
 
-<div align="center">
-<img src="./assets/grafana-dashboard.png" width="800px">
-</div>
+
+<figure markdown="span">
+  ![Image title](../images/grafana-dashboard.png){ loading=lazy }
+  <figcaption>Grafana dashboard</figcaption>
+</figure>
