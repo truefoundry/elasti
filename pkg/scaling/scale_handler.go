@@ -235,12 +235,6 @@ func resolveCooldownPeriod(es *v1alpha1.ElastiService) time.Duration {
 	if cooldownPeriod == 0 {
 		cooldownPeriod = values.DefaultCooldownPeriod
 	}
-	if cooldownPeriod < 0 {
-		cooldownPeriod = values.DefaultCooldownPeriod
-	}
-	if cooldownPeriod > values.MaxCooldownPeriod {
-		cooldownPeriod = values.MaxCooldownPeriod
-	}
 	return cooldownPeriod
 }
 
