@@ -46,7 +46,7 @@ The key fields to be specified in the spec are:
 
 The section below explains how are the different configuration options used in Elasti.
 
-### Which service to apply elasti on
+### Which service to apply KubeElasti on
 
 This is defined using the `scaleTargetRef` field in the spec. 
 
@@ -56,7 +56,7 @@ This is defined using the `scaleTargetRef` field in the spec.
 
 ### When to scale down the service to 0
 
-This is defined uing the triggers field in the spec. Currently, Elasti supports only one trigger type - `prometheus`. The metadata field of the trigger defines the trigger data. The `query` field is the prometheus query to use for the trigger. The `serverAddress` field is the address of the prometheus server. The `threshold` field is the threshold value to use for the trigger. So we can define a query to check for the number of requests per second and the threshold to be 0. Elasti will check this metric every 30 seconds and if the values is less than 0(`threshold`) it will scale down the service to 0.
+This is defined uing the triggers field in the spec. Currently, KubeElasti supports only one trigger type - `prometheus`. The metadata field of the trigger defines the trigger data. The `query` field is the prometheus query to use for the trigger. The `serverAddress` field is the address of the prometheus server. The `threshold` field is the threshold value to use for the trigger. So we can define a query to check for the number of requests per second and the threshold to be 0. KubeElasti will check this metric every 30 seconds and if the values is less than 0(`threshold`) it will scale down the service to 0.
 
 An example trigger is as follows:
 
@@ -69,13 +69,13 @@ triggers:
     threshold: 0.5
 ```
 
-Once the service is scaled down to 0, we also need to pause the current autoscaler to make sure it doesn't scale up the service again. While this is not a problem with HPA, Keda will scale up the service again since the min replicas is 1. Hence Elasti needs to know about the Keda scaled object so that it can pause it. This information is provided in the `autoscaler` field of the ElastiService. The autoscaler type supported as of now is only keda. 
+Once the service is scaled down to 0, we also need to pause the current autoscaler to make sure it doesn't scale up the service again. While this is not a problem with HPA, Keda will scale up the service again since the min replicas is 1. Hence KubeElasti needs to know about the Keda scaled object so that it can pause it. This information is provided in the `autoscaler` field of the ElastiService. The autoscaler type supported as of now is only keda. 
 
 - autoscaler.name: Name of the keda scaled object
 - autoscaler.type: keda
 
 ### When to scale up the service to 1
 
-As soon as the service is scaled down to 0, Elasti resolved will start accepting requests for that service. On receiving the first request, it will scale up the service to `minTargetReplicas`. Once the pod is up, the new requests are handled by the service pods and do not pass through the elasti-resolver. The requests that came before the pod scaled up are held in memory of the elasti-resolver and are processed once the pod is up.
+As soon as the service is scaled down to 0, KubeElasti resolved will start accepting requests for that service. On receiving the first request, it will scale up the service to `minTargetReplicas`. Once the pod is up, the new requests are handled by the service pods and do not pass through the elasti-resolver. The requests that came before the pod scaled up are held in memory of the elasti-resolver and are processed once the pod is up.
 
 We can configure the `cooldownPeriod` to specify the minimum time (in seconds) to wait after scaling up before considering scale down.

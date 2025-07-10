@@ -1,6 +1,6 @@
 # Development Guide
 
-Setting up your development environment for Elasti involves preparing your local setup for building, testing, and contributing to the project. Follow these steps to get started:
+Setting up your development environment for KubeElasti involves preparing your local setup for building, testing, and contributing to the project. Follow these steps to get started:
 
 ## Dev Environment
 
@@ -19,18 +19,18 @@ Ensure you have the following tools installed:
 
 ### 2. Clone the Repository
 
-Clone the Elasti repository from GitHub to your local machine:
+Clone the KubeElasti repository from GitHub to your local machine:
 
 ```
-git clone https://github.com/truefoundry/elasti.git
-cd elasti
+git clone https://github.com/truefoundry/KubeElasti.git
+cd KubeElasti
 ```
 
 > Make sure you checkout the documentation and architecture before making your changes.
 
 ### 3. Repository Structure
 
-Understanding the repository structure will help you navigate and contribute effectively to the Elasti project. Below is an overview of the key directories and files in the repository:
+Understanding the repository structure will help you navigate and contribute effectively to the KubeElasti project. Below is an overview of the key directories and files in the repository:
 
 ```
 .
@@ -74,11 +74,11 @@ Understanding the repository structure will help you navigate and contribute eff
 
 Other Directories:
 
-- **`./playground`:** Code to setup a playground to try and test elasti.
+- **`./playground`:** Code to setup a playground to try and test KubeElasti.
 - **`./test`:** Load testing scripts.
 - **`./pkg`:** Common packages, shared via Operator and Resolve.
 - **`./charts`:** Helm chart template.
-- **`./docs`:** Detailed documentation on the HLD, LLD and Architecture of elasti.
+- **`./docs`:** Detailed documentation on the HLD, LLD and Architecture of KubeElasti.
 
 ## Setup Playground
 
@@ -262,4 +262,4 @@ kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="
 kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
-Post this, you can use [`./playground/infra/elasti-dashboard.yaml`](./playground/infra/elasti-dashboard.yaml) to import the elasti dashboard.
+Post this, you can use [`./playground/infra/elasti-dashboard.yaml`](./playground/infra/elasti-dashboard.yaml) to import the KubeElasti dashboard.

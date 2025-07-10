@@ -5,9 +5,9 @@ title: Integrations with KEDA
 
 
 # Integration with KEDA
-Elasti takes care of scaling up and down a service when there is some traffic. KEDA is a good candidate for performing the scaling logic for the service from minReplicas to maxReplicas based on it's triggers.
+KubeElasti takes care of scaling up and down a service when there is some traffic. KEDA is a good candidate for performing the scaling logic for the service from minReplicas to maxReplicas based on it's triggers.
 
-Here we will see how to integrate Elasti with KEDA to build a complete scaling solution.
+Here we will see how to integrate KubeElasti with KEDA to build a complete scaling solution.
 
 ## Prerequisites
 - Make sure you have gone through the [getting started](getting-started.md) guide. We will extend the same setup for this integration.
@@ -41,6 +41,6 @@ Patch the ElastiService object with the above changes.
 kubectl patch elastiservice httpbin -n elasti-demo -p '{"spec":{"autoscaler":{"name": "httpbin-scaled-object", "type": "keda"}}}' --type=merge
 ```
 
-Now when elasti scales down the service, it will pause the keda ScaledObject to prevent it from scaling up the service again, and when elasti scales up the service, it will resume the ScaledObject.
+Now when KubeElasti scales down the service, it will pause the keda ScaledObject to prevent it from scaling up the service again, and when KubeElasti scales up the service, it will resume the ScaledObject.
 
-With these changes, elasti can reliably scale up the service when there is traffic and scale down the service to zero when there is no traffic while keda can handle the scaling logic for the service from minReplicas to maxReplicas based on it's triggers.
+With these changes, KubeElasti can reliably scale up the service when there is traffic and scale down the service to zero when there is no traffic while keda can handle the scaling logic for the service from minReplicas to maxReplicas based on it's triggers.
