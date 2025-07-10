@@ -33,12 +33,19 @@ const (
 type ElastiServiceSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	ScaleTargetRef    ScaleTargetRef  `json:"scaleTargetRef,omitempty"`
-	Service           string          `json:"service,omitempty"`
-	MinTargetReplicas int32           `json:"minTargetReplicas,omitempty" default:"1"`
-	CooldownPeriod    int32           `json:"cooldownPeriod,omitempty"`
-	Triggers          []ScaleTrigger  `json:"triggers,omitempty"`
-	Autoscaler        *AutoscalerSpec `json:"autoscaler,omitempty"`
+	// +kubebuilder:validation:Required
+	ScaleTargetRef ScaleTargetRef `json:"scaleTargetRef,omitempty"`
+	// +kubebuilder:validation:Required
+	Service string `json:"service,omitempty"`
+	// +kubebuilder:validation:Minimum=1
+	MinTargetReplicas int32 `json:"minTargetReplicas,omitempty" default:"1"`
+	// This is the cooldown period in seconds
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=604800
+	// +kubebuilder:default=900
+	CooldownPeriod int32           `json:"cooldownPeriod,omitempty"`
+	Triggers       []ScaleTrigger  `json:"triggers,omitempty"`
+	Autoscaler     *AutoscalerSpec `json:"autoscaler,omitempty"`
 }
 
 type ScaleTargetRef struct {

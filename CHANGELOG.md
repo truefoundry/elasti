@@ -4,6 +4,9 @@
     Please refer to https://github.com/truefoundry/elasti/blob/main/CONTRIBUTING.md#Changelog and follow the guidelines before adding a new entry.
 -->
 
+## 0.1.15
+* Add validation for CRD fields for elasti service by @ramantehlan in https://github.com/truefoundry/elasti/pull/122
+
 ## 0.1.14
 * update workflow to update grype config by @DeeAjayi in https://github.com/truefoundry/elasti/pull/113
 * Add support for namespace scoped elasti controller and fixes for cooldown period tracking by @shubhamrai1993 in https://github.com/truefoundry/elasti/pull/115
@@ -18,7 +21,11 @@ All the unreleased changes are listed under `Unreleased` section.
 
 ## History
 
-- [Unreleased](#unreleased)
+- [Changelog](#changelog)
+  - [0.1.15](#0115)
+  - [0.1.14](#0114)
+  - [History](#history)
+  - [Unreleased](#unreleased)
 
 ## Unreleased
 
