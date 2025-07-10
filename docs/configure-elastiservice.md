@@ -31,11 +31,15 @@ The key fields to be specified in the spec are:
 - `<service-name>`: Replace it with the service you want managed by elasti.
 - `<service-namespace>`: Replace by namespace of the service.
 - `<min-target-replicas>`: Min replicas to bring up when first request arrives.
+  - Minimum: 1
 - `<scaleTargetRef>`: Reference to the scale target similar to the one used in HorizontalPodAutoscaler.
 - `<kind>`: Replace by `rollouts` or `deployments`
 - `<apiVersion>`: Replace with `argoproj.io/v1alpha1` or `apps/v1`
 - `<deployment-or-rollout-name>`: Replace with name of the rollout or the deployment for the service. This will be scaled up to min-target-replicas when first request comes
-- `cooldownPeriod`: Minimum time (in seconds) to wait after scaling up before considering scale down
+- `cooldownPeriod`: Minimum time (in seconds) to wait after scaling up before considering scale down. 
+  - Default: 900 seconds (15 minutes)
+  - Maximum: 604800 seconds (7 days)
+  - Minimum: 1 seconds (1 second)
 - `triggers`: List of conditions that determine when to scale down (currently supports only Prometheus metrics)
 - `autoscaler`: **Optional** integration with an external autoscaler (HPA/KEDA) if needed
   - `<autoscaler-type>`: keda
