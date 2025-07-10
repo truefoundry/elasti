@@ -22,7 +22,6 @@ setup-registry: ## Setup docker registry, where we publish our images
 stop-registry: ## Stop docker registry
 	docker stop registry
 
-
 .PHONY: deploy
 deploy: ## Deploy the operator and resolver
 	kubectl apply -f ./install.yaml

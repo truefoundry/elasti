@@ -38,12 +38,12 @@ type ElastiServiceSpec struct {
 	// +kubebuilder:validation:Required
 	Service string `json:"service,omitempty"`
 	// +kubebuilder:validation:Minimum=1
-	MinTargetReplicas uint32 `json:"minTargetReplicas,omitempty" default:"1"`
+	MinTargetReplicas int32 `json:"minTargetReplicas,omitempty" default:"1"`
 	// This is the cooldown period in seconds
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=2147483647
 	// +kubebuilder:default=900
-	CooldownPeriod uint32          `json:"cooldownPeriod,omitempty"`
+	CooldownPeriod int32           `json:"cooldownPeriod,omitempty"`
 	Triggers       []ScaleTrigger  `json:"triggers,omitempty"`
 	Autoscaler     *AutoscalerSpec `json:"autoscaler,omitempty"`
 }
