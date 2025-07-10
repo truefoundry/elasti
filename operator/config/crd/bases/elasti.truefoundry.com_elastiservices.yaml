@@ -56,7 +56,7 @@ spec:
                 default: 900
                 description: This is the cooldown period in seconds
                 format: int32
-                maximum: 2147483647
+                maximum: 604800
                 minimum: 0
                 type: integer
               minTargetReplicas:
