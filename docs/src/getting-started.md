@@ -10,19 +10,19 @@ Get started by following below steps:
 
 ## Install
 
-### 1. Install Elasti using helm
+### 1. Install KubeElasti using helm
 
-Use Helm to install elasti into your Kubernetes cluster. 
+Use Helm to install KubeElasti into your Kubernetes cluster. 
 
 ```bash
 helm install elasti oci://tfy.jfrog.io/tfy-helm/elasti --namespace elasti --create-namespace
 ```
 
-Check out [values.yaml](https://github.com/truefoundry/elasti/blob/main/charts/elasti/values.yaml) to see configuration options in the helm value file.
+Check out [values.yaml](https://github.com/truefoundry/KubeElasti/blob/main/charts/elasti/values.yaml) to see configuration options in the helm value file.
 
 ### 2. Verify the Installation
 
-Check the status of your Helm release and ensure that the elasti components are running:
+Check the status of your Helm release and ensure that the KubeElasti components are running:
 
 ```bash
 helm status elasti --namespace elasti
@@ -69,9 +69,9 @@ This will deploy a nginx ingress controller in the `ingress-nginx` namespace.
 
 We will use a sample httpbin service to demonstrate how to configure a service to handle its traffic via elasti.
 
-```bash
+```shell
 kubectl create namespace elasti-demo
-kubectl apply -n elasti-demo -f https://raw.githubusercontent.com/truefoundry/elasti/refs/heads/main/playground/config/demo-application.yaml
+kubectl apply -n elasti-demo -f https://raw.githubusercontent.com/truefoundry/KubeElasti/refs/heads/main/playground/config/demo-application.yaml
 ```
 
 This will deploy a httpbin service in the `elasti-demo` namespace.
@@ -81,7 +81,8 @@ This will deploy a httpbin service in the `elasti-demo` namespace.
 To configure a service to handle its traffic via elasti, you'll need to create and apply a `ElastiService` custom resource:
   
 Create a file named `httpbin-elasti.yaml` and apply the configuration.
-```yaml
+
+```yaml title="httpbin-elasti.yaml" linenums="1"
 apiVersion: elasti.truefoundry.com/v1alpha1
 kind: ElastiService
 metadata:
@@ -103,7 +104,7 @@ spec:
         threshold: "0.5"
 ```
 
-### 7. Apply the elasti service configuration
+### 7. Apply the KubeElasti service configuration
 
 Apply the configuration to your Kubernetes cluster:
 
@@ -134,7 +135,7 @@ curl -v http://localhost:8080/httpbin
 ```
 
 You should see the pods being created and scaled up to 1 replica. A response from the httpbin service should be visible for the curl command.
-The service should be scaled down to 0 replicas if there is no traffic for 5 (`cooldownPeriod` in elastiService) seconds.
+The service should be scaled down to 0 replicas if there is no traffic for 5 (`cooldownPeriod` in ElastiService) seconds.
 
 ## Uninstall
 
