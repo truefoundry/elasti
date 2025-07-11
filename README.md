@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/badge/license-MIT-blue" align="center">
  </a>
  <a>
-    <img src="https://github.com/truefoundry/elasti/actions/workflows/lint-and-test.yaml/badge.svg" align="center">
+    <img src="https://github.com/truefoundry/KubeElasti/actions/workflows/lint-and-test.yaml/badge.svg" align="center">
  </a>
 </p>
 
@@ -26,7 +26,7 @@ Kubernetes clusters can become costly, especially when running multiple services
 - [Introduction](#introduction)
   - [Key Features](#key-features)
 - [Getting Started](#getting-started)
-- [Configure Elasti](#configure-elasti)
+- [Configure KubeElasti](#configure-kubeelasti)
 - [Monitoring](#monitoring)
 - [Development](#development)
 - [Contribution](#contribution)
@@ -58,11 +58,11 @@ KubeElasti uses a proxy mechanism that queues and holds requests for scaled-down
 
 # Getting Started
 
-Details on how to install and configure Elasti can be found in the [Getting Started](./docs/getting-started.md) guide.
+Details on how to install and configure KubeElasti can be found in the [Getting Started](./docs/getting-started.md) guide.
 
-# Configure Elasti
+# Configure KubeElasti
 
-Check out the different ways to configure Elasti in the [Configuration](./docs/configure-elastiservice.md) guide.
+Check out the different ways to configure KubeElasti in the [Configuration](./docs/configure-elastiservice.md) guide.
 
 # Monitoring
 
@@ -78,12 +78,12 @@ Contribution details can be found in the [Contribution](./CONTRIBUTING.md) guide
 
 # Getting Help
 
-We have a dedicated [Discussions](https://github.com/truefoundry/elasti/discussions) section for getting help and discussing ideas.
+We have a dedicated [Discussions](https://github.com/truefoundry/KubeElasti/discussions) section for getting help and discussing ideas.
 
 # Roadmap
 
-We are maintaining the future roadmap using the [issues](https://github.com/truefoundry/elasti/issues) and [milestones](https://github.com/truefoundry/elasti/milestones). You can also suggest ideas and vote for them by adding a 👍 reaction to the issue.
+We are maintaining the future roadmap using the [issues](https://github.com/truefoundry/KubeElasti/issues) and [milestones](https://github.com/truefoundry/KubeElasti/milestones). You can also suggest ideas and vote for them by adding a 👍 reaction to the issue.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=truefoundry/elasti&type=Date)](https://www.star-history.com/#truefoundry/elasti&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=truefoundry/KubeElasti&type=Date)](https://www.star-history.com/#truefoundry/KubeElasti&Date)

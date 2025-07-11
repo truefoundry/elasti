@@ -1,8 +1,9 @@
 # Introduction
 
-KubeElasti(Sometimes referred to as just "Elasti") is a Kubernetes-native solution that offers scale-to-zero functionality when there is no traffic and automatic scale up to 0 when traffic arrives. Most Kubernetes autoscaling solutions like HPA or Keda can scale from 1 to n replicas based on cpu utilization or memory usage. However, these solutions do not offer a way to scale to 0 when there is no traffic. KubeElasti solves this problem by dynamically managing service replicas based on real-time traffic conditions. It only handles scaling the application down to 0 replicas and scaling it back up to 1 replica when traffic is detected again. The scaling after 1 replica is handled by the autoscaler like HPA or Keda.
+KubeElasti(Sometimes referred to as just "Elasti") is a Kubernetes-native solution that offers scale-to-zero functionality when there is no traffic and automatically scales **up from 0** when traffic arrives. Most Kubernetes autoscaling solutions like HPA or Keda can scale from 1 to n replicas based on cpu utilization or memory usage. However, these solutions do not offer a way to scale to 0 when there is no traffic. KubeElasti solves this problem by dynamically managing service replicas based on real-time traffic conditions. It only handles scaling the application down to 0 replicas and scaling it back up to 1 replica when traffic is detected again. The scaling after 1 replica is handled by the autoscaler like HPA or Keda.
 
-> The name Elasti comes from a superhero "Elasti-Girl" from DC Comics. Her superpower is to expand or shrink her body at will—from hundreds of feet tall to mere inches in height. Kube just refers to kubernetes. Elasti powers in kubernetes! 
+!!! Info
+    The name Elasti comes from a superhero "Elasti-Girl" from DC Comics. Her superpower is to expand or shrink her body at will—from hundreds of feet tall to mere inches in height. "Kube" refers to Kubernetes, while "Elasti" highlights elastic scaling super-powers.
 
 KubeElasti uses a proxy mechanism that queues and holds requests for scaled-down services, bringing them up only when needed. The proxy is used only when the service is scaled down to 0. When the service is scaled up to 1, the proxy is disabled and the requests are processed directly by the pods of the service.
 
@@ -23,9 +24,44 @@ KubeElasti continuously monitors an ElastiService by evaluating a set of custom 
   In Serve Mode, the active service handles all incoming traffic directly. Meanwhile, any queued requests accumulated during Proxy Mode are processed, ensuring a seamless return to full operational capacity.
 
 This allows KubeElasti to optimize resource consumption by scaling services down when unneeded, while its request queueing mechanism preserves user interactions and guarantees prompt service availability when conditions change.
-<div align="center">
-<img src="../images/modes.png" width="600">
-</div>
+
+``` mermaid
+---
+title: Lifecycle modes of KubeElasti (Proxy, Serve)
+displayMode: compact
+config:
+  layout: elk
+  look: classic
+  theme: dark
+---
+
+flowchart TB
+    %% Proxy Mode
+    subgraph Proxy_Mode["Proxy Mode | Pods = 0"]
+        direction TB
+        Service1[Service]
+        Proxy[Elasti Proxy]
+        Pod1[Pod]
+        
+        Service1 -->|Traffic| Proxy
+        Proxy -->|1: Queue Req if Pod = 0| Proxy
+        Proxy -->|2: Scale| Pod1
+        Proxy -->|3: Send Req| Pod1
+    end
+
+    %% Serve Mode
+    subgraph Serve_Mode["Serve Mode | Pods ≥ 1"]
+        direction TB
+        Service2[Service]
+        Pod2[Pod]
+
+        Service2 -->|1: Req Sent| Pod2
+    end
+
+
+
+
+```
 
 ## Key Features
 

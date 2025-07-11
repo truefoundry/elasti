@@ -8,9 +8,8 @@ extra_css:
   - stylesheets/extra.css
 
 # Repository
-repo_name: truefoundry/elasti
-repo_url: https://github.com/truefoundry/elasti
-
+repo_name: truefoundry/KubeElasti
+repo_url: https://github.com/truefoundry/KubeElasti
 
 # Copyright
 copyright: Copyright &copy; 2025 TrueFoundry
@@ -22,6 +21,20 @@ theme:
   font:
     text: Helvetica
     code: Helvetica Mono
+  # icon:
+  #   admonition:
+  #     note: octicons/tag-16
+  #     abstract: octicons/checklist-16
+  #     info: octicons/info-16
+  #     tip: octicons/squirrel-16
+  #     success: octicons/check-16
+  #     question: octicons/question-16
+  #     warning: octicons/alert-16
+  #     failure: octicons/x-circle-16
+  #     danger: octicons/zap-16
+  #     bug: octicons/bug-16
+  #     example: octicons/beaker-16
+  #     quote: octicons/quote-16
   features:
     # - announce.dismiss
     # - content.action.edit
@@ -30,7 +43,7 @@ theme:
     - content.code.copy
     # - content.code.select
     # - content.footnote.tooltips
-    # - content.tabs.link
+    - content.tabs.link
     - content.tooltips
     # - header.autohide
     # - navigation.expand
@@ -67,6 +80,9 @@ theme:
         name: Switch to system preference
 
 markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
   - attr_list
   - md_in_html
   - pymdownx.blocks.caption
@@ -77,12 +93,17 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
-Plugins: 
+plugins:
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
-  - minify:
-      minify_html: true
 
 # Additional configuration
 extra:
@@ -92,20 +113,23 @@ extra:
     - icon: fontawesome/brands/x-twitter
       link: https://x.com/truefoundry
 
-
 # Page tree
 nav:
   - Home: index.md
-  - Getting started: 
-    - Introduction: introduction.md
-    - Setup: getting-started.md
-    - Configuration: configure-elastiservice.md
-  - Architecture: 
-    - Overview: architecture.md
-    - Monitoring: monitoring.md
-  - Integrations: 
-    - HPA: integration-hpa.md
-    - Keda: integration-keda.md
-  - Comparisons: comparisons.md
-  - Development: development.md
-
+  - Getting started:
+      - Introduction: src/introduction.md
+      - Getting Started: src/getting-started.md
+      - Configuration: src/configure-elastiservice.md
+  - Architecture:
+      - Overview: src/architecture.md
+      - Monitoring: src/arch-monitoring.md
+  - Integrations:
+      - HPA: src/integration-hpa.md
+      - Keda: src/integration-keda.md
+  - Comparisons: src/comparisons.md
+  - Development:
+      - Dev Environment: src/dev-env.md
+      - Playground: src/dev-playground.md
+      - Load Testing: src/dev-test-load.md
+      - E2E Testing: src/dev-test-e2e.md
+      - Test Monitoring: src/dev-test-monitoring.md

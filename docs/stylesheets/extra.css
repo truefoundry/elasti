@@ -9,7 +9,7 @@
     --elasti-secondary: #6366F1;
     --elasti-accent: #818CF8;
     --elasti-light: #F5F5F5;
-    --elasti-dark: #100b28;
+    --elasti-dark: #161616;
     --elasti-text-light: #FFFFFF;
     --elasti-text-dark: #000;
     --section-padding: 5rem 2rem;
@@ -39,14 +39,14 @@
   
 
   /* Tame the footer and make the prev/next stand out */
-.md-footer {
+/* .md-footer {
     background-color: var(--elasti-dark);
     color: var(--elasti-text-light);
-  }
+  } */
   
   
   .md-footer-meta {
-    background-color: var(--elasti-dark);
+    /* background-color: var(--elasti-dark); */
     width: 100%;
   }
   
@@ -72,6 +72,7 @@
 .md-content__inner {
   padding: 0;
   margin: 0;
+  margin-bottom: 3rem;
 }
 
 .md-content__inner > h1:first-child {
@@ -624,7 +625,7 @@
 /* Community Section */
 .community-section {
   padding: var(--section-padding);
-  /* background-color: var(--section-bg-alt); */
+  background-color: var(--section-bg-alt);
   text-align: center;
   position: relative;
 }
@@ -718,8 +719,8 @@
 /* Footer CTA */
 .footer-cta {
   padding: var(--section-padding);
-  background: var(--gradient-primary);
-  border-radius: 40px 40px 0 0;
+  background: var(--elasti-dark);
+  border-radius: 20px;
   color: var(--elasti-text-light);
   text-align: center;
   position: relative;
@@ -734,7 +735,7 @@
   right: 0;
   bottom: 0;
   /* background: radial-gradient(circle at center, #100b28 0%, transparent 50%); */
-  background: linear-gradient(360deg, #100b28 0%, var(--elasti-primary) 100%);
+  background: linear-gradient(360deg, var(--elasti-dark) 0%, var(--elasti-primary) 100%);
   z-index: 0;
 }
 

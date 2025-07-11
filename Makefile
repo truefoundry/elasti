@@ -48,9 +48,13 @@ test-pkg: ## Run pkg tests
 
 .PHONY: serve-docs 
 serve-docs: ## Serve docs
+	@command -v mkdocs >/dev/null 2>&1 || { \
+	  echo "mkdocs not found - please install it (pip install mkdocs-material)"; exit 1; } ; \
 	mkdocs serve
 	
 .PHONY: build-docs
 build-docs: ## Build docs
+	@command -v mkdocs >/dev/null 2>&1 || { \
+	  echo "mkdocs not found - please install it (pip install mkdocs-material)"; exit 1; } ; \
 	mkdocs build
 

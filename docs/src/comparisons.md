@@ -6,7 +6,7 @@ title: Comparisons with Other Solutions
 
 This document compares KubeElasti with other popular serverless and scale-to-zero solutions in the Kubernetes ecosystem.
 
-## Knative
+## **Knative**
 
 ### Overview
 Knative is a comprehensive platform for deploying and managing serverless workloads on Kubernetes. It provides a complete serverless experience with features like scale-to-zero, request-based autoscaling, and traffic management.
@@ -16,7 +16,7 @@ Knative is a comprehensive platform for deploying and managing serverless worklo
 - **Integration**: Knative requires services to be deployed as Knative services. KubeElasti works with existing Kubernetes deployments and Argo Rollouts without modification.
 - **Learning Curve**: Knative has a steeper learning curve due to its many concepts and components. KubeElasti follows familiar Kubernetes patterns with simple CRD-based configuration.
 
-## OpenFaaS
+## **OpenFaaS**
 
 ### Overview
 OpenFaaS is a framework for building serverless functions with Docker and Kubernetes, making it easy to deploy serverless functions to any cloud or on-premises.
@@ -26,32 +26,33 @@ OpenFaaS is a framework for building serverless functions with Docker and Kubern
 - **Architecture**: OpenFaaS requires functions to be written and packaged in a specific way. KubeElasti works with any HTTP service without code changes.
 - **Scaling**: OpenFaaS uses its own scaling mechanisms. KubeElasti integrates with existing autoscalers (HPA/KEDA) while adding scale-to-zero capability.
 
-## KEDA HTTP Add-on
+## **KEDA HTTP Add-on**
 
 ### Overview
 KEDA HTTP Add-on is an extension to KEDA that enables HTTP-based scaling, including scale-to-zero functionality.
 
 ### Key Differences
 - **Request Handling**: 
-  - KEDA http add-on inserts itself in the http path and handles requests even when the service has been scaled up.
-  - KubeElasti takes itself out of the http path once the service has been scaled up.
+    - KEDA http add-on inserts itself in the http path and handles requests even when the service has been scaled up.
+    - KubeElasti takes itself out of the http path once the service has been scaled up.
 - **Integration**:
-  - KEDA HTTP Add-on requires KEDA installation and configuration.
-  - KubeElasti can work standalone or integrate with KEDA if needed.
+    - KEDA HTTP Add-on requires KEDA installation and configuration.
+    - KubeElasti can work standalone or integrate with KEDA if needed.
 
-## Feature Comparison Table
+## **Feature Comparison Table**
 
 | Feature | KubeElasti | Knative | OpenFaaS | KEDA HTTP Add-on |
 |---------|---------|----------|-----------|------------------|
 | Scale to Zero | ✅ | ✅ | ✅ | ✅ |
 | Works with Existing Services | ✅ | ❌ | ❌ | ✅ |
 | Resource Footprint | Low | High | Medium | Low |
-| Request queueing	| ✅	| ❌ (drops or delays)	| ✅	| ❌	
+| Request queueing | ✅ | ❌ (drops or delays) | ✅ | ❌ |
 | Setup Complexity | Low | High | Medium | Medium |
 
-## When to Choose KubeElasti
+## **When to Choose KubeElasti**
 
 KubeElasti is the best choice when you:
+
 1. Need to add scale-to-zero capability to existing HTTP services
 2. Want to ensure zero request loss during scaling operations
 3. Prefer a lightweight solution with minimal configuration

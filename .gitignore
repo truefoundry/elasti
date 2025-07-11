@@ -10,4 +10,4 @@ namespace.yaml
 install.yaml
 kubeconfig
 report.html
-site
+site/

@@ -69,7 +69,7 @@ This will deploy a nginx ingress controller in the `ingress-nginx` namespace.
 
 We will use a sample httpbin service to demonstrate how to configure a service to handle its traffic via elasti.
 
-```bash
+```shell
 kubectl create namespace elasti-demo
 kubectl apply -n elasti-demo -f https://raw.githubusercontent.com/truefoundry/KubeElasti/refs/heads/main/playground/config/demo-application.yaml
 ```
@@ -81,7 +81,7 @@ This will deploy a httpbin service in the `elasti-demo` namespace.
 To configure a service to handle its traffic via elasti, you'll need to create and apply a `ElastiService` custom resource:
   
 Create a file named `httpbin-elasti.yaml` and apply the configuration.
-```yaml
+```yaml title="httpbin-elasti.yaml" linenums="1"
 apiVersion: elasti.truefoundry.com/v1alpha1
 kind: ElastiService
 metadata:
