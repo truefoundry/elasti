@@ -6,5 +6,4 @@ This will create two ServiceMonitor custom resources to enable Prometheus to dis
 
 Once verification is complete, you can use the [provided Grafana dashboard](https://github.com/truefoundry/KubeElasti/blob/main/playground/infra/elasti-dashboard.yaml) to monitor the internal metrics and performance of KubeElasti.
 
-
 ![Grafana dashboard](../../images/grafana-dashboard.png)

@@ -81,6 +81,7 @@ This will deploy a httpbin service in the `elasti-demo` namespace.
 To configure a service to handle its traffic via elasti, you'll need to create and apply a `ElastiService` custom resource:
   
 Create a file named `httpbin-elasti.yaml` and apply the configuration.
+
 ```yaml title="httpbin-elasti.yaml" linenums="1"
 apiVersion: elasti.truefoundry.com/v1alpha1
 kind: ElastiService

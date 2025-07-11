@@ -2,7 +2,7 @@
 
 To enable scale to 0 on any deployment, we will need to create an ElastiService custom resource for that deployment. 
 
-A ElastiService custom resource has the following structure:
+An ElastiService custom resource has the following structure:
 
 ```yaml title="elasti-service.yaml" linenums="1"
 apiVersion: elasti.truefoundry.com/v1alpha1
@@ -34,7 +34,7 @@ spec:
 3. Replace it with the min replicas to bring up when first request arrives. Minimum: 1
 4. Replace it with the cooldown period to wait after scaling up before considering scale down. Default: 900 seconds (15 minutes) | Maximum: 604800 seconds (7 days) | Minimum: 1 second (1 second)
 5. ApiVersion should be `apps/v1` if you are using deployments or `argoproj.io/v1alpha1` in case you are using argo-rollouts. 
-6. Kind should be either be `deployments` or `rollouts` (in case you are using Argo Rollouts). 
+6. Kind should be either `Deployment` or `Rollout` (in case you are using Argo Rollouts).
 7. Name should exactly match the name of the deployment or rollout.
 8. Replace it with the trigger type. Currently, KubeElasti supports only one trigger type - `prometheus`. 
 9. Replace it with the trigger query. In this case, it is the number of requests per second.
@@ -65,7 +65,7 @@ The key fields to be specified in the spec are:
 
 ## Configuration Explanation
 
-The section below explains how are the different configuration options used in Elasti.
+The section below explains how the different configuration options are used in KubeElasti.
 
 ### Which service KubeElasti should manage
 

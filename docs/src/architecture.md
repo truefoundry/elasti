@@ -69,14 +69,6 @@ class Operator,Resolver control
 ## Operator Architecture
 
 ``` mermaid
----
-title: Operator Architecture
-displayMode: compact
-config:
-  layout: dagre
-  look: classic
-  theme: forest
----
 
 flowchart LR
 
@@ -211,11 +203,10 @@ When we enable KubeElasti on a service, the service operates in 3 modes:
 2. **Scale Down to 0**: The service hasn't received any traffic for the configured duration and can be scaled down to 0.
 3. **Scale up from 0**: The service receives traffic again and can be scaled up to the configured minTargetReplicas.
 
-<br><br>
 
 ### Steady state flow of requests to service
 
-In this mode, all requests are handled directly by the service pods; the KubeElasti **resolver** doesn't come into the picture. KubeElasti controller keeps polling prometheus with the configured query and check the result with threshold value to see if the service can be scaled down.
+In this mode, all requests are handled directly by the service pods; the KubeElasti **resolver** doesn't come into the picture. KubeElasti controller keeps polling Prometheus with the configured query and check the result with threshold value to see if the service can be scaled down.
 
 ``` mermaid
 ---
@@ -272,7 +263,7 @@ graph LR
 
 ```
 
-### Scale up from 0 when the first request arrives.
+### Scale up from 0 when the first request arrives
 
 Since the service is scaled down to 0, all requests will hit the KubeElasti resolver. When the first request arrives, KubeElasti will scale up the service to the configured minTargetReplicas. It then resumes Keda to continue autoscaling in case there is a sudden burst of requests. It also changes the service to point to the actual service pods once the pod is up. The requests which came to KubeElasti Resolver are retried till 5 mins and the response is sent back to the client. If the pod takes more than 5 mins to come up, the request is dropped.
 

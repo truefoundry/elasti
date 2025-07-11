@@ -4,9 +4,6 @@ hide:
   - toc
 ---
 
-
-
-
 <!-- Hero Section -->
 <div class="hero-section">
   <div class="hero-content">
@@ -24,7 +21,7 @@ hide:
     </div>
   </div>
   <div class="hero-image">
-    <img src="images/hero.png" alt="KubeElasti Modes">
+    <img src="images/hero.png" alt="Illustration of KubeElasti scale-to-zero lifecycle">
   </div>
 </div>
 
@@ -118,8 +115,6 @@ hide:
 <!-- Get Started Section -->
 <div class="get-started-section">
   <h2>Get Started with 2 Commands</h2>
-  
-     
   <div class="get-started-steps">
     <div class="code-block">
       <pre><code> <span class="gray"># Install KubeElasti</span>
@@ -185,5 +180,3 @@ spec:
   <h2>Ready to optimize your Kubernetes resources?</h2>
   <a href="getting-started/" class="md-button md-button--primary">Get Started with KubeElasti</a>
 </div>
-
-

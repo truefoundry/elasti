@@ -6,7 +6,6 @@
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 
-
 # Install the kube-prometheus-stack chart. This chart includes Prometheus and Grafana.
 kubectl create namespace prometheus
 helm install prometheus-stack prometheus-community/kube-prometheus-stack -n prometheus
@@ -20,6 +19,6 @@ kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="
 kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
-Post this, you can use [`./playground/infra/elasti-dashboard.yaml`](https://github.com/truefoundry/KubeElasti/blob/main/playground/infra/elasti-dashboard.yaml) to import the KubeElasti dashboard.
+After this, you can use [`./playground/infra/elasti-dashboard.yaml`](https://github.com/truefoundry/KubeElasti/blob/main/playground/infra/elasti-dashboard.yaml) to import the KubeElasti dashboard.
 
 

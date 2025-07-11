@@ -50,7 +50,6 @@
     width: 100%;
   }
   
-  a.md-header__button.md-logo :-webkit-any(img, svg),
   a.md-header__button.md-logo :is(img, svg),
   a.md-header__button.md-logo img {
     width: 1.8rem;
@@ -159,7 +158,6 @@
 .hero-logo-title {
   display: flex;
   align-items: center;
-  animation-delay: 0.2s;
   animation: fadeIn 0.8s ease-out 0.2s both;
   margin-bottom:20px;
 }
@@ -625,7 +623,7 @@
 /* Community Section */
 .community-section {
   padding: var(--section-padding);
-  background-color: var(--section-bg-alt);
+  /* background-color: var(--section-bg-alt); */
   text-align: center;
   position: relative;
 }
@@ -685,6 +683,7 @@
   opacity: 0;
   transform: translateY(20px);
   animation: fadeIn 0.6s ease-out forwards;
+  cursor: pointer;
 }
 
 .community-link:nth-child(1) { animation-delay: 0.1s; }
@@ -801,7 +800,7 @@
   }
   
   .community-link {
-    width: 120px;
+    min-width: 120px;
   }
   
   .step {

@@ -8,7 +8,7 @@ Ensure you have the following tools installed:
 
 - **Go:** The programming language used for Elasti. Download and install it from [golang.org](https://golang.org/dl/).
 - **Docker:** For containerization and building Docker images. Install it from [docker.com](https://www.docker.com/get-started).
-- **kubectl:**: Command-line tool for interacting with Kubernetes. Install it from [kubernetes.io](https://kubernetes.io/docs/tasks/tools/).
+- **kubectl:** Command-line tool for interacting with Kubernetes. Install it from [kubernetes.io](https://kubernetes.io/docs/tasks/tools/).
 - **Helm:** Package manager for Kubernetes. Install it from [helm.sh](https://helm.sh/docs/intro/install/).
 - **Docker Desktop/Kind/Minikube:** A local kubernetes cluster. Make sure you have the local cluster running before development.
 - **Make:** Helps in working with the project.
@@ -24,7 +24,7 @@ git clone https://github.com/truefoundry/KubeElasti.git
 cd KubeElasti
 ```
 
-!!! tip "Make sure you checkout the documentation and architecture before making your changes."
+!!! tip "Make sure you check out the documentation and architecture before making your changes."
 
 ## 3. Repository Structure
 
@@ -47,7 +47,7 @@ Understanding the repository structure will help you navigate and contribute eff
 └── test
 ```
 
-2 Main Modules:
+### Main Modules:
 
 - **`./operator`:** Contains the code for Kubernetes operator, created using kubebuilder.
   ```
@@ -70,7 +70,7 @@ Understanding the repository structure will help you navigate and contribute eff
 - **`./resolver`:** Contains the code for resolver.
   - File structure of it is similar to that of Operator.
 
-Other Directories:
+### Other Directories:
 
 - **`./playground`:** Code to setup a playground to try and test KubeElasti.
 - **`./test`:** Load testing scripts.

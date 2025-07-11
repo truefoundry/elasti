@@ -67,19 +67,19 @@ graph TD
     F --> Ga1[Test 01-Scenario-y]
     F --> Gb1[Test 02-Scenario-z]
 
-    subgraph "Parallel Test Execution"
+    subgraph "Parallel 0 Test Execution"
     G1 --> G2[01-Step]
     G2 --> G3[02-Step]
     G3 --> G4[03-Step]
     end
 
-    subgraph "Parallel Test Execution"
+    subgraph "Parallel 1 Test Execution"
     Ga1 --> Ga2[01-Step]
     Ga2 --> Ga3[02-Step]
     Ga3 --> Ga4[03-Step]
     end
 
-    subgraph "Parallel Test Execution"
+    subgraph "Parallel 2 Test Execution"
     Gb1 --> Gb2[01-Step]
     Gb2 --> Gb3[02-Step]
     Gb3 --> Gb4[03-Step]
@@ -198,7 +198,7 @@ status:
 ```
 
 !!! tip 
-    Refer to [Kuttle Docs](https://kuttl.dev/docs/testing/steps.html#format) for more information.
+    Refer to [KUTTL Docs](https://kuttl.dev/docs/testing/steps.html#format) for more information.
 
 ## Tips for Writing KUTTL Tests
 

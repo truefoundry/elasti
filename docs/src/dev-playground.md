@@ -1,3 +1,5 @@
+# Playground
+
 ## 1. Local Cluster
 
 If you don't already have a local Kubernetes cluster, you can set one up using Minikube, Kind or Docker-Desktop:
@@ -25,7 +27,7 @@ If you don't already have a local Kubernetes cluster, you can set one up using M
 
 Run a local Docker registry container, to push our images locally and access them in our cluster.
 
-```
+``` bash
 docker run -d -p 5001:5000 --name registry registry:2
 ```
 
@@ -41,7 +43,7 @@ docker run -d -p 5001:5000 --name registry registry:2
 === "NGINX"
 
       Install the NGINX Ingress Controller using Helm:
-      ```shell
+      ```bash
       helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
       helm repo update
       kubectl create namespace nginx
@@ -109,7 +111,7 @@ If you want to enable monitoring, please make `enableMonitoring` true in the val
 
 ## 8. Create ElastiService Resource
 
-Using the [ElastiService Defination](./configure-elastiservice.md#configure-elastiservice), create a manifest file for your service and apply it. For demo, we use the below manifest.
+Using the [ElastiService Definition](./configure-elastiservice.md#configure-elastiservice), create a manifest file for your service and apply it. For demo, we use the below manifest.
 
 ```bash
 kubectl -n demo apply -f ./playground/config/demo-elastiService.yaml
