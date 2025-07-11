@@ -208,15 +208,13 @@ graph LR
 
 When we enable KubeElasti on a service, the service operates in 3 modes:
 
-
 1. **Steady State**: The service is receiving traffic and doesn't need to be scaled down to 0.
 2. **Scale Down to 0**: The service hasn't received any traffic for the configured duration and can be scaled down to 0.
 3. **Scale up from 0**: The service receives traffic again and can be scaled up to the configured minTargetReplicas.
 
-
 ### Steady state flow of requests to service
 
-In this mode, all requests are handled directly by the service pods; the KubeElasti **resolver** doesn't come into the picture. KubeElasti controller keeps polling Prometheus with the configured query and check the result with threshold value to see if the service can be scaled down.
+In this mode, all requests are handled directly by the service pods; the KubeElasti **resolver** is not involved. The KubeElasti controller continually polls Prometheus with the configured query and checks the result against the threshold value to decide whether the service can be scaled down.
 
 ``` mermaid
 ---
@@ -246,7 +244,7 @@ graph LR
 
 ### Scale down to 0 when there are no requests
 
-If the query from prometheus returns a value less than the threshold, KubeElasti will scale down the service to 0. Before it scales to 0, it redirects the requests to be forwarded to the KubeElasti resolver and then modified the Rollout/deployment to have 0 replicas. It also then pauses Keda (if Keda is being used) to prevent it from scaling the service up since Keda is configured with minReplicas as 1. 
+If the query from prometheus returns a value less than the threshold, KubeElasti will scale down the service to 0. Before it scales to 0, it redirects all requests to the KubeElasti resolver, then sets the rollout/deployment replicas to 0. It also pauses KEDA (if in use) to prevent it from scaling the service up, because KEDA is configured with `minReplicas: 1`.
 
 ``` mermaid
 ---
@@ -275,7 +273,7 @@ graph LR
 
 ### Scale up from 0 when the first request arrives
 
-Since the service is scaled down to 0, all requests will hit the KubeElasti resolver. When the first request arrives, KubeElasti will scale up the service to the configured minTargetReplicas. It then resumes Keda to continue autoscaling in case there is a sudden burst of requests. It also changes the service to point to the actual service pods once the pod is up. The requests which came to KubeElasti Resolver are retried till 5 mins and the response is sent back to the client. If the pod takes more than 5 mins to come up, the request is dropped.
+Since the service is scaled down to 0, all requests will hit the KubeElasti resolver. When the first request arrives, KubeElasti will scale up the service to the configured minTargetReplicas. It then resumes Keda to continue autoscaling in case there is a sudden burst of requests. It also changes the service to point to the actual service pods once the pod is up. Requests reaching the KubeElasti resolver are retried for up to five minutes before a response is returned to the client. If the pod takes more than 5 mins to come up, the request is dropped.
 
 ``` mermaid
 ---

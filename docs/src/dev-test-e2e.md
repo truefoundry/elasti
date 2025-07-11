@@ -1,7 +1,7 @@
 
 # End-to-End Testing
 
-Use the KUTTL framework to execute Elasti's end-to-end tests in a real Kubernetes environment:
+Use the KUTTL framework to execute KubeElasti end-to-end tests in a real Kubernetes environment:
 
 ```bash
 cd ./tests/e2e
@@ -32,7 +32,7 @@ The E2E testing pipeline follows these detailed steps:
     1. **Istio Ingress**: Sets up the ingress gateway for routing external traffic
     2. **Prometheus**: Installed for metrics collection (without Grafana to reduce overhead)
     3. **KEDA**: Installed for event-driven autoscaling capabilities
-    4. **Elasti**: The operator and CRDs are installed using Helm
+    4. **KubeElasti**: The operator and CRDs are installed using Helm
 
 5. **Test Initialization**
     1. Persistent, lightweight resources are applied via the `kuttl-test.yaml` config

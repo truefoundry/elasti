@@ -20,5 +20,3 @@ kubectl get secret --namespace prometheus prometheus-stack-grafana -o jsonpath="
 ```
 
 After this, you can use [`./playground/infra/elasti-dashboard.yaml`](https://github.com/truefoundry/KubeElasti/blob/main/playground/infra/elasti-dashboard.yaml) to import the KubeElasti dashboard.
-
-

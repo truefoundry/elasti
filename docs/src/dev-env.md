@@ -19,7 +19,7 @@ Ensure you have the following tools installed:
 
 Clone the KubeElasti repository from GitHub to your local machine:
 
-```
+```bash
 git clone https://github.com/truefoundry/KubeElasti.git
 cd KubeElasti
 ```
@@ -30,7 +30,7 @@ cd KubeElasti
 
 Understanding the repository structure will help you navigate and contribute effectively to the KubeElasti project. Below is an overview of the key directories and files in the repository:
 
-```
+```bash
 .
 ├── LICENSE
 ├── Makefile
@@ -47,10 +47,10 @@ Understanding the repository structure will help you navigate and contribute eff
 └── test
 ```
 
-### Main Modules:
+### Main Modules
 
 - **`./operator`:** Contains the code for Kubernetes operator, created using kubebuilder.
-  ```
+  ```bash
   .
   ├── Dockerfile
   ├── Makefile
@@ -74,6 +74,6 @@ Understanding the repository structure will help you navigate and contribute eff
 
 - **`./playground`:** Code to setup a playground to try and test KubeElasti.
 - **`./test`:** Load testing scripts.
-- **`./pkg`:** Common packages, shared via Operator and Resolve.
+- **`./pkg`:** Common packages, shared by Operator and Resolve.
 - **`./charts`:** Helm chart template.
 - **`./docs`:** Detailed documentation on the HLD, LLD and Architecture of KubeElasti.

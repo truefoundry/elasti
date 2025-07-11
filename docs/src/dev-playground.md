@@ -20,9 +20,6 @@ If you don't already have a local Kubernetes cluster, you can set one up using M
 
     Enable it in Docker-Desktop
 
-
-
-
 ## 2. Start a Local Docker Registry
 
 Run a local Docker registry container, to push our images locally and access them in our cluster.
