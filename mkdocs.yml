@@ -1,6 +1,6 @@
 # Site
 site_name: KubeElasti
-site_url: https://truefoundry.github.io/KubeElasti/
+site_url: https://kubeelasti.dev/
 site_author: TrueFoundry
 site_description: >-
   KubeElasti is a Kubernetes operator that automatically scales-to-zero your services when they are idle and scales them back up when they receive traffic.

@@ -7,9 +7,8 @@ KubeElasti comprises two main components: operator and resolver.
 
 - **Resolver**: A service that intercepts incoming requests for scaled-down services, queues them, and notifies the elasti-controller to scale up the target service.
 
-
 ``` mermaid
-graph TB
+graph LR
   %% ───────────────────────────
   %%  SUBGRAPHS (logical zones)
   %% ───────────────────────────
