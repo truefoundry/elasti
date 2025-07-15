@@ -1,5 +1,5 @@
 <p align="center">
-<img src="./docs/logo/banner.png" alt="elasti icon">
+<img src="./docs/images/logo/banner.png" alt="elasti icon">
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@ Kubernetes clusters can become costly, especially when running multiple services
 > KubeElasti(Sometimes referred to as just "Elasti").
 
 <div align="center">
-  <img src="./docs/assets/intro.png" alt="Illustration of Elasti's active vs. serverless modes">
+  <img src="./docs/images/intro.png" alt="Illustration of Elasti's active vs. serverless modes">
 </div>
 
 # Contents
@@ -45,7 +45,7 @@ KubeElasti is a Kubernetes-native solution that offers scale-to-zero functionali
 KubeElasti uses a proxy mechanism that queues and holds requests for scaled-down services, bringing them up only when needed. The proxy is used only when the service is scaled down to 0. When the service is scaled up to 1, the proxy is disabled and the requests are processed directly by the pods of the service.
 
 <div align="center">
-<img src="./docs/assets/modes.png" width="400px">
+<img src="./docs/images/modes.png" width="400px">
 </div>
 
 ## Key Features
