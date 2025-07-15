@@ -3,14 +3,18 @@ kind: TestSuite
 startKIND: false
 testDirs:
   - ./tests/
-timeout: 30
+timeout: 60
 parallel: 1
 commands:
   - command: kubectl apply -f ./manifest/istio-gateway.yaml -n istio-system
-    namespaced: true
+    namespaced: false
   - command: kubectl apply -f ./manifest/target-deployment.yaml -n target
-    namespaced: true
+    namespaced: false
+  - command: kubectl apply -f ./manifest/keda-scaledObject-Target.yaml -n target
+    namespaced: false
   - command: kubectl apply -f ./manifest/target-virtualService.yaml -n istio-system
-    namespaced: true
+    namespaced: false
   - command: kubectl apply -f ./manifest/target-elastiservice.yaml -n target
-    namespaced: true
+    namespaced: false
+  - command: ./manifest/reset.sh ./manifest
+    namespaced: false

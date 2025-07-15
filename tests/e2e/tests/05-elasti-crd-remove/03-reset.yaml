@@ -1,0 +1,9 @@
+#I know this is weird, but we are doing it: 
+# - To get controller to create the private service. 
+# - It doesn't create it unless the proxy hasn't been enabled atleast once. 
+
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: ../../manifest/reset.sh ../../manifest
+    namespaced: false

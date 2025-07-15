@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: target-deployment
+  namespace: target
+spec:
+  selector:
+    app: target-deployment
+    test-label: test-label
+  ports:
+    - port: 85
+      protocol: TCP
+      targetPort: 1111

@@ -3,3 +3,4 @@ kind: TestStep
 script: |
   #!/bin/sh
   kubectl scale deployment target-deployment -n target --replicas=1
+  kubectl wait pods -l app=target-deployment -n target --for=condition=Ready --timeout=60s
