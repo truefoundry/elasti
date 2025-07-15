@@ -94,7 +94,7 @@ sequenceDiagram
     Note right of Operator: If not traffic received for the configured <br> time period, Operator will switch to proxy mode.
 
     Operator->>TargetService: Scale replicas to 0
-    Operator->>ElastiCRD: Swtich to proxy mode.
+    Operator->>ElastiCRD: Switch to proxy mode.
     end
 ```
 
@@ -107,11 +107,11 @@ sequenceDiagram
 
 Note right of Operator: When in Proxy Mode
 
-    Operator->>Endpointslice: Create Endpointslice for TargetService<br> which we want to point to resolver POD IPs
+    Operator->>EndpointSlice: Create EndpointSlice for TargetService<br> which we want to point to resolver POD IPs
 
     loop Background Tasks
     Operator-->>Resolver: Watch Resolver POD IPs for changes
-    Operator-->>Endpointslice: Update Endpointslice with new POD IPs
+    Operator-->>EndpointSlice: Update EndpointSlice with new POD IPs
     end
 ```
 

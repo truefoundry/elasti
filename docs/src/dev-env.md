@@ -70,7 +70,7 @@ Understanding the repository structure will help you navigate and contribute eff
 - **`./resolver`:** Contains the code for resolver.
   - File structure of it is similar to that of Operator.
 
-### Other Directories:
+### Other Directories
 
 - **`./playground`:** Code to setup a playground to try and test KubeElasti.
 - **`./test`:** Load testing scripts.

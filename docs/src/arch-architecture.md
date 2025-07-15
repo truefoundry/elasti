@@ -1,6 +1,6 @@
 # KubeElasti Architecture
 
-<img src="../../images/hld.png" alt="Unified Architecture of KubeElasti" >
+![Unified Architecture of KubeElasti](../../images/hld.png)
 
 KubeElasti comprises two main components: operator and resolver.
 
@@ -56,7 +56,7 @@ end
   ESCRD -. "0: Watch CRD" .-> Operator
   Operator -->|4: Scale to 0| Pod
   Operator -->|3: Poll configured metric every 30 seconds to check if the service can be scaled to 0| Triggers
-  Operator -->|5: Switch to Proxy Mode| ESCRD
+  Operator -->|5: Patch CRD to Proxy Mode| ESCRD
 ```
 
 ## Architecture [Proxy Mode]

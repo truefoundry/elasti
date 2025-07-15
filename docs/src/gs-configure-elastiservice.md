@@ -83,9 +83,9 @@ This is defined using the `scaleTargetRef` field in the spec.
 This is defined using the `triggers` field in the spec. Currently, KubeElasti supports only one trigger type - `prometheus`. 
 The `metadata` section holds trigger-specific data:  
 
-* **query** - the Prometheus query to evaluate  
-* **serverAddress** - address of the Prometheus server  
-* **threshold** - numeric threshold that triggers scale-down  
+- **query** - the Prometheus query to evaluate  
+- **serverAddress** - address of the Prometheus server  
+- **threshold** - numeric threshold that triggers scale-down  
 
 For example, you can query the number of requests per second and set the threshold to `0`.  
 KubeElasti polls this metric every 30 seconds, and if the **value** is below the threshold it scales the service to 0.

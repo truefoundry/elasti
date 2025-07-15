@@ -77,7 +77,7 @@ hide:
   <h2>How It Works</h2>
   <div class="how-it-works-content">
     <div class="how-it-works-image">
-      <img src="images/modes.png" alt="KubeElasti Modes">
+      <img src="images/modes.png" alt="Diagram illustrating KubeElasti proxy and serve modes">
     </div>
     <div class="how-it-works-steps">
       <div class="step">
