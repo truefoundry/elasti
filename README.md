@@ -19,6 +19,10 @@ Kubernetes clusters can become costly, especially when running multiple services
 
 > KubeElasti(Sometimes referred to as just "Elasti").
 
+<div align="center">
+  <img src="./docs/assets/intro.png" alt="Illustration of Elasti's active vs. serverless modes">
+</div>
+
 # Contents
 
 - [Why use KubeElasti?](#why-use-kubeelasti)
