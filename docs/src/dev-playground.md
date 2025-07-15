@@ -108,7 +108,7 @@ If you want to enable monitoring, please make `enableMonitoring` true in the val
 
 ## 8. Create ElastiService Resource
 
-Using the [ElastiService Definition](./configure-elastiservice.md#configure-elastiservice), create a manifest file for your service and apply it. For demo, we use the below manifest.
+Using the [ElastiService Definition](/src/gs-configure-elastiservice/), create a manifest file for your service and apply it. For demo, we use the below manifest.
 
 ```bash
 kubectl -n demo apply -f ./playground/config/demo-elastiService.yaml
