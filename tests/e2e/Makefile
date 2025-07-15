@@ -10,14 +10,20 @@ PROMETHEUS_VERSION := 73.2.3
 KEDA_VERSION := 2.17.1
 
 
+
 .PHONY: all setup destroy reset-kind reset-setup
 all: setup test
-setup: start-registry build-images kind-up apply-deps
+setup: start-registry build-images kind-up chmod-reset apply-deps
 destroy: kind-down stop-registry 
 # in reset-kind, we destroy the cluster.
 reset-kind: kind-down kind-up apply-deps
 # In reset-setup, we destroy the whole setup, and setup again.
 reset-setup: destroy setup
+
+.PHONY: chmod-reset
+chmod-reset:
+	@echo "Creating reset executable..."
+	@chmod +x ./manifest/reset.sh
 
 .PHONY: start-registry
 start-registry: ## Setup docker registry, where we publish our images
@@ -75,7 +81,7 @@ kind-down:
 	fi
 
 .PHONY: apply-deps
-apply-deps: apply-ingress apply-prometheus apply-elasti 
+apply-deps: apply-ingress apply-prometheus apply-elasti apply-keda
 
 .PHONY: apply-elasti
 apply-elasti:
@@ -164,5 +170,14 @@ pf-ingress:
 	@echo "Portforwarding ingress gateway on port 8080..."
 	@kubectl --namespace istio-system port-forward service/istio-ingressgateway 8080:80
 
+.PHONY: lint-kube
+lint-kube:
+	@echo "Linting k8s manifests and kuttl tests..."
+	@kube-linter lint ./manifest
+	@kube-linter lint ./tests
 
-
+.PHONY: lint-yaml
+lint-yaml:
+	@echo "Linting k8s manifests and kuttl tests..."
+	@yamllint ./manifest
+	@yamllint ./tests

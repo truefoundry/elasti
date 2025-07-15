@@ -1,0 +1,26 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+script: |
+  #!/bin/sh
+  # Verify that the endpointslice contains resolver IPs
+
+  # Get resolver pod IPs
+  RESOLVER_IPS=$(kubectl get pods -n elasti -l app=elasti-resolver -o jsonpath='{.items[*].status.podIP}')
+
+  # Check if resolver IPs are present in the endpointslice
+  ENDPOINTSLICE_IPS=$(kubectl get endpointslice -n target elasti-target-deployment-endpointslice-to-resolver-9696239e87 -o jsonpath='{.endpoints[*].addresses[*]}')
+
+  # Verify that the endpointslice contains at least one resolver IP
+  echo "Resolver IPs: $RESOLVER_IPS"
+  echo "EndpointSlice IPs: $ENDPOINTSLICE_IPS"
+
+  # Check if any resolver IP is in the endpointslice
+  for IP in $RESOLVER_IPS; do
+    if echo "$ENDPOINTSLICE_IPS" | grep -q "$IP"; then
+      echo "Found resolver IP $IP in endpointslice"
+      exit 0
+    fi
+  done
+
+  echo "No resolver IPs found in endpointslice"
+  exit 1
