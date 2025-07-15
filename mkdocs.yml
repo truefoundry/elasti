@@ -103,6 +103,7 @@ plugins:
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
 
+
 # Additional configuration
 extra:
   social:
@@ -115,19 +116,22 @@ extra:
 nav:
   - Home: index.md
   - Getting started:
-      - Introduction: src/introduction.md
-      - Getting Started: src/getting-started.md
-      - Configuration: src/configure-elastiservice.md
+      - Introduction: src/gs-introduction.md
+      - Getting Started: src/gs-getting-started.md
+      - Configuration: src/gs-configure-elastiservice.md
+      - Triggers: src/gs-triggers.md
+      - Scalers: src/gs-scalers.md
   - Architecture:
-      - Overview: src/architecture.md
+      - Overview: src/arch-architecture.md
+      - Flow: src/arch-flow.md
+      - Resolver: src/arch-resolver.md
+      - Operator: src/arch-operator.md
       - Monitoring: src/arch-monitoring.md
-  - Integrations:
-      - HPA: src/integration-hpa.md
-      - Keda: src/integration-keda.md
-  - Comparisons: src/comparisons.md
   - Development:
       - Dev Environment: src/dev-env.md
       - Playground: src/dev-playground.md
       - Load Testing: src/dev-test-load.md
       - E2E Testing: src/dev-test-e2e.md
       - Test Monitoring: src/dev-test-monitoring.md
+  - Comparisons: src/comparisons.md
+

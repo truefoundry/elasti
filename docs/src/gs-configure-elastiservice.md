@@ -62,12 +62,13 @@ The key fields to be specified in the spec are:
     - `<autoscaler-type>`: keda
     - `<autoscaler-object-name>`: Name of the KEDA ScaledObject
 
+---
 
 ## Configuration Explanation
 
 The section below explains how the different configuration options are used in KubeElasti.
 
-### Which service KubeElasti should manage
+### **1. scaleTargetRef: Which service KubeElasti should manage**
 
 This is defined using the `scaleTargetRef` field in the spec. 
 
@@ -75,7 +76,9 @@ This is defined using the `scaleTargetRef` field in the spec.
 - `scaleTargetRef.apiVersion` will be `apps/v1` if you are using deployments or `argoproj.io/v1alpha1` in case you are using argo-rollouts. 
 - `scaleTargetRef.name` should exactly match the name of the deployment or rollout. 
 
-### When to scale down the service to 0
+<br>
+
+### **2. Triggers: When to scale down the service to 0**
 
 This is defined using the `triggers` field in the spec. Currently, KubeElasti supports only one trigger type - `prometheus`. 
 The `metadata` section holds trigger-specific data:  
@@ -98,6 +101,10 @@ triggers:
     threshold: 0.5
 ```
 
+<br>
+
+### **3. Scalers: How to scale up the service to 1**
+
 Once the service is scaled down to 0, we also need to pause the current autoscaler to make sure it doesn't scale up the service again. While this is not a problem with HPA, Keda will scale up the service again since the min replicas is 1. Hence, KubeElasti needs to know about the **KEDA** ScaledObject so that it can pause it. This information is provided in the `autoscaler` field of the ElastiService. Currently, the only supported autoscaler type is **keda**.
 
 ```yaml
@@ -106,7 +113,9 @@ autoscaler:
   type: keda
 ```
 
-### When to scale up the service to 1
+<br>
+
+### **4. CooldownPeriod: Minimum time (in seconds) to wait after scaling up before considering scale down**
 
 As soon as the service is scaled down to 0, KubeElasti **resolver** will start accepting requests for that service. On receiving the first request, it will scale up the service to `minTargetReplicas`. Once the pod is up, the new requests are handled by the service pods and do not pass through the elasti-resolver. The requests that came before the pod scaled up are held in memory of the elasti-resolver and are processed once the pod is up.
 

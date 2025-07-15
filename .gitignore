@@ -11,3 +11,4 @@ install.yaml
 kubeconfig
 report.html
 site/
+db-go-service

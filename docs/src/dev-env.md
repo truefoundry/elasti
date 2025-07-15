@@ -6,7 +6,7 @@ Setting up your development environment for KubeElasti involves preparing your l
 
 Ensure you have the following tools installed:
 
-- **Go:** The programming language used for Elasti. Download and install it from [golang.org](https://golang.org/dl/).
+- **Go:** The programming language used for KubeElasti. Download and install it from [golang.org](https://golang.org/dl/).
 - **Docker:** For containerization and building Docker images. Install it from [docker.com](https://www.docker.com/get-started).
 - **kubectl:** Command-line tool for interacting with Kubernetes. Install it from [kubernetes.io](https://kubernetes.io/docs/tasks/tools/).
 - **Helm:** Package manager for Kubernetes. Install it from [helm.sh](https://helm.sh/docs/intro/install/).

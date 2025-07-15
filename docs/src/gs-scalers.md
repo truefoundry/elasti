@@ -1,4 +1,15 @@
-# Integration with KEDA
+---
+title: Scalers
+---
+
+
+## Scaling with HPA
+KubeElasti works seamlessly with the Horizontal Pod Autoscaler (HPA) and handles scaling to zero on its own. Since KubeElasti manages the scale-to-zero functionality, you can configure HPA to handle scaling based on metrics for any number of replicas **greater than zero**, while KubeElasti takes care of scaling to/from zero.
+
+A setup is explained in the [getting started](getting-started.md) guide.
+
+
+## Scaling with KEDA
 KubeElasti takes care of scaling up and down a service when there is some traffic. KEDA is a good candidate for performing the scaling logic for the service from minReplicas to maxReplicas based on its triggers.
 
 Here we will see how to integrate KubeElasti with KEDA to build a complete scaling solution.

@@ -16,7 +16,7 @@ hide:
     <br><br>
     KubeElasti <b>saves cost</b> using scale-to-zero <b>without losing any requests</b>, requires <b>no code changes</b>, and integrates with your existing Kubernetes infrastructure.</p>
     <div class="hero-buttons">
-      <a href="getting-started/" class="md-button md-button--primary">Get Started</a>
+      <a href="/src/gs-getting-started/" class="md-button md-button--primary">Get Started</a>
       <a href="https://github.com/truefoundry/KubeElasti" class="md-button">GitHub</a>
     </div>
   </div>
@@ -114,12 +114,10 @@ hide:
 
 <!-- Get Started Section -->
 <div class="get-started-section">
-  <h2>Get Started with 2 Commands</h2>
+  <h2>Serverless with just 1 Command</h2>
   <div class="get-started-steps">
     <div class="code-block">
-      <pre><code> <span class="gray"># Install KubeElasti</span>
-helm install <span class="green">elasti</span> oci://tfy.jfrog.io/tfy-helm/elasti --namespace <span class="green">elasti</span> --create-namespace
-
+      <pre><code> 
 <span class="gray"># Create ElastiService CRD for the service you want to optimize</span>
 <span class="gray"># Replace values between <> with actual values</span>
 kubectl apply -f - &lt;&lt;EOF <span class="blue">
@@ -152,7 +150,7 @@ spec:
   </div>
        <div class="get-started-content">
       <p>KubeElasti is easy to set up and configure. Follow our step-by-step guide to get started.</p>
-      <a href="getting-started/" class="md-button md-button--primary">Full Installation Guide</a>
+      <a href="/src/gs-getting-started/" class="md-button md-button--primary">Full Installation Guide</a>
     </div>
 </div>
 
@@ -178,5 +176,5 @@ spec:
 
 <div class="footer-cta">
   <h2>Ready to optimize your Kubernetes resources?</h2>
-  <a href="getting-started/" class="md-button md-button--primary">Get Started with KubeElasti</a>
+  <a href="/src/gs-getting-started/" class="md-button md-button--primary">Get Started with KubeElasti</a>
 </div>
