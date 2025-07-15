@@ -12,3 +12,5 @@ kubeconfig
 report.html
 site/
 db-go-service
+.cache/
+
