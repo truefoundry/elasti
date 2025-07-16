@@ -1,6 +1,24 @@
 # KubeElasti Architecture
 
-![Unified Architecture of KubeElasti](../../images/hld.png)
+<!-- ![Unified Architecture of KubeElasti](../../images/hld.png) -->
+
+``` mermaid
+graph TB
+    subgraph KubeElasti
+        Controller
+        Resolver
+    end
+
+    Ingress -->|Request| Service
+    Service -->|Active: Pods > 0| Pods
+    Service -.->|Inactive: Pods = 0| Resolver
+
+    Resolver -->|Inform about the incoming request| Controller
+    Controller -->|Incoming Requests: Scale to 1| Pods
+    Controller -->|No Incoming Requests: Scale to 0| Pods
+    Resolver -->|Forward request| Pods
+
+```
 
 KubeElasti comprises two main components: operator and resolver.
 
@@ -98,16 +116,15 @@ flowchart TB
 
   %% === Proxy Flow ===
   ResEPS -->|3: Req| Resolver
-  Resolver -->|4: Proxy Request| TargetSVC_PVT 
-  TargetSVC_PVT-->|4: Send and Receive| Pod
-  Resolver -. "5: Inform about the request" .-> Operator
-  Operator -. "6: Map request to target and send Target-SVC-Private" .-> Resolver
+  Resolver -. "4: Inform about the request" .-> Operator
 
   %% === Operator & Control Logic ===
-  Operator --> |7: Request for scale| scalers
-  scalers --> |8: Scale to 1| Pod
-  Operator -. "9: Watch if scaled to 1" .-> Pod
-  Operator -. "10: Switch to Serve Mode" .-> ESCRD
+  Operator --> |5: Request for scale| scalers
+  scalers --> |6: Scale to 1| Pod
+  Operator -. "7: Watch if scaled to 1" .-> Pod
+  Operator -. "8: Switch to Serve Mode" .-> ESCRD
+  Resolver -->|9: Proxy Request| TargetSVC_PVT 
+  TargetSVC_PVT-->|10: Send request, receive response| Pod
 ```
 
 

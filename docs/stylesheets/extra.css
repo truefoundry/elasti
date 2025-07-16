@@ -718,8 +718,9 @@
 /* Footer CTA */
 .footer-cta {
   padding: var(--section-padding);
-  background: var(--elasti-dark);
-  border-radius: 20px;
+  /* padding-top: var(--section-padding); */
+  background: var(--elasti-primary);
+  border-radius: 10px;
   color: var(--elasti-text-light);
   text-align: center;
   position: relative;
@@ -734,12 +735,13 @@
   right: 0;
   bottom: 0;
   /* background: radial-gradient(circle at center, #100b28 0%, transparent 50%); */
-  background: linear-gradient(360deg, var(--elasti-dark) 0%, var(--elasti-primary) 100%);
+  /* background: linear-gradient(360deg, var(--elasti-dark) 0%, var(--elasti-primary) 100%); */
   z-index: 0;
 }
 
 .footer-cta h2 {
   margin-bottom: 2rem;
+  margin-top:-20px;
   color: var(--elasti-text-light);
   font-weight: 700;
   position: relative;

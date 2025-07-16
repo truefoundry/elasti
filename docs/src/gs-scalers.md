@@ -7,7 +7,7 @@ title: Scalers
 
 KubeElasti works seamlessly with the Horizontal Pod Autoscaler (HPA) and handles scaling to zero on its own. Since KubeElasti manages the scale-to-zero functionality, you can configure HPA to handle scaling based on metrics for any number of replicas **greater than zero**, while KubeElasti takes care of scaling to/from zero.
 
-A setup is explained in the [getting started](/src/gs-getting-started/) guide.
+A setup is explained in the [getting started](/src/gs-setup/) guide.
 
 
 ## Scaling with KEDA
@@ -18,7 +18,7 @@ Here we will see how to integrate KubeElasti with KEDA to build a complete scali
 
 ## Prerequisites
 
-- Make sure you have gone through the [getting started](/src/gs-getting-started/) guide. We will extend the same setup for this integration.
+- Make sure you have gone through the [getting started](/src/gs-setup/) guide. We will extend the same setup for this integration.
 - KEDA installed in the cluster - [KEDA Installation](https://keda.sh/docs/latest/deploy/)
 
 ## Steps
@@ -30,7 +30,7 @@ Let's create a keda scaler for the httpbin service.
 ``` shell
 kubectl apply -f ./playground/config/demo-application-keda.yaml
 ```
-Note that the same prometheus query is used as in the [getting started](/src/gs-getting-started/) guide for ElastiService and the namespace is the same as the namespace that the ElastiService is created in.
+Note that the same prometheus query is used as in the [getting started](/src/gs-setup/) guide for ElastiService and the namespace is the same as the namespace that the ElastiService is created in.
 
 Refer to the [keda documentation](https://keda.sh/docs/2.16/reference/scaledobject-spec/) for more details on configuring the ScaledObject.
 

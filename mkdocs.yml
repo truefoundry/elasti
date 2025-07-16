@@ -19,8 +19,8 @@ theme:
   logo: images/logo/logo_white_full.png
   favicon: images/logo/favicon.ico
   font:
-    text: Helvetica
-    code: Helvetica Mono
+    text: Roboto
+    code: Roboto Mono
   # icon:
   #   admonition:
   #     note: octicons/tag-16
@@ -117,7 +117,7 @@ nav:
   - Home: index.md
   - Getting started:
       - Introduction: src/gs-introduction.md
-      - Getting Started: src/gs-getting-started.md
+      - Setup: src/gs-setup.md
       - Configuration: src/gs-configure-elastiservice.md
       - Triggers: src/gs-triggers.md
       - Scalers: src/gs-scalers.md

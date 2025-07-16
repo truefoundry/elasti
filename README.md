@@ -1,5 +1,5 @@
 <p align="center">
-<img src="./docs/images/logo/banner.png" alt="elasti icon">
+<img src="./docs/images/logo/banner.png" alt="KubeElasti Banner">
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@ Kubernetes clusters can become costly, especially when running multiple services
 > KubeElasti(Sometimes referred to as just "Elasti").
 
 <div align="center">
-  <img src="./docs/images/intro.png" alt="Illustration of Elasti's active vs. serverless modes">
+  <img src="./docs/images/intro.png" alt="Illustration of KubeElasti's active vs. serverless modes">
 </div>
 
 # Contents

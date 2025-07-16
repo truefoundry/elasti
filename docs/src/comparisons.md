@@ -2,6 +2,18 @@
 
 This document compares KubeElasti with other popular serverless and scale-to-zero solutions in the Kubernetes ecosystem.
 
+
+## **Feature Comparison Table**
+
+| Feature | KubeElasti | Knative | OpenFaaS | KEDA HTTP Add-on |
+|---------|---------|----------|-----------|------------------|
+| Scale to Zero | ✅ | ✅ | ✅ | ✅ |
+| Works with Existing Services | ✅ | ❌ | ❌ | ✅ |
+| Resource Footprint | 🟢 Low  | 🔺 High  | 🔹 Medium  | 🟢 Low |
+| Request queueing | ✅(Takes itself out of the path) | ✅ (Remains in the path) | ✅ | ❌ |
+| Setup Complexity | 🟢 Low  | 🔺 High  | 🔹 Medium  | 🔹 Medium |
+
+
 ## **Knative**
 
 ### Overview
@@ -34,16 +46,6 @@ KEDA HTTP Add-on is an extension to KEDA that enables HTTP-based scaling, includ
 - **Integration**:
     - KEDA HTTP Add-on requires KEDA installation and configuration.
     - KubeElasti can work standalone or integrate with KEDA if needed.
-
-## **Feature Comparison Table**
-
-| Feature | KubeElasti | Knative | OpenFaaS | KEDA HTTP Add-on |
-|---------|---------|----------|-----------|------------------|
-| Scale to Zero | ✅ | ✅ | ✅ | ✅ |
-| Works with Existing Services | ✅ | ❌ | ❌ | ✅ |
-| Resource Footprint | Low | High | Medium | Low |
-| Request queueing | ✅ | ❌ (drops or delays) | ✅ | ❌ |
-| Setup Complexity | Low | High | Medium | Medium |
 
 ## **When to Choose KubeElasti**
 

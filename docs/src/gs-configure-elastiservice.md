@@ -25,8 +25,8 @@ spec:
       serverAddress: <server-address> # (10)
       threshold: <threshold> # (11)
   autoscaler:
-    name: <autoscaler-object-name>
-    type: <autoscaler-type>
+    name: <autoscaler-object-name> # (12)
+    type: <autoscaler-type> # (13)
 ```
 
 1. Replace it with the service you want managed by elasti.

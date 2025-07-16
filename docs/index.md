@@ -14,9 +14,9 @@ hide:
     <p class="hero-subtitle">Serverless for Kubernetes</p>
     <p class="hero-description">Automatically scale your services to zero when idle and scale up when traffic arrives.
     <br><br>
-    KubeElasti <b>saves cost</b> using scale-to-zero <b>without losing any requests</b>, requires <b>no code changes</b>, and integrates with your existing Kubernetes infrastructure.</p>
+    KubeElasti <b>saves cost</b> using scale-to-zero <b>without losing any traffic</b>, requires <b>no code changes</b>, and integrates with your existing Kubernetes infrastructure.</p>
     <div class="hero-buttons">
-      <a href="/src/gs-getting-started/" class="md-button md-button--primary">Get Started</a>
+      <a href="/src/gs-setup/" class="md-button md-button--primary">Get Started</a>
       <a href="https://github.com/truefoundry/KubeElasti" class="md-button">GitHub</a>
     </div>
   </div>
@@ -45,18 +45,18 @@ hide:
       <p>Scale to zero when there's no traffic to save resources and reduce costs</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🔄</div>
-      <h3>Seamless Integration</h3>
-      <p>Works with your existing Kubernetes setup, HPA, and Keda</p>
-    </div>
-    <div class="feature-card">
       <div class="feature-icon">⚡</div>
       <h3>Zero Downtime</h3>
       <p>Queues requests during scale-up to ensure no traffic is lost</p>
     </div>
     <div class="feature-card">
+      <div class="feature-icon">🔄</div>
+      <h3>Seamless Compatibility</h3>
+      <p>Works with your existing Kubernetes setup, HPA, and Keda</p>
+    </div>
+    <div class="feature-card">
       <div class="feature-icon">📈</div>
-      <h3>Prometheus Metrics</h3>
+      <h3>Out of Box Monitoring</h3>
       <p>Built-in monitoring with Prometheus metrics and Grafana dashboards</p>
     </div>
     <div class="feature-card">
@@ -150,7 +150,7 @@ spec:
   </div>
        <div class="get-started-content">
       <p>KubeElasti is easy to set up and configure. Follow our step-by-step guide to get started.</p>
-      <a href="/src/gs-getting-started/" class="md-button md-button--primary">Full Installation Guide</a>
+      <a href="/src/gs-setup/" class="md-button md-button--primary">Full Installation Guide</a>
     </div>
 </div>
 
@@ -176,5 +176,5 @@ spec:
 
 <div class="footer-cta">
   <h2>Ready to optimize your Kubernetes resources?</h2>
-  <a href="/src/gs-getting-started/" class="md-button md-button--primary">Get Started with KubeElasti</a>
+  <a href="/src/gs-setup/" class="md-button md-button--primary">Get Started with KubeElasti</a>
 </div>
