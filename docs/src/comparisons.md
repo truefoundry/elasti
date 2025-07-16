@@ -10,7 +10,7 @@ This document compares KubeElasti with other popular serverless and scale-to-zer
 | Scale to Zero | ✅ | ✅ | ✅ | ✅ |
 | Works with Existing Services | ✅ | ❌ | ❌ | ✅ |
 | Resource Footprint | 🟢 Low  | 🔺 High  | 🔹 Medium  | 🟢 Low |
-| Request queueing | ✅(Takes itself out of the path) | ✅ (Remains in the path) | ✅ | ❌ |
+| Request queueing | ✅(Takes itself out of the path) | ✅ (Remains in the path) | ✅ | ✅(Remains in the path) |
 | Setup Complexity | 🟢 Low  | 🔺 High  | 🔹 Medium  | 🔹 Medium |
 
 
