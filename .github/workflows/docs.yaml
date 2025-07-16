@@ -26,5 +26,11 @@ jobs:
           restore-keys: |
             mkdocs-material-
       - run: pip install mkdocs-material
-      - run: mkdocs gh-deploy --force --cname=kubeelasti.dev
+      - run: mkdocs gh-deploy --force
+      - name: Create CNAME file
+        run: |
+          echo "kubeelasti.dev" > ./site/CNAME
+          git add ./site/CNAME
+          git commit -m "Add CNAME file"
+          git push
 
