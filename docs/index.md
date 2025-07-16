@@ -50,6 +50,11 @@ hide:
       <p>Queues requests during scale-up to ensure no traffic is lost</p>
     </div>
     <div class="feature-card">
+      <div class="feature-icon">🔧</div>
+      <h3>Simple Configuration</h3>
+      <p>Easy setup with a single CRD and minimal configuration required</p>
+    </div>
+    <div class="feature-card">
       <div class="feature-icon">🔄</div>
       <h3>Seamless Compatibility</h3>
       <p>Works with your existing Kubernetes setup, HPA, and Keda</p>
@@ -60,14 +65,9 @@ hide:
       <p>Built-in monitoring with Prometheus metrics and Grafana dashboards</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🔌</div>
-      <h3>Service Compatibility</h3>
-      <p>Works with any Kubernetes service regardless of ingress or service mesh</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🚀</div>
-      <h3>Deployment Support</h3>
-      <p>Supports both standard Deployments and Argo Rollouts</p>
+      <div class="feature-icon">🛡️</div>
+      <h3>Request Preservation</h3>
+      <p>Ensures all incoming requests are processed even during scale operations</p>
     </div>
   </div>
 </div>
