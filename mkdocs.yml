@@ -6,6 +6,8 @@ site_description: >-
   KubeElasti is a Kubernetes operator that automatically scales-to-zero your services when they are idle and scales them back up when they receive traffic.
 extra_css:
   - stylesheets/extra.css
+extra_files:
+  - docs/CNAME
 
 # Repository
 repo_name: truefoundry/KubeElasti
