@@ -95,6 +95,8 @@ func mainWithError() error {
 		defer sentry.Flush(2 * time.Second)
 	}
 
+	prometheusScalerHealthcheckFilter := os.Getenv("SCALER_PROMETHEUS_HEALTHCHECK_FILTER")
+
 	var watchNamespace string
 	flag.StringVar(&watchNamespace, "watch-namespace", metav1.NamespaceAll, "Namespace to watch for resources")
 
@@ -172,7 +174,9 @@ func mainWithError() error {
 	defer informerManager.Stop()
 
 	// Initiate and start the shared scaleHandler
-	scaleHandler := scaling.NewScaleHandler(zapLogger, mgr.GetConfig(), watchNamespace, mgr.GetEventRecorderFor("elasti-operator"))
+	scaleHandler := scaling.NewScaleHandler(zapLogger, mgr.GetConfig(), watchNamespace, mgr.GetEventRecorderFor("elasti-operator"), scaling.Options{
+		PrometheusHealthcheckFilter: prometheusScalerHealthcheckFilter,
+	})
 
 	// Set up the ElastiService controller
 	reconciler := &controller.ElastiServiceReconciler{

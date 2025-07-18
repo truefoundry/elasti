@@ -36,6 +36,10 @@ const (
 	NoScale   ScaleDirection = "noscale"
 )
 
+type Options struct {
+	PrometheusHealthcheckFilter string
+}
+
 type ScaleHandler struct {
 	kClient        *kubernetes.Clientset
 	kDynamicClient *dynamic.DynamicClient
@@ -45,6 +49,8 @@ type ScaleHandler struct {
 
 	logger         *zap.Logger
 	watchNamespace string
+
+	options Options
 }
 
 // getMutexForScale returns a mutex for scaling based on the input key
@@ -54,7 +60,7 @@ func (h *ScaleHandler) getMutexForScale(key string) *sync.Mutex {
 }
 
 // NewScaleHandler creates a new instance of the ScaleHandler
-func NewScaleHandler(logger *zap.Logger, config *rest.Config, watchNamespace string, eventRecorder record.EventRecorder) *ScaleHandler {
+func NewScaleHandler(logger *zap.Logger, config *rest.Config, watchNamespace string, eventRecorder record.EventRecorder, options Options) *ScaleHandler {
 	kClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		logger.Fatal("Error connecting with kubernetes", zap.Error(err))
@@ -71,6 +77,7 @@ func NewScaleHandler(logger *zap.Logger, config *rest.Config, watchNamespace str
 		kDynamicClient: kDynamicClient,
 		watchNamespace: watchNamespace,
 		EventRecorder:  eventRecorder,
+		options:        options,
 	}
 }
 
@@ -270,7 +277,7 @@ func (h *ScaleHandler) createScalerForTrigger(trigger *v1alpha1.ScaleTrigger, co
 
 	switch trigger.Type {
 	case "prometheus":
-		scaler, err = scalers.NewPrometheusScaler(trigger.Metadata, cooldownPeriod)
+		scaler, err = scalers.NewPrometheusScaler(trigger.Metadata, cooldownPeriod, h.options.PrometheusHealthcheckFilter)
 	default:
 		return nil, fmt.Errorf("unsupported trigger type: %s", trigger.Type)
 	}

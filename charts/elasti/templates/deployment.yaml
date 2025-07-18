@@ -24,7 +24,7 @@ spec:
         prometheus.io/scrape: "true"
     spec:
       containers:
-      - args: 
+      - args:
         {{- toYaml .Values.elastiController.manager.args | nindent 8 }}
         command:
         - /manager
@@ -41,6 +41,10 @@ spec:
               key: operatorSentryDsn
         - name: SENTRY_ENVIRONMENT
           value: {{ .Values.elastiController.manager.sentry.environment }}
+        {{- end }}
+        {{- if .Values.elastiController.scalers.prometheus.customHealthcheckFilter }}
+        - name: SCALER_PROMETHEUS_HEALTHCHECK_FILTER
+          value: {{ .Values.elastiController.scalers.prometheus.customHealthcheckFilter | quote }}
         {{- end }}
         image: {{ .Values.elastiController.manager.image.repository }}:{{ .Values.elastiController.manager.image.tag | default .Chart.AppVersion }}
         imagePullPolicy: {{ .Values.elastiController.manager.imagePullPolicy }}
@@ -61,9 +65,9 @@ spec:
             port: 8081
           initialDelaySeconds: 5
           periodSeconds: 10
-        resources: 
+        resources:
           {{- toYaml .Values.elastiController.manager.resources | nindent 10 }}
-        securityContext: 
+        securityContext:
           {{- toYaml .Values.elastiController.manager.containerSecurityContext | nindent 10 }}
       securityContext:
         runAsNonRoot: true
@@ -132,5 +136,5 @@ spec:
         ports:
         - containerPort: {{ .Values.elastiResolver.service.port }}
         - containerPort: {{ .Values.elastiResolver.reverseProxyService.port }}
-        resources: 
+        resources:
           {{- toYaml .Values.elastiResolver.proxy.resources | nindent 10 }}
