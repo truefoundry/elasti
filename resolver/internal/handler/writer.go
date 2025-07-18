@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 )
 
@@ -21,7 +22,11 @@ func (rw *responseWriter) WriteHeader(statusCode int) {
 
 func (rw *responseWriter) Write(b []byte) (int, error) {
 	rw.body = append(rw.body, b...)
-	return rw.ResponseWriter.Write(b)
+	res, err := rw.ResponseWriter.Write(b)
+	if err != nil {
+		return res, fmt.Errorf("Write: %w", err)
+	}
+	return res, nil
 }
 
 func (rw *responseWriter) Header() http.Header {
