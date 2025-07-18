@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/truefoundry/elasti/resolver/internal/handler"
 	"github.com/truefoundry/elasti/resolver/internal/hostmanager"
+	"github.com/truefoundry/elasti/resolver/internal/kubecache"
 	"github.com/truefoundry/elasti/resolver/internal/operator"
 	"github.com/truefoundry/elasti/resolver/internal/throttler"
 
@@ -20,6 +22,7 @@ import (
 	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/logger"
 	"go.uber.org/zap"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
@@ -86,10 +89,16 @@ func main() {
 		logger.Fatal("Error fetching cluster config", zap.Error(err))
 	}
 
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		logger.Fatal("Error creating kubernetes client", zap.Error(err))
+	}
+
 	// Get components required for the handler
-	k8sUtil := k8shelper.NewOps(logger, config)
+	k8sUtil := k8shelper.NewOps(logger, client)
 	newOperatorRPC := operator.NewOperatorClient(logger, time.Duration(env.OperatorRetryDuration)*time.Second)
-	newHostManager := hostmanager.NewHostManager(logger, time.Duration(env.TrafficReEnableDuration)*time.Second, env.HeaderForHost)
+	newKubeCache := kubecache.NewKubeCache(logger, client)
+	newHostManager := hostmanager.NewHostManager(logger, time.Duration(env.TrafficReEnableDuration)*time.Second, env.HeaderForHost, newKubeCache)
 	newTransport := throttler.NewProxyAutoTransport(env.MaxIdleProxyConns, env.MaxIdleProxyConnsPerHost)
 	newThrottler := throttler.NewThrottler(&throttler.Params{
 		QueueRetryDuration:      time.Duration(env.QueueRetryDuration) * time.Second,
@@ -100,6 +109,12 @@ func main() {
 		TrafficReEnableDuration: time.Duration(env.TrafficReEnableDuration) * time.Second,
 		Logger:                  logger,
 	})
+
+	// Start cache for kuberenetes resources
+	err = newKubeCache.Start(context.Background())
+	if err != nil {
+		logger.Fatal("Error starting kubernetes cache", zap.Error(err))
+	}
 
 	// Create an instance of sentryhttp
 	sentryHandler := sentryhttp.New(sentryhttp.Options{})

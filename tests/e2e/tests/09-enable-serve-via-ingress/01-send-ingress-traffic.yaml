@@ -1,0 +1,5 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: |
+     kubectl exec -n target curl-target-gw -- curl --max-time 30 -s -v -o - -w "%{http_code}" --header "Host: public.domain.com" istio-ingressgateway.istio-system.svc.cluster.local/headers
