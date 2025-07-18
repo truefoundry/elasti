@@ -174,8 +174,16 @@ func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetH
 	proxy := h.NewHeaderPruningReverseProxy(targetURL, true)
 	proxy.BufferPool = h.bufferPool
 	proxy.Transport = h.transport
-	proxy.ErrorHandler = func(_ http.ResponseWriter, _ *http.Request, err error) {
-		panic(fmt.Errorf("serveHTTP error: %w", err))
+	proxy.ErrorHandler = func(wErr http.ResponseWriter, reqErr *http.Request, err error) {
+		h.logger.Error("reverse proxy error", zap.Error(err), zap.String("url", reqErr.URL.String()))
+		if wErr.Header().Get("Content-Type") == "" {
+			wErr.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			wErr.WriteHeader(http.StatusBadGateway)
+			_, err = wErr.Write([]byte("Bad Gateway"))
+			if err != nil {
+				h.logger.Error("error writing response", zap.Error(err))
+			}
+		}
 	}
 	h.logger.Debug("Request sent to proxy", zap.Int("Retry Count", count))
 	proxy.ServeHTTP(w, req)
