@@ -12,14 +12,17 @@ import (
 )
 
 const (
-	httpClientTimeout = 5 * time.Second
-	uptimeQuery       = "min_over_time((max(up{container=\"prometheus\"}) or vector(0))[%ds:])"
+	httpClientTimeout   = 5 * time.Second
+	uptimeQuery         = "min_over_time((max(up{%s}) or vector(0))[%ds:])"
+	defaultUptimeFilter = "container=\"prometheus\""
 )
 
 type prometheusScaler struct {
 	httpClient     *http.Client
 	metadata       *prometheusMetadata
 	cooldownPeriod time.Duration
+
+	uptimeFilter string
 }
 
 type prometheusMetadata struct {
@@ -39,7 +42,7 @@ var promQueryResponse struct {
 	} `json:"data"`
 }
 
-func NewPrometheusScaler(metadata json.RawMessage, cooldownPeriod time.Duration) (Scaler, error) {
+func NewPrometheusScaler(metadata json.RawMessage, cooldownPeriod time.Duration, uptimeFilter string) (Scaler, error) {
 	parsedMetadata, err := parsePrometheusMetadata(metadata)
 	if err != nil {
 		return nil, fmt.Errorf("error creating prometheus scaler: %w", err)
@@ -53,6 +56,8 @@ func NewPrometheusScaler(metadata json.RawMessage, cooldownPeriod time.Duration)
 		metadata:       parsedMetadata,
 		httpClient:     client,
 		cooldownPeriod: cooldownPeriod,
+
+		uptimeFilter: uptimeFilter,
 	}, nil
 }
 
@@ -158,13 +163,20 @@ func (s *prometheusScaler) Close(_ context.Context) error {
 }
 
 func (s *prometheusScaler) IsHealthy(ctx context.Context) (bool, error) {
+	uptimeFilter := s.uptimeFilter
+	if uptimeFilter == "" {
+		uptimeFilter = defaultUptimeFilter
+	}
+
 	cooldownPeriodSeconds := int(math.Ceil(s.cooldownPeriod.Seconds()))
+	finalUptimeQuery := fmt.Sprintf(uptimeQuery, uptimeFilter, cooldownPeriodSeconds)
+
 	metricValue, err := s.executePromQuery(
 		ctx,
-		fmt.Sprintf(uptimeQuery, cooldownPeriodSeconds),
+		finalUptimeQuery,
 	)
 	if err != nil {
-		return false, fmt.Errorf("failed to execute prometheus query %s: %w", fmt.Sprintf(uptimeQuery, cooldownPeriodSeconds), err)
+		return false, fmt.Errorf("failed to execute prometheus query %s: %w", finalUptimeQuery, err)
 	}
 	return metricValue == 1, nil
 }

@@ -40,6 +40,9 @@ elastiController:
   service:
     port: 8013
     type: ClusterIP
+  scalers:
+    prometheus:
+      customHealthcheckFilter: ""
 elastiResolver:
   proxy:
     env:
