@@ -1,0 +1,139 @@
+# Site
+site_name: KubeElasti
+site_url: https://kubeelasti.dev/
+site_author: TrueFoundry
+site_description: >-
+  KubeElasti is a Kubernetes operator that automatically scales-to-zero your services when they are idle and scales them back up when they receive traffic.
+extra_css:
+  - stylesheets/extra.css
+extra_files:
+  - docs/CNAME
+
+# Repository
+repo_name: truefoundry/KubeElasti
+repo_url: https://github.com/truefoundry/KubeElasti
+
+# Copyright
+copyright: Copyright &copy; 2025 TrueFoundry
+
+theme:
+  name: material
+  logo: images/logo/logo_white_full.png
+  favicon: images/logo/favicon.ico
+  font:
+    text: Roboto
+    code: Roboto Mono
+  # icon:
+  #   admonition:
+  #     note: octicons/tag-16
+  #     abstract: octicons/checklist-16
+  #     info: octicons/info-16
+  #     tip: octicons/squirrel-16
+  #     success: octicons/check-16
+  #     question: octicons/question-16
+  #     warning: octicons/alert-16
+  #     failure: octicons/x-circle-16
+  #     danger: octicons/zap-16
+  #     bug: octicons/bug-16
+  #     example: octicons/beaker-16
+  #     quote: octicons/quote-16
+  features:
+    # - announce.dismiss
+    # - content.action.edit
+    # - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    # - content.code.select
+    # - content.footnote.tooltips
+    - content.tabs.link
+    - content.tooltips
+    # - header.autohide
+    # - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    # - navigation.instant.progress
+    # - navigation.prune
+    - navigation.sections
+    - navigation.tabs
+    # - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+    - toc.integrate
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to system preference
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - pymdownx.blocks.caption
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+
+
+# Additional configuration
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/truefoundry
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/truefoundry
+
+# Page tree
+nav:
+  - Home: index.md
+  - Getting started:
+      - Introduction: src/gs-introduction.md
+      - Setup: src/gs-setup.md
+      - Configuration: src/gs-configure-elastiservice.md
+      - Triggers: src/gs-triggers.md
+      - Scalers: src/gs-scalers.md
+  - Architecture:
+      - Overview: src/arch-architecture.md
+      - Flow: src/arch-flow.md
+      - Resolver: src/arch-resolver.md
+      - Operator: src/arch-operator.md
+      - Monitoring: src/arch-monitoring.md
+  - Development:
+      - Dev Environment: src/dev-env.md
+      - Playground: src/dev-playground.md
+      - Load Testing: src/dev-test-load.md
+      - E2E Testing: src/dev-test-e2e.md
+      - Test Monitoring: src/dev-test-monitoring.md
+  - Comparisons: src/comparisons.md
+

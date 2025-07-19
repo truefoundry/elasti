@@ -10,6 +10,7 @@ namespace.yaml
 install.yaml
 kubeconfig
 report.html
+site/
+db-go-service
 .cache/
-# or, if you want it repository-wide regardless of depth
-**/.cache/
+
