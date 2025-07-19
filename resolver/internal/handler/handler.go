@@ -102,17 +102,17 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 	host, err := h.hostManager.GetHost(req)
 	if err != nil {
 		http.Error(w, "Error getting host", http.StatusInternalServerError)
-		h.logger.Error("error getting host", zap.Error(err))
+		h.logger.Error("error getting host", zap.String("error", err.Error()))
 		return host, fmt.Errorf("error getting host: %w", err)
 	}
-	h.logger.Debug("request received", zap.Any("host", host))
+	h.logger.Debug("request received")
 
 	prom.QueuedRequestGauge.WithLabelValues(host.SourceService, host.Namespace).Inc()
 	defer prom.QueuedRequestGauge.WithLabelValues(host.SourceService, host.Namespace).Dec()
 
 	// This closes the connections, in case the host is scaled up by the controller.
 	if !host.TrafficAllowed {
-		h.logger.Info("Traffic not allowed", zap.Any("host", host))
+		h.logger.Info("Traffic not allowed")
 		w.Header().Set("Connection", "close")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
@@ -144,7 +144,7 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 		}, func() {
 			h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
 		}); tryErr != nil {
-		h.logger.Error("throttler try error: ", zap.Error(tryErr))
+		h.logger.Error("throttler try error: ", zap.String("error", tryErr.Error()))
 		hub := sentry.GetHubFromContext(req.Context())
 		if hub != nil {
 			hub.CaptureException(tryErr)
