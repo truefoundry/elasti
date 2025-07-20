@@ -2,16 +2,13 @@
 
 # NOTE: We are taking the argument as the path to the manifest directory.
 # This is needed as the script is called from multiple places and has different paths.
-# Maybe in future we can fix this, but for now this is fine. 
+# Maybe in future we can fix this, but for now this is fine.
 
 # Apply ElastiService
-kubectl apply -f  $1/target-elastiservice.yaml -n target
+kubectl apply -f  "$1/target-elastiservice.yaml" -n target
 
-# Scale target-deployment back to 1
-kubectl scale deployment target-deployment -n target --replicas=1
-
-# Reset the service selector and port
-kubectl patch service target-deployment -n target --type=merge -p '{"spec":{"selector":{"app":"target-deployment"},"ports":[{"port":80,"targetPort":8080}]}}'
+# Reset target deployment, service & ingress back to defaults
+kubectl replace -f "$1/target-deployment.yaml" -n target
 
 # Scale elasti-resolver back to 1
 kubectl scale deployment elasti-resolver -n elasti --replicas=1

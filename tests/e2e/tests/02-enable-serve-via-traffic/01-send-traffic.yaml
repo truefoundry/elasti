@@ -1,10 +1,16 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestStep
-script: |
-  #!/bin/sh
-  for i in 1 2 3 4 5; do
-    code=$(curl -s -o /dev/null -w "%{http_code}" http://target-deployment.target.svc.cluster.local:8080)
-    echo "$code"
-    if [ "$code" != "200" ]; then exit 1; fi
-    sleep 1
-  done
+commands:
+  - script: |
+      #!/bin/sh
+      for i in 1 2 3 4 5; do
+        code=$(kubectl exec -n target curl-target-gw -- curl --max-time 30 -s -o /dev/null -w "%{http_code}" http://target-deployment.target.svc.cluster.local/bytes/1048576)
+        result=$?
+
+        echo "$result / $code"
+
+        # if [ "$result" != "0" ]; then exit 1; fi
+        if [ "$code" != "200" ]; then exit 2; fi
+
+        sleep 1
+      done

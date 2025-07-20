@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -65,9 +66,17 @@ func parsePrometheusMetadata(jsonMetadata json.RawMessage) (*prometheusMetadata,
 	return metadata, nil
 }
 
+// golang issue: https://github.com/golang/go/issues/4013
+func queryEscape(query string) string {
+	queryEscaped := url.QueryEscape(query)
+	plusEscaped := strings.ReplaceAll(queryEscaped, "+", "%20")
+
+	return plusEscaped
+}
+
 func (s *prometheusScaler) executePromQuery(ctx context.Context, query string) (float64, error) {
 	t := time.Now().UTC().Format(time.RFC3339)
-	queryEscaped := url.QueryEscape(query)
+	queryEscaped := queryEscape(query)
 	queryURL := fmt.Sprintf("%s/api/v1/query?query=%s&time=%s", s.metadata.ServerAddress, queryEscaped, t)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", queryURL, nil)
