@@ -8,8 +8,8 @@ KubeElasti values the contributions of individuals who help improve its security
 
 | Version | Supported | Notes                      |
 | ------- | --------- | -------------------------- |
-| 0.1.14   | ✅         | Latest stable release line |
-| < 0.1.14   | ❌         | End‑of‑life                |
+| Latest  | ✅         | Latest stable release line |
+| < Latest | ❌         | End‑of‑life                |
 
 > We generally provide security fixes for the latest minor release lines. 
 
@@ -34,7 +34,7 @@ Out‑of‑scope issues include but are not limited to:
 
 ## 📬 Reporting a Vulnerability
 
-1. **Email** a detailed report to our private list: **[abhishek@truefoundry.com](mailto:abhishek@truefoundry.com)**.
+1. **Email** a detailed report to our private list: **[security@truefoundry.com](mailto:security@truefoundry.com)**.
 2. Include:
 
    * A descriptive title (e.g., *"Denial‑of‑Service via oversized HTTP header"*).
