@@ -2,8 +2,8 @@ name: deploy-docs
 "on":
   push:
     branches:
-      - rt-landing-page
       - main
+
 permissions:
   contents: write
 jobs:
