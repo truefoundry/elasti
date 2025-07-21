@@ -4,6 +4,11 @@ name: deploy-docs
     branches:
       - main
 
+# Concurrency protection to prevent multiple workflow runs from executing simultaneously
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 jobs:
