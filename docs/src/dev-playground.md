@@ -96,8 +96,8 @@ helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
       istioctl install --set profile=default -y
 
       # Label the namespace where you want to deploy your application to enable Istio sidecar Injection
-      kubectl create namespace demo
-      kubectl label namespace demo istio-injection=enabled
+      kubectl create namespace target
+      kubectl label namespace target istio-injection=enabled
 
       # Create a gateway
       kubectl apply -f ./playground/config/gateway.yaml
@@ -130,10 +130,10 @@ Add virtual service if you are using istio.
 ```bash
 # ONLY IF YOU ARE USING ISTIO
 # Create a Virtual Service to expose the demo service
-kubectl apply -f ./playground/config/demo-virtualService.yaml -n target
+kubectl apply -f ./playground/config/demo-virtualService.yaml
 ```
 
-This will deploy a httpbin service in the `demo` namespace.
+This will deploy a httpbin service in the `target` namespace.
 
 ## 8. Create ElastiService Resource
 
@@ -155,9 +155,18 @@ kubectl -n target scale deployment httpbin --replicas=0
 ### 9.2 Send request to the service while target is scaled down
 
 ```bash
-curl -v http://localhost:8080/httpbin
-
-# kubectl run -it --rm curl --image=alpine/curl -- http://httpbin.target.svc.cluster.local/headers
+kubectl run -it --rm curl --image=alpine/curl -- http://httpbin.target.svc.cluster.local/headers
 ```
 
 You should see the target service pod getting scaled up and response from the new pod.
+
+## 10. Debug tips
+
+### 10.1 Watch logs
+
+```bash
+kubectl logs -n elasti deployments/elasti-operator-controller-manager -f
+kubectl logs -n elasti deployments/elasti-resolver -f
+kubectl logs -n target deployments/httpbin -f
+kubectl logs -n istio-system deployments/istiod -f
+```
