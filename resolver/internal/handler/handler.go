@@ -171,8 +171,7 @@ func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, host *m
 		return fmt.Errorf("error parsing target URL: %w", err)
 	}
 
-	// Pass false to hostOverride to preserve the original host
-	proxy := h.NewHeaderPruningReverseProxy(targetURL, false)
+	proxy := h.NewHeaderPruningReverseProxy(targetURL)
 	proxy.BufferPool = h.bufferPool
 	proxy.Transport = h.transport
 	proxy.ErrorHandler = func(wErr http.ResponseWriter, reqErr *http.Request, err error) {
@@ -192,11 +191,8 @@ func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, host *m
 }
 
 // NewHeaderPruningReverseProxy returns a httputil.ReverseProxy that proxies
-// requests to the given targetHost after removing the headersToRemove.
-// If hostOverride is not an empty string, the outgoing request's Host header will be
-// replaced with that explicit value and the passthrough loadbalancing header will be
-// set to enable pod-addressability.
-func (h *Handler) NewHeaderPruningReverseProxy(target *url.URL, hostOverride bool) *httputil.ReverseProxy {
+// requests to the given targetHost after creating new headers.
+func (h *Handler) NewHeaderPruningReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	return &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
 			originalHost := req.Host // Save the original host
@@ -210,11 +206,9 @@ func (h *Handler) NewHeaderPruningReverseProxy(target *url.URL, hostOverride boo
 				// Use originalHost which should already be in the correct format (host:port if non-default port)
 				req.Header.Set(":authority", originalHost)
 			}
-			// Don't override the host if we want to preserve it
+
 			// This ensures the target service sees the original host
-			if !hostOverride {
-				req.Host = originalHost
-			}
+			req.Host = originalHost
 		},
 	}
 }
