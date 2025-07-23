@@ -96,8 +96,8 @@ helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
       istioctl install --set profile=default -y
 
       # Label the namespace where you want to deploy your application to enable Istio sidecar Injection
-      kubectl create namespace demo
-      kubectl label namespace demo istio-injection=enabled
+      kubectl create namespace target
+      kubectl label namespace target istio-injection=enabled
 
       # Create a gateway
       kubectl apply -f ./playground/config/gateway.yaml
@@ -111,7 +111,7 @@ We will be using [`playground/infra/elasti-demo-values.yaml`](https://github.com
 
 ```bash
 kubectl create namespace elasti
-helm template elasti ./charts/elasti -n elasti -f ./playground/infra/elasti-demo-values.yaml | kubectl apply -f -
+helm upgrade --install elasti ./charts/elasti -n elasti -f ./playground/infra/elasti-demo-values.yaml
 ```
 
 If you want to enable monitoring, please make `enableMonitoring` true in the values file.
@@ -130,10 +130,10 @@ Add virtual service if you are using istio.
 ```bash
 # ONLY IF YOU ARE USING ISTIO
 # Create a Virtual Service to expose the demo service
-kubectl apply -f ./playground/config/demo-virtualService.yaml -n target
+kubectl apply -f ./playground/config/demo-virtualService.yaml
 ```
 
-This will deploy a httpbin service in the `demo` namespace.
+This will deploy a httpbin service in the `target` namespace.
 
 ## 8. Create ElastiService Resource
 
@@ -155,9 +155,57 @@ kubectl -n target scale deployment httpbin --replicas=0
 ### 9.2 Send request to the service while target is scaled down
 
 ```bash
-curl -v http://localhost:8080/httpbin
+kubectl run -it --rm curl --image=alpine/curl -- http://httpbin.target.svc.cluster.local/headers
+```
 
-# kubectl run -it --rm curl --image=alpine/curl -- http://httpbin.target.svc.cluster.local/headers
+### 9.3 Portforward Ingress
+
+```bash
+kubectl port-forward svc/nginx-ingress-controller 8080:80 -n ingress-nginx
+
+# or 
+
+kubectl port-forward -n istio-system svc/istio-ingressgateway 8080:80
 ```
 
 You should see the target service pod getting scaled up and response from the new pod.
+
+## 10. Debug tips
+
+### 10.1 Watch logs
+
+```bash
+kubectl logs -n elasti deployments/elasti-operator-controller-manager -f
+kubectl logs -n elasti deployments/elasti-resolver -f
+kubectl logs -n target deployments/httpbin -f
+kubectl logs -n istio-system deployments/istiod -f
+```
+
+## 10. Delete KubeElasti
+
+```bash
+helm delete elasti -n elasti
+```
+
+## 11. Redeploy KubeElasti
+
+In case you want to redeploy KubeElasti, with your latest changes, you can use the below command:
+
+### 11.1 Delete the ElastiService
+```bash
+kubectl -n target delete -f ./playground/config/demo-elastiService.yaml
+```
+
+### 11.2 Delete the KubeElasti
+```bash
+helm delete elasti -n elasti
+```
+
+### 11.3 Remove old images
+```bash
+docker rmi localhost:5001/elasti-resolver:v1alpha1
+
+docker rmi localhost:5001/elasti-operator:v1alpha1
+```
+
+Post this, repeat steps 6 and 8, to redeploy KubeElasti.
