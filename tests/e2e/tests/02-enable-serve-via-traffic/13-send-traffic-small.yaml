@@ -1,0 +1,4 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands: # Small response with Content-Length
+  - command: ./send_traffic.sh http://target-deployment.target.svc.cluster.local/ip
