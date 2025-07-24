@@ -132,7 +132,7 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 	defer cancel()
 	if tryErr := h.throttler.Try(ctx, host,
 		func(count int) error {
-			err := h.ProxyRequest(w, req, host.TargetHost, count)
+			err := h.ProxyRequest(w, req, host, count)
 			if err != nil {
 				h.logger.Error("Error proxying request", zap.Error(err))
 				hub := sentry.GetHubFromContext(req.Context())
@@ -160,41 +160,55 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 	return host, nil
 }
 
-func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, targetHost string, count int) (rErr error) {
+func (h *Handler) ProxyRequest(w http.ResponseWriter, req *http.Request, host *messages.Host, count int) (rErr error) {
 	defer func() {
 		if r := recover(); r != nil {
 			rErr = fmt.Errorf("panic in ProxyRequest: %w", r.(error))
 		}
 	}()
-	targetURL, err := url.Parse(targetHost + req.RequestURI)
+	targetURL, err := url.Parse(host.TargetHost + req.RequestURI)
 	if err != nil {
 		return fmt.Errorf("error parsing target URL: %w", err)
 	}
 
-	proxy := h.NewHeaderPruningReverseProxy(targetURL, true)
+	proxy := h.NewHeaderPruningReverseProxy(targetURL)
 	proxy.BufferPool = h.bufferPool
 	proxy.Transport = h.transport
-	proxy.ErrorHandler = func(_ http.ResponseWriter, _ *http.Request, err error) {
-		panic(fmt.Errorf("serveHTTP error: %w", err))
+	proxy.ErrorHandler = func(wErr http.ResponseWriter, reqErr *http.Request, err error) {
+		h.logger.Error("reverse proxy error", zap.Error(err), zap.String("url", reqErr.URL.String()))
+		if wErr.Header().Get("Content-Type") == "" {
+			wErr.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			wErr.WriteHeader(http.StatusBadGateway)
+			_, err = wErr.Write([]byte("Bad Gateway"))
+			if err != nil {
+				h.logger.Error("error writing response", zap.Error(err))
+			}
+		}
 	}
-	h.logger.Debug("Request sent to proxy", zap.Int("Retry Count", count))
+	h.logger.Info("Request proxied", zap.Int("Retry Count", count))
 	proxy.ServeHTTP(w, req)
 	return nil
 }
 
 // NewHeaderPruningReverseProxy returns a httputil.ReverseProxy that proxies
-// requests to the given targetHost after removing the headersToRemove.
-// If hostOverride is not an empty string, the outgoing request's Host header will be
-// replaced with that explicit value and the passthrough loadbalancing header will be
-// set to enable pod-addressability.
-func (h *Handler) NewHeaderPruningReverseProxy(target *url.URL, hostOverride bool) *httputil.ReverseProxy {
+// requests to the given targetHost after creating new headers.
+func (h *Handler) NewHeaderPruningReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	return &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
+			originalHost := req.Host // Save the original host
 			req.URL = target
+			req.Header.Set("X-Forwarded-Host", originalHost)
 
-			if hostOverride {
-				req.Host = target.Host
+			// Forward the authority header which is important for HTTP/2 and gRPC
+			// In HTTP/2, :authority should contain the host and optionally the port
+			// It's equivalent to the Host header in HTTP/1.1
+			if req.Header.Get(":authority") != "" {
+				// Use originalHost which should already be in the correct format (host:port if non-default port)
+				req.Header.Set(":authority", originalHost)
 			}
+
+			// This ensures the target service sees the original host
+			req.Host = originalHost
 		},
 	}
 }

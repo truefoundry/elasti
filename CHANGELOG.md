@@ -6,6 +6,7 @@
 
 ## 0.1.15
 * Add validation for CRD fields for elasti service by @ramantehlan in https://github.com/truefoundry/elasti/pull/122
+* Forward source host to target by @ramantehlan in https://github.com/truefoundry/elasti/pull/123
 
 ## 0.1.14
 * update workflow to update grype config by @DeeAjayi in https://github.com/truefoundry/KubeElasti/pull/113
