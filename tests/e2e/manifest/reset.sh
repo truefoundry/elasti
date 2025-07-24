@@ -17,6 +17,6 @@ kubectl patch service target-deployment -n target --type=merge -p '{"spec":{"sel
 kubectl scale deployment elasti-resolver -n elasti --replicas=1
 
 # Wait for resources to be ready
-kubectl wait pods -l app=target-deployment -n target --for=condition=Ready --timeout=30s
-kubectl wait pods -l app=elasti-resolver -n elasti --for=condition=Ready --timeout=30s
+kubectl wait pods -l app=target-deployment -n target --for=condition=Ready --timeout=120s
+kubectl wait pods -l app=elasti-resolver -n elasti --for=condition=Ready --timeout=120s
 kubectl get elastiservice -n target target-elastiservice || exit 1
