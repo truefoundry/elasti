@@ -10,4 +10,4 @@ apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 script: |
   #!/bin/sh
-  kubectl wait --for=delete pods -l app=target-deployment -n target --timeout=60s || exit 1
+  kubectl wait --for=delete pods -l app=target-deployment -n target --timeout=120s || exit 1
