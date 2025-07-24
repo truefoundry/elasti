@@ -12,8 +12,7 @@ kubectl replace -f "$1/target-deployment.yaml" -n target
 
 # Scale elasti-resolver back to 1
 kubectl scale deployment elasti-resolver -n elasti --replicas=1
+kubectl wait pods -l app=elasti-resolver -n elasti --for=condition=Ready --timeout=120s
 
 # Wait for resources to be ready
-kubectl wait pods -l app=target-deployment -n target --for=condition=Ready --timeout=30s
-kubectl wait pods -l app=elasti-resolver -n elasti --for=condition=Ready --timeout=30s
 kubectl get elastiservice -n target target-elastiservice || exit 1
