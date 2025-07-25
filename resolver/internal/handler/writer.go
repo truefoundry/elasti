@@ -23,7 +23,11 @@ func (rw *responseWriter) WriteHeader(statusCode int) {
 func (rw *responseWriter) Write(b []byte) (int, error) {
 	rw.body = append(rw.body, b...)
 	res, err := rw.ResponseWriter.Write(b)
-	return res, fmt.Errorf("Write: %w", err)
+	if err != nil {
+		return 0, fmt.Errorf("Write: %w", err)
+	}
+
+	return res, nil
 }
 
 func (rw *responseWriter) Header() http.Header {
