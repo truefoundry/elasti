@@ -1,0 +1,5 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: ./set_metric.sh some_metric 1
+  - command: ./set_metric.sh 'up{container="foo"}' 1

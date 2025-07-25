@@ -22,14 +22,13 @@ type prometheusScaler struct {
 	httpClient     *http.Client
 	metadata       *prometheusMetadata
 	cooldownPeriod time.Duration
-
-	uptimeFilter string
 }
 
 type prometheusMetadata struct {
 	ServerAddress string  `json:"serverAddress"`
 	Query         string  `json:"query"`
 	Threshold     float64 `json:"threshold,string"`
+	UptimeFilter  string  `json:"uptimeFilter"`
 }
 
 var promQueryResponse struct {
@@ -43,7 +42,7 @@ var promQueryResponse struct {
 	} `json:"data"`
 }
 
-func NewPrometheusScaler(metadata json.RawMessage, cooldownPeriod time.Duration, uptimeFilter string) (Scaler, error) {
+func NewPrometheusScaler(metadata json.RawMessage, cooldownPeriod time.Duration) (Scaler, error) {
 	parsedMetadata, err := parsePrometheusMetadata(metadata)
 	if err != nil {
 		return nil, fmt.Errorf("error creating prometheus scaler: %w", err)
@@ -57,8 +56,6 @@ func NewPrometheusScaler(metadata json.RawMessage, cooldownPeriod time.Duration,
 		metadata:       parsedMetadata,
 		httpClient:     client,
 		cooldownPeriod: cooldownPeriod,
-
-		uptimeFilter: uptimeFilter,
 	}, nil
 }
 
@@ -172,7 +169,7 @@ func (s *prometheusScaler) Close(_ context.Context) error {
 }
 
 func (s *prometheusScaler) IsHealthy(ctx context.Context) (bool, error) {
-	uptimeFilter := s.uptimeFilter
+	uptimeFilter := s.metadata.UptimeFilter
 	if uptimeFilter == "" {
 		uptimeFilter = defaultUptimeFilter
 	}
