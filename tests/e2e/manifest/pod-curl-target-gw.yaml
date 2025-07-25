@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: curl-target-gw
+  namespace: target
+  labels:
+    app: curl-target-gw
+spec:
+  containers:
+    - name: curl
+      image: ghcr.io/curl/curl-container/curl:master
+      command: [ "sleep" ]
+      args: [ "infinity" ]

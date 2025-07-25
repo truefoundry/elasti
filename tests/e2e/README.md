@@ -15,6 +15,7 @@ This directory contains an End-to-End (E2E) testing framework for the Elasti Kub
 - [Kind](https://kind.sigs.k8s.io/) (Kubernetes in Docker) v0.17.0+
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) v1.25.0+
 - [kuttl](https://kuttl.dev/) v0.15.0+
+- [jq](https://jqlang.org/) v1.7+
 
   ```bash
     # Using Krew (Kubernetes plugin manager)

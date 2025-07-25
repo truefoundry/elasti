@@ -1,24 +1,25 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestStep
-script: |
-  #!/bin/sh
-  # Verify that when resolver is scaled to 0, the endpointslice remains unchanged
+commands:
+  - script: |
+      #!/bin/sh
+      # Verify that when resolver is scaled to 0, the endpointslice remains unchanged
 
-  # Check if the endpointslice still exists (it should)
-  kubectl get endpointslice -n target elasti-target-deployment-endpointslice-to-resolver-9696239e87 -o jsonpath='{.metadata.name}' | grep "elasti-target-deployment-endpointslice-to-resolver-9696239e87" || exit 1
+      # Check if the endpointslice still exists (it should)
+      kubectl get endpointslice -n target elasti-target-deployment-endpointslice-to-resolver-9696239e87 -o jsonpath='{.metadata.name}' | grep "elasti-target-deployment-endpointslice-to-resolver-9696239e87" || exit 1
 
-  # Get the number of endpoints in the endpointslice
-  # When resolver is scaled to 0, the operator should not modify the endpointslice
-  # as per the requirement: "In case resolver deployments is 0, it should do nothing to the EndpointSlice"
+      # Get the number of endpoints in the endpointslice
+      # When resolver is scaled to 0, the operator should not modify the endpointslice
+      # as per the requirement: "In case resolver deployments is 0, it should do nothing to the EndpointSlice"
 
-  # Check if the endpointslice still has the same endpoints
-  ENDPOINTS_COUNT=$(kubectl get endpointslice -n target elasti-target-deployment-endpointslice-to-resolver-9696239e87 -o jsonpath='{.endpoints}' | jq 'length')
+      # Check if the endpointslice still has the same endpoints
+      ENDPOINTS_COUNT=$(kubectl get endpointslice -n target elasti-target-deployment-endpointslice-to-resolver-9696239e87 -o jsonpath='{.endpoints}' | jq 'length')
 
-  # Verify that the endpointslice still has endpoints (should be unchanged)
-  if [ "$ENDPOINTS_COUNT" -gt 0 ]; then
-    echo "EndpointSlice still has $ENDPOINTS_COUNT endpoints as expected"
-    exit 0
-  else
-    echo "EndpointSlice has no endpoints, which is unexpected"
-    exit 1
-  fi
+      # Verify that the endpointslice still has endpoints (should be unchanged)
+      if [ "$ENDPOINTS_COUNT" -gt 0 ]; then
+        echo "EndpointSlice still has $ENDPOINTS_COUNT endpoints as expected"
+        exit 0
+      else
+        echo "EndpointSlice has no endpoints, which is unexpected"
+        exit 1
+      fi

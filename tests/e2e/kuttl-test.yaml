@@ -6,6 +6,8 @@ testDirs:
 timeout: 120
 parallel: 1
 commands:
+  - command: kubectl apply -f ./manifest/pod-curl-target-gw.yaml -n target
+    namespaced: false
   - command: kubectl apply -f ./manifest/istio-gateway.yaml -n istio-system
     namespaced: false
   - command: kubectl apply -f ./manifest/target-deployment.yaml -n target
