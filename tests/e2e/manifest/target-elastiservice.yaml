@@ -5,7 +5,7 @@ metadata:
   name: target-elastiservice
   namespace: target
 spec:
-  cooldownPeriod: 5
+  cooldownPeriod: 30
   minTargetReplicas: 1
   scaleTargetRef:
     apiVersion: apps/v1
