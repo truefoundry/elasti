@@ -1,4 +1,4 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 commands: # Small response is sent in delayed chunks
-  - command: ./send_traffic.sh http://target-deployment.target.svc.cluster.local/drip?duration=2&numbytes=10&code=200&delay=2
+  - command: ./send_traffic.sh 'http://target-deployment.target.svc.cluster.local/drip?duration=2&numbytes=10&code=200&delay=2'
