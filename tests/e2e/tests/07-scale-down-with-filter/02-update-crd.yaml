@@ -4,7 +4,6 @@ metadata:
   name: target-elastiservice
   namespace: target
 spec:
-  cooldownPeriod: 10
   triggers:
     - metadata:
         query: round(sum(rate(some_metric[20s])),0.001) or vector(0)
