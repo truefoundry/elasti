@@ -4,13 +4,15 @@
 # This is needed as the script is called from multiple places and has different paths.
 # Maybe in future we can fix this, but for now this is fine.
 
+set -x
+
 # Apply ElastiService
 kubectl apply -f  "$1/target-elastiservice.yaml" -n target
 
 # Wait for ElastiService to be old enough
 CRD_CONTENT=$(kubectl get elastiservices/target-elastiservice -n target -o json)
-CRD_COOLDOWN_PERIOD=$(echo "${CRD_CONTENT}" | jq -r .spec.cooldownPeriod)
-CRD_CREATION_DATE=$(echo "${CRD_CONTENT}" | jq -r .metadata.creationTimestamp)
+CRD_COOLDOWN_PERIOD=$(echo "${CRD_CONTENT}" | jq -r '.spec.cooldownPeriod')
+CRD_CREATION_DATE=$(echo "${CRD_CONTENT}" | jq -r '.metadata.creationTimestamp')
 CRD_CREATION_SECONDS=$(date -d "${CRD_CREATION_DATE}" +%s)
 SECONDS_NOW=$(date +%s)
 CRD_AGE=$(($SECONDS_NOW - $CRD_CREATION_SECONDS))
