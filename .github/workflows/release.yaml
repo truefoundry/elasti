@@ -26,21 +26,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: "0"
-          
+
       - name: Install yq
         run: |
           sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
           sudo chmod +x /usr/bin/yq
-      
+
       - name: Read chart values
         id: read_chart
         run: |
           CHART_VERSION=$(yq -r '.version' charts/elasti/Chart.yaml)
           echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_OUTPUT
-          
+
           APP_VERSION=$(yq -r '.appVersion' charts/elasti/Chart.yaml)
           echo "APP_VERSION=$APP_VERSION" >> $GITHUB_OUTPUT
-          
+
           CHART_NAME=$(yq -r '.name' charts/elasti/Chart.yaml)
           echo "CHART_NAME=$CHART_NAME" >> $GITHUB_OUTPUT
 
@@ -49,7 +49,7 @@ jobs:
 
           OPERATOR_TAG=$(yq -r '.elastiController.manager.image.tag' charts/elasti/values.yaml)
           echo "OPERATOR_TAG=$OPERATOR_TAG" >> $GITHUB_OUTPUT
-          
+
           echo "Chart values read: $CHART_NAME v$CHART_VERSION (app v$APP_VERSION)"
           echo "Resolver tag: $RESOLVER_TAG"
           echo "Operator tag: $OPERATOR_TAG"
