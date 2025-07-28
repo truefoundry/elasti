@@ -44,22 +44,22 @@ Stable releases require manual preparation and are triggered by creating a GitHu
    - <Resolved>: ...
    - <General>: ...
 
-   ## Experimental
+   ### Experimental
    - <Where the change was done>: <What was added>
 
-   # Improvements
+   ### Improvements
    - <Where the change was done>: <What was improved>
 
-   # Fixes
+   ### Fixes
    - <Where the change was done>: <What was fixed>
 
-   # Breaking Changes
+   ### Breaking Changes
    - <Where the change was done>: <What was changed>
 
-   # Other
+   ### Other
    - <Where the change was done>: <What was changed>
 
-   # New Contributors
+   ### New Contributors
    - @rethil made their first contribution in #154
    etc...
    ```
