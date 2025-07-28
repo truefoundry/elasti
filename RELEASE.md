@@ -4,24 +4,26 @@ This document outlines the release process for KubeElasti, covering both beta an
 
 ## Release Workflow Overview
 
-KubeElasti follows a two-stage release process:
+KubeElasti has 3 release types:
 1. **Stable Release**: Manually triggered via Github releases
 2. **Beta Release**: Manually triggered via Github releases
 3. **Beta Releases (Legacy)**: Automated from the `main` branch
 
 
-## 1. Stable Release Process
+## 1. Stable Release
 
 Stable releases require manual preparation and are triggered by creating a GitHub release.
 
 ### Preparation Steps
 
 1. Update version information:
+   
    - Update `charts/elasti/Chart.yaml` with the new version number:
      ```yaml
      version: X.Y.Z
      appVersion: "X.Y.Z"
      ```
+   
    - Update `charts/elasti/values.yaml` to reference the specific commit SHA:
      ```yaml
      elastiController:
@@ -43,48 +45,44 @@ Stable releases require manual preparation and are triggered by creating a GitHu
    - Tag format: `vX.Y.Z`
    - Title: `KubeElasti vX.Y.Z`
    - Include release notes detailing changes
-  ```markdown
+        ```markdown
+        We are happy to release KubeElasti vX.Y.Z 🎉
 
-We are happy to release KubeElasti vX.Y.Z 🎉
+        Here are some highlights of this release:
+        - Highlight 1
+        - Highlight 2
 
-Here are some highlights of this release:
-- Hightlight 1
-- Hightlight 2
+        Here are the breaking changes of this release:
+        - Breaking Change 1
+        - Breaking Change 2
 
-Here are the breaking changes of this release:
-- Breaking Change 1
-- Breaking Change 2
+        Learn how to deploy KubeElasti by reading [our documentation](https://kubeelasti.dev).
 
-Learn how to deploy KubeElasti by reading [our documentation](https://kubeelasti.dev).
+        # New
+        - <Where the change was done>: <What was added>
+        - <Resolved>: ...
+        - <General>: ...
 
+        ## Experimental
+        - <Where the change was done>: <What was added>
 
-# New
-- <Where the change was done>: <What was added>
-- <Resolved>: ...
-- <General>: ...
+        # Improvements
+        - <Where the change was done>: <What was improved>
 
-## Experimental
-- <Where the change was done>: <What was added>
+        # Fixes
+        - <Where the change was done>: <What was fixed>
 
+        # Breaking Changes
+        - <Where the change was done>: <What was changed>
 
-# Improvements
-- <Where the change was done>: <What was improved>
+        # Other
+        - <Where the change was done>: <What was changed>
 
-# Fixes
-- <Where the change was done>: <What was fixed>
-
-# Breaking Changes
-- <Where the change was done>: <What was changed>
-
-
-# Other
-- <Where the change was done>: <What was changed>
-
-# New Contributors
-    - @rethil made their first contribution in #154
-   etc...
-```
-- Feel free to add more sections as needed, or remove what is not needed.
+        # New Contributors
+        - @rethil made their first contribution in #154
+        etc...
+        ```
+    - Feel free to add more sections as needed, or remove what is not needed.
 
 
 2. The `.github/workflows/release.yaml` workflow is triggered:
@@ -92,12 +90,12 @@ Learn how to deploy KubeElasti by reading [our documentation](https://kubeelasti
    - Chart is pushed to the JFrog Artifactory Helm repository
 
 
-## 2. Beta Release Process
+## 2. Beta Release
 
 Same steps as stable, we just replace it with `vX.Y.Z-beta`.
 
 
-## 3.  Beta(Legacy) Release Process
+## 3.  Beta(Legacy) Release
 
 Beta(Legacy) releases are automatically generated when code is merged to the `main` branch.
 

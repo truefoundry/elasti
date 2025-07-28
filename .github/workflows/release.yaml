@@ -61,7 +61,7 @@ jobs:
         id: extract_info
         run: |
           # Extract tag from github.ref_name (remove 'elasti-helm-v' prefix)
-          IMAGE_TAG=$(echo "${{ github.ref_name }}" | sed 's/elasti-helm-v//')
+          IMAGE_TAG=$(echo "${{ github.ref_name }}")
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
           
           # Get chart version using jq from Chart.yaml
