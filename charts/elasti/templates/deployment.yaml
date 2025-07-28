@@ -134,3 +134,4 @@ spec:
         - containerPort: {{ .Values.elastiResolver.reverseProxyService.port }}
         resources: 
           {{- toYaml .Values.elastiResolver.proxy.resources | nindent 10 }}
+      serviceAccountName: {{ include "elasti.fullname" . }}-resolver

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -35,18 +36,27 @@ func NewOps(logger *zap.Logger, config *rest.Config) *Ops {
 	}
 }
 
-// CheckIfServiceEndpointActive returns true if endpoint for a service is active
-func (k *Ops) CheckIfServiceEndpointActive(ns, svc string) (bool, error) {
-	endpoint, err := k.kClient.CoreV1().Endpoints(ns).Get(context.TODO(), svc, metav1.GetOptions{})
+// CheckIfServiceEndpointSliceActive returns true if endpoint for a service is active
+func (k *Ops) CheckIfServiceEndpointSliceActive(ns, svc string) (bool, error) {
+	endpointSlices, err := k.kClient.DiscoveryV1().EndpointSlices(ns).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: discoveryv1.LabelServiceName + "=" + svc,
+	})
 	if err != nil {
-		return false, fmt.Errorf("CheckIfServiceEndpointActive - GET: %w", err)
+		return false, fmt.Errorf("CheckIfServiceEndpointSliceActive - GET: %w", err)
 	}
 
-	if len(endpoint.Subsets) > 0 {
-		if len(endpoint.Subsets[0].Addresses) != 0 {
+	if len(endpointSlices.Items) != 1 {
+		return false, fmt.Errorf("CheckIfServiceEndpointSliceActive - expected 1 slice, got %d", len(endpointSlices.Items))
+	}
+
+	if len(endpointSlices.Items[0].Endpoints) != 0 {
+		isReady := endpointSlices.Items[0].Endpoints[0].Conditions.Ready
+
+		if isReady != nil && *isReady {
 			k.logger.Debug("Service endpoint is active", zap.String("service", svc), zap.String("namespace", ns))
 			return true, nil
 		}
 	}
+
 	return false, nil
 }

@@ -99,7 +99,7 @@ func (t *Throttler) checkIfServiceReady(namespace, service string) (bool, error)
 		return ready.(bool), nil
 	}
 
-	isPodActive, err := t.k8sUtil.CheckIfServiceEndpointActive(namespace, service)
+	isPodActive, err := t.k8sUtil.CheckIfServiceEndpointSliceActive(namespace, service)
 	if err != nil {
 		return false, fmt.Errorf("unable to get target active endpoints: %w", err)
 	}
