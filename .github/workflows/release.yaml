@@ -53,7 +53,6 @@ jobs:
       - name: Install tools
         run: |
             # Install yq
-            sudo apt update && sudo apt install wget jq -y
             sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
             sudo chmod +x /usr/bin/yq
 
@@ -64,8 +63,8 @@ jobs:
           IMAGE_TAG=$(echo "${{ github.ref_name }}")
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
           
-          # Get chart version using jq from Chart.yaml
-          CHART_VERSION=$(jq -r '.version' charts/elasti/Chart.yaml)
+          # Get chart version using yq from Chart.yaml
+          CHART_VERSION=$(yq -r '.version' charts/elasti/Chart.yaml)
           echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_OUTPUT
 
       - name: Update Helm values.yaml with image tags
@@ -85,9 +84,9 @@ jobs:
             do
                 CHART_DIR=$(basename $CHART_DIR)
                 echo "CHARTDIR: $CHART_DIR/Chart.yaml"
-                # getting chart name and versions using jq
-                CHART_NAME=$(jq -r '.name' $CHART_DIR/Chart.yaml)
-                CHART_VERSION=$(jq -r '.version' "$CHART_DIR"/Chart.yaml)
+                # getting chart name and versions using yq
+                CHART_NAME=$(yq -r '.name' $CHART_DIR/Chart.yaml)
+                CHART_VERSION=$(yq -r '.version' "$CHART_DIR"/Chart.yaml)
                 
                 # packaging chart
                 helm dependency update $CHART_DIR
