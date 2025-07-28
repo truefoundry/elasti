@@ -59,19 +59,17 @@ jobs:
       - name: Extract image tag and version
         id: extract_info
         run: |
-          # Extract tag from github.ref_name (remove 'elasti-helm-v' prefix)
           IMAGE_TAG=$(echo "${{ github.ref_name }}")
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
           
-          # Get chart version using yq from Chart.yaml
           CHART_VERSION=$(yq -r '.version' charts/elasti/Chart.yaml)
           echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_OUTPUT
 
       - name: Update Helm values.yaml with image tags
         run: |
           # Update image tags in values.yaml
-          jq '.elastiController.manager.image.tag = "${{ steps.extract_info.outputs.IMAGE_TAG }}"' charts/elasti/values.yaml > tmp.yaml && mv tmp.yaml charts/elasti/values.yaml
-          jq '.elastiResolver.proxy.image.tag = "${{ steps.extract_info.outputs.IMAGE_TAG }}"' charts/elasti/values.yaml > tmp.yaml && mv tmp.yaml charts/elasti/values.yaml
+          yq '.elastiController.manager.image.tag = "${{ steps.extract_info.outputs.IMAGE_TAG }}"' charts/elasti/values.yaml > tmp.yaml && mv tmp.yaml charts/elasti/values.yaml
+          yq '.elastiResolver.proxy.image.tag = "${{ steps.extract_info.outputs.IMAGE_TAG }}"' charts/elasti/values.yaml > tmp.yaml && mv tmp.yaml charts/elasti/values.yaml
 
       - name: Helm registry login
         run: |

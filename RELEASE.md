@@ -36,8 +36,36 @@ Stable releases require manual preparation and are triggered by creating a GitHu
            tag: vX.Y.Z
      ```
 
-2. Create a pull request with these changes
-3. Review and merge the PR to `main`
+2. Update `CHANGELOG.md` with the new version number:
+   ```markdown
+   ## vX.Y.Z (YYYY-MM-DD)
+   ### New
+   - <Where the change was done>: <What was added>
+   - <Resolved>: ...
+   - <General>: ...
+
+   ## Experimental
+   - <Where the change was done>: <What was added>
+
+   # Improvements
+   - <Where the change was done>: <What was improved>
+
+   # Fixes
+   - <Where the change was done>: <What was fixed>
+
+   # Breaking Changes
+   - <Where the change was done>: <What was changed>
+
+   # Other
+   - <Where the change was done>: <What was changed>
+
+   # New Contributors
+   - @rethil made their first contribution in #154
+   etc...
+   ```
+
+3. Create a pull request with these changes
+4. Review and merge the PR to `main`
 
 ### Release Steps
 
