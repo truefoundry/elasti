@@ -10,7 +10,7 @@ env:
   HELM_REGISTRY_USERNAME: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
   HELM_REGISTRY_PASSWORD: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
   HELM_CHART_REPOSITORY: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_HELM_REPOSITORY }}
-    
+
 jobs:
   # Build and push operator image
   build-operator:
@@ -18,8 +18,8 @@ jobs:
     uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.ref_name }}
-      image_artifact_name: 'elasti-operator'
-      dockerfile_path: 'operator/Dockerfile'
+      image_artifact_name: "elasti-operator"
+      dockerfile_path: "operator/Dockerfile"
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
     secrets:
@@ -32,8 +32,8 @@ jobs:
     uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.ref_name }}
-      image_artifact_name: 'elasti-resolver'
-      dockerfile_path: 'resolver/Dockerfile'
+      image_artifact_name: "elasti-resolver"
+      dockerfile_path: "resolver/Dockerfile"
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
     secrets:
@@ -49,19 +49,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: "0"
-    
+
       - name: Install tools
         run: |
-            # Install yq
-            sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
-            sudo chmod +x /usr/bin/yq
+          # Install yq
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+          sudo chmod +x /usr/bin/yq
 
       - name: Extract image tag and version
         id: extract_info
         run: |
           IMAGE_TAG=$(echo "${{ github.ref_name }}")
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
-          
+
           CHART_VERSION=$(yq -r '.version' charts/elasti/Chart.yaml)
           echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_OUTPUT
 
@@ -74,25 +74,25 @@ jobs:
       - name: Helm registry login
         run: |
           helm registry login -u ${{ env.HELM_REGISTRY_USERNAME}} -p ${{ env.HELM_REGISTRY_PASSWORD }} ${{ env.HELM_REGISTRY_URL }}
-     
-      - name: Helm push 
-        run: |
-            cd charts
-            for CHART_DIR in $(ls -d */)
-            do
-                CHART_DIR=$(basename $CHART_DIR)
-                echo "CHARTDIR: $CHART_DIR/Chart.yaml"
-                # getting chart name and versions using yq
-                CHART_NAME=$(yq -r '.name' $CHART_DIR/Chart.yaml)
-                CHART_VERSION=$(yq -r '.version' "$CHART_DIR"/Chart.yaml)
-                
-                # packaging chart
-                helm dependency update $CHART_DIR
-                helm package $CHART_DIR
 
-                # pushing the helm charts
-                echo "Pushing Chart: $CHART_NAME"
-                echo "Version: $CHART_NAME-$CHART_VERSION.tgz"
-                helm push $CHART_NAME-$CHART_VERSION.tgz oci://${{ env.HELM_CHART_REPOSITORY}}
-                echo "Successfully pushed chart: $CHART_NAME"
-            done
+      - name: Helm push
+        run: |
+          cd charts
+          for CHART_DIR in $(ls -d */)
+          do
+              CHART_DIR=$(basename $CHART_DIR)
+              echo "CHARTDIR: $CHART_DIR/Chart.yaml"
+              # getting chart name and versions using yq
+              CHART_NAME=$(yq -r '.name' $CHART_DIR/Chart.yaml)
+              CHART_VERSION=$(yq -r '.version' "$CHART_DIR"/Chart.yaml)
+              
+              # packaging chart
+              helm dependency update $CHART_DIR
+              helm package $CHART_DIR
+
+              # pushing the helm charts
+              echo "Pushing Chart: $CHART_NAME"
+              echo "Version: $CHART_NAME-$CHART_VERSION.tgz"
+              helm push $CHART_NAME-$CHART_VERSION.tgz oci://${{ env.HELM_CHART_REPOSITORY}}
+              echo "Successfully pushed chart: $CHART_NAME"
+          done
