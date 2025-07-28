@@ -101,21 +101,16 @@ jobs:
       - name: Helm push
         run: |
           cd charts
-          for CHART_DIR in $(ls -d */)
-          do
-              CHART_DIR=$(basename $CHART_DIR)
-              echo "CHARTDIR: $CHART_DIR/Chart.yaml"
+          CHART_DIR=elasti
+          CHART_NAME=${{ needs.read-chart-values.outputs.chart_name }}
+          CHART_VERSION=${{ needs.read-chart-values.outputs.chart_version }}
               
-              CHART_NAME=${{ needs.read-chart-values.outputs.chart_name }}
-              CHART_VERSION=${{ needs.read-chart-values.outputs.chart_version }}
-              
-              # packaging chart
-              helm dependency update $CHART_DIR
-              helm package $CHART_DIR
+          # packaging chart
+          helm dependency update $CHART_DIR
+          helm package $CHART_DIR
 
-              # pushing the helm charts
-              echo "Pushing Chart: $CHART_NAME"
-              echo "Version: $CHART_NAME-$CHART_VERSION.tgz"
-              helm push $CHART_NAME-$CHART_VERSION.tgz oci://${{ env.HELM_CHART_REPOSITORY}}
-              echo "Successfully pushed chart: $CHART_NAME"
-          done
+          # pushing the helm charts
+          echo "Pushing Chart: $CHART_NAME"
+          echo "Version: $CHART_NAME-$CHART_VERSION.tgz"
+          helm push $CHART_NAME-$CHART_VERSION.tgz oci://${{ env.HELM_CHART_REPOSITORY}}
+          echo "Successfully pushed chart: $CHART_NAME"
