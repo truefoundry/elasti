@@ -45,16 +45,12 @@ func (k *Ops) CheckIfServiceEndpointSliceActive(ns, svc string) (bool, error) {
 		return false, fmt.Errorf("CheckIfServiceEndpointSliceActive - GET: %w", err)
 	}
 
-	if len(endpointSlices.Items) != 1 {
-		return false, fmt.Errorf("CheckIfServiceEndpointSliceActive - expected 1 slice, got %d", len(endpointSlices.Items))
-	}
-
-	if len(endpointSlices.Items[0].Endpoints) != 0 {
-		isReady := endpointSlices.Items[0].Endpoints[0].Conditions.Ready
-
-		if isReady != nil && *isReady {
-			k.logger.Debug("Service endpoint is active", zap.String("service", svc), zap.String("namespace", ns))
-			return true, nil
+	for _, slice := range endpointSlices.Items {
+		for _, endpoint := range slice.Endpoints {
+			if endpoint.Conditions.Ready != nil && *endpoint.Conditions.Ready {
+				k.logger.Debug("Service endpoint is active", zap.String("service", svc), zap.String("namespace", ns))
+				return true, nil
+			}
 		}
 	}
 
