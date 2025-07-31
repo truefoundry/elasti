@@ -1,0 +1,22 @@
+# Add StartupProbe to delay startup & remove istio injection for more deterministic tests
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: |
+      kubectl patch deployment target-deployment -n target --type='json' -p '[
+      {
+        "op": "add",
+        "path": "/spec/template/spec/containers/0/startupProbe",
+        "value": {
+          "tcpSocket": {
+            "port": 80
+          },
+          "initialDelaySeconds": 15,
+          "periodSeconds": 1
+        }
+      },
+      {
+        "op": "add",
+        "path": "/spec/template/metadata/annotations/sidecar.istio.io~1inject",
+        "value": "false"
+      }]'

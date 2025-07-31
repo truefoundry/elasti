@@ -1,0 +1,9 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 1
+commands:
+  - script: |
+      #!/bin/sh
+
+      MODE=$(kubectl get -n target elastiservices.elasti.truefoundry.com target-elastiservice -o json | jq -r '.status.mode')
+      if [ "${MODE}" != "serve" ]; then exit 1 ; fi
