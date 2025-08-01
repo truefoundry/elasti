@@ -3,8 +3,4 @@ apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
 timeout: 1
 commands:
-  - script: |
-      #!/bin/sh
-
-      MODE=$(kubectl get -n target elastiservices.elasti.truefoundry.com target-elastiservice -o json | jq -r '.status.mode')
-      if [ "${MODE}" != "proxy" ]; then exit 1 ; fi
+  - command: kubectl wait --for=jsonpath='{.status.mode}'=proxy --timeout=1s -n target elastiservice/target-elastiservice
