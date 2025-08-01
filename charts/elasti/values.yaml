@@ -12,9 +12,16 @@ elastiController:
       - --metrics-bind-address=0
     containerSecurityContext:
       allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
       capabilities:
         drop:
           - ALL
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      seccompProfile:
+        type: RuntimeDefault
     image:
       repository: tfy.jfrog.io/tfy-images/elasti-operator
       tag: 0.1.15-beta
@@ -64,6 +71,18 @@ elastiResolver:
       requests:
         cpu: 100m
         memory: 40Mi
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      seccompProfile:
+        type: RuntimeDefault
     sentry:
       enabled: false
       environment: ""
