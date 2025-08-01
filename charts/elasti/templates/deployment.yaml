@@ -24,7 +24,7 @@ spec:
         prometheus.io/scrape: "true"
     spec:
       containers:
-      - args: 
+      - args:
         {{- toYaml .Values.elastiController.manager.args | nindent 8 }}
         command:
         - /manager
@@ -61,12 +61,12 @@ spec:
             port: 8081
           initialDelaySeconds: 5
           periodSeconds: 10
-        resources: 
+        resources:
           {{- toYaml .Values.elastiController.manager.resources | nindent 10 }}
-        securityContext: 
+        securityContext:
           {{- toYaml .Values.elastiController.manager.containerSecurityContext | nindent 10 }}
       securityContext:
-        runAsNonRoot: true
+        {{- toYaml .Values.elastiController.manager.podSecurityContext | nindent 8 }}
       serviceAccountName: {{ include "elasti.fullname" . }}-operator-controller-manager
       terminationGracePeriodSeconds: 10
 ---
@@ -132,6 +132,10 @@ spec:
         ports:
         - containerPort: {{ .Values.elastiResolver.service.port }}
         - containerPort: {{ .Values.elastiResolver.reverseProxyService.port }}
-        resources: 
+        resources:
           {{- toYaml .Values.elastiResolver.proxy.resources | nindent 10 }}
+        securityContext:
+          {{- toYaml .Values.elastiResolver.proxy.containerSecurityContext | nindent 10 }}
+      securityContext:
+        {{- toYaml .Values.elastiResolver.proxy.podSecurityContext | nindent 8 }}
       serviceAccountName: {{ include "elasti.fullname" . }}-resolver
