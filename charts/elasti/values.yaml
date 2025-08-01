@@ -12,12 +12,19 @@ elastiController:
       - --metrics-bind-address=0
     containerSecurityContext:
       allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
       capabilities:
         drop:
           - ALL
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      seccompProfile:
+        type: RuntimeDefault
     image:
       repository: tfy.jfrog.io/tfy-images/elasti-operator
-      tag: 1ed5e9c18b0c734efed2d4e7ac50b4e153252a2c
+      tag: f45dff0e2bf95455a484411ecc3f80d955149b3d
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -55,7 +62,7 @@ elastiResolver:
       trafficReEnableDuration: "5"
     image:
       repository: tfy.jfrog.io/tfy-images/elasti-resolver
-      tag: 1ed5e9c18b0c734efed2d4e7ac50b4e153252a2c
+      tag: f45dff0e2bf95455a484411ecc3f80d955149b3d
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -64,6 +71,18 @@ elastiResolver:
       requests:
         cpu: 100m
         memory: 40Mi
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      seccompProfile:
+        type: RuntimeDefault
     sentry:
       enabled: false
       environment: ""
