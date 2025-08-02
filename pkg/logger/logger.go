@@ -11,6 +11,13 @@ import (
 
 // MaskMiddle replaces the middle of the string with `*` characters.
 func MaskMiddle(input string, unmaskedPrefix, unmaskedSuffix int) string {
+	if unmaskedPrefix < 0 {
+		unmaskedPrefix = 0
+	}
+	if unmaskedSuffix < 0 {
+		unmaskedSuffix = 0
+	}
+
 	n := len(input)
 	if n <= unmaskedPrefix+unmaskedSuffix {
 		return strings.Repeat("*", n)
