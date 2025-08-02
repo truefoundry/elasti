@@ -2,11 +2,26 @@ package logger
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+// MaskMiddle replaces the middle of the string with `*` characters.
+func MaskMiddle(input string, unmaskedPrefix, unmaskedSuffix int) string {
+	n := len(input)
+	if n <= unmaskedPrefix+unmaskedSuffix {
+		return strings.Repeat("*", n)
+	}
+
+	prefix := input[:unmaskedPrefix]
+	suffix := input[n-unmaskedSuffix:]
+	masked := strings.Repeat("*", n-unmaskedPrefix-unmaskedSuffix)
+
+	return prefix + masked + suffix
+}
 
 func NewLogger(env string, sentryEnabled bool) (*zap.Logger, error) {
 	var config zap.Config

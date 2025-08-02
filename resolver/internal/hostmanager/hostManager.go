@@ -10,6 +10,7 @@ import (
 
 	"github.com/truefoundry/elasti/resolver/internal/prom"
 
+	"github.com/truefoundry/elasti/pkg/logger"
 	"github.com/truefoundry/elasti/pkg/utils"
 
 	"github.com/truefoundry/elasti/pkg/messages"
@@ -78,8 +79,8 @@ func (hm *HostManager) DisableTrafficForHost(hostName string) {
 		host.(*messages.Host).TrafficAllowed = false
 		hm.hosts.Store(hostName, host)
 		hm.logger.Debug("Disabled traffic for host",
-			zap.Any("hostName", hostName),
-			zap.Any("trafficReEnableDuration", hm.trafficReEnableDuration))
+			zap.String("hostName", logger.MaskMiddle(hostName, 4, 4)),
+			zap.Duration("trafficReEnableDuration", hm.trafficReEnableDuration))
 		go time.AfterFunc(hm.trafficReEnableDuration, func() {
 			hm.enableTrafficForHost(hostName)
 		})
@@ -92,7 +93,7 @@ func (hm *HostManager) enableTrafficForHost(hostName string) {
 	if host, ok := hm.hosts.Load(hostName); ok && !host.(*messages.Host).TrafficAllowed {
 		host.(*messages.Host).TrafficAllowed = true
 		hm.hosts.Store(hostName, host)
-		hm.logger.Debug("Enabled traffic for host", zap.Any("hostName", hostName))
+		hm.logger.Debug("Enabled traffic for host", zap.Any("hostName", logger.MaskMiddle(hostName, 4, 4)))
 		prom.TrafficSwitchCounter.WithLabelValues(hostName, "enabled").Inc()
 	}
 }
@@ -128,10 +129,10 @@ func (hm *HostManager) extractNamespaceAndService(url string) (string, string, e
 		} else if len(matches) == 2 {
 			serviceName = matches[1]
 			namespace = "default"
-			return serviceName, namespace, fmt.Errorf("namespace not found in URL: %s", url)
+			return serviceName, namespace, fmt.Errorf("namespace not found in URL: %s", logger.MaskMiddle(url, 4, 4))
 		}
 	}
-	return "", "", fmt.Errorf("invalid Kubernetes URL: %s", url)
+	return "", "", fmt.Errorf("invalid Kubernetes URL: %s", logger.MaskMiddle(url, 4, 4))
 }
 
 // addHTTPIfNeeded adds http if not present in the service URL
