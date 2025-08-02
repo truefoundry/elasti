@@ -1,0 +1,7 @@
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  name: target-elastiservice
+  namespace: target
+status:
+  mode: proxy
