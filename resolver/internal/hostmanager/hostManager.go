@@ -78,7 +78,6 @@ func (hm *HostManager) DisableTrafficForHost(hostName string) {
 		host.(*messages.Host).TrafficAllowed = false
 		hm.hosts.Store(hostName, host)
 		hm.logger.Debug("Disabled traffic for host",
-			zap.Any("hostName", hostName),
 			zap.Any("trafficReEnableDuration", hm.trafficReEnableDuration))
 		go time.AfterFunc(hm.trafficReEnableDuration, func() {
 			hm.enableTrafficForHost(hostName)
@@ -92,7 +91,7 @@ func (hm *HostManager) enableTrafficForHost(hostName string) {
 	if host, ok := hm.hosts.Load(hostName); ok && !host.(*messages.Host).TrafficAllowed {
 		host.(*messages.Host).TrafficAllowed = true
 		hm.hosts.Store(hostName, host)
-		hm.logger.Debug("Enabled traffic for host", zap.Any("hostName", hostName))
+		hm.logger.Debug("Enabled traffic for host")
 		prom.TrafficSwitchCounter.WithLabelValues(hostName, "enabled").Inc()
 	}
 }
