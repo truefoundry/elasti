@@ -146,7 +146,8 @@ spec:
 
 <span class="gray"># 🎉 That's it! You just created a scale-to-zero service</span>
 </code></pre>
-    </div>
+</div>
+
   </div>
        <div class="get-started-content">
       <p>KubeElasti is easy to set up and configure. Follow our step-by-step guide to get started.</p>
@@ -158,12 +159,12 @@ spec:
   <h2>Demo - See KubeElasti in action!</h2>
 <div style="position: relative; padding-bottom: 55.026178010471206%; height: 0;">
 
-<iframe 
-    src="https://www.loom.com/embed/53b7b524b4c342f99ba44fd5d8104265?sid=c88660d1-a569-470c-8224-b1fffde9a2c6" 
-    frameborder="0" 
-    webkitallowfullscreen 
-    mozallowfullscreen 
-    allowfullscreen 
+<iframe
+    src="https://www.loom.com/embed/53b7b524b4c342f99ba44fd5d8104265?sid=c88660d1-a569-470c-8224-b1fffde9a2c6"
+    frameborder="0"
+    webkitallowfullscreen
+    mozallowfullscreen
+    allowfullscreen
     title="KubeElasti Demo"
     style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
 </iframe>

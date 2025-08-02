@@ -3,7 +3,7 @@ title: Contributors
 description: Contributors to the KubeElasti project
 ---
 
-This page recognizes all the amazing people who have contributed to the KubeElasti project. We appreciate all contributions, from code to documentation, testing, and community support.
+This page recognizes all the dedicated and incredible people who have contributed to the KubeElasti project. We appreciate all contributions, from code to documentation, testing, and community support.
 
 <br>
 
