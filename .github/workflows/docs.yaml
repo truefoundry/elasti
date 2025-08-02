@@ -31,5 +31,10 @@ jobs:
           restore-keys: |
             mkdocs-material-
       - run: pip install mkdocs-material
+      - name: Fetch contributors
+        run: |
+          python docs/scripts/fetch_contributors.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: mkdocs gh-deploy --force
 

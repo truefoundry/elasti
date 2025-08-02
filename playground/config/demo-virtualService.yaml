@@ -14,6 +14,6 @@ spec:
         prefix: /
     route:
     - destination:
-        host: httpbin.demo.svc.cluster.local
+        host: httpbin.target.svc.cluster.local
         port:
           number: 80
