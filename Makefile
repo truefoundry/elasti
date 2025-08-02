@@ -58,3 +58,8 @@ build-docs: ## Build docs
 	  echo "mkdocs not found - please install it (pip install mkdocs-material)"; exit 1; } ; \
 	mkdocs build
 
+.PHONY: fetch-contributors
+fetch-contributors: ## Fetch contributors
+	python3 docs/scripts/fetch_contributors.py
+
+

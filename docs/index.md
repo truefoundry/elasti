@@ -17,7 +17,7 @@ hide:
     KubeElasti <b>saves cost</b> using scale-to-zero <b>without losing any traffic</b>, requires <b>no code changes</b>, and integrates with your existing Kubernetes infrastructure.</p>
     <div class="hero-buttons">
       <a href="/src/gs-setup/" class="md-button md-button--primary">Get Started</a>
-      <a href="https://discord.gg/qFyN73htgE" class="md-button">Join our community</a>
+      <a href="https://discord.gg/qFyN73htgE" class="md-button" rel="noopener noreferrer">Join our community</a>
     </div>
   </div>
   <div class="hero-image">
@@ -156,7 +156,19 @@ spec:
 
 <div class="get-started-section">
   <h2>Demo - See KubeElasti in action!</h2>
-<div style="position: relative; padding-bottom: 55.026178010471206%; height: 0;"><iframe src="https://www.loom.com/embed/53b7b524b4c342f99ba44fd5d8104265?sid=c88660d1-a569-470c-8224-b1fffde9a2c6" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+<div style="position: relative; padding-bottom: 55.026178010471206%; height: 0;">
+
+<iframe 
+    src="https://www.loom.com/embed/53b7b524b4c342f99ba44fd5d8104265?sid=c88660d1-a569-470c-8224-b1fffde9a2c6" 
+    frameborder="0" 
+    webkitallowfullscreen 
+    mozallowfullscreen 
+    allowfullscreen 
+    title="KubeElasti Demo"
+    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+</iframe>
+
+</div>
 </div>
 
 <!-- Community Section -->

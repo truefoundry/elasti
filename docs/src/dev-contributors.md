@@ -3,8 +3,6 @@ title: Contributors
 description: Contributors to the KubeElasti project
 ---
 
-# Contributors
-
 This page recognizes all the amazing people who have contributed to the KubeElasti project. We appreciate all contributions, from code to documentation, testing, and community support.
 
 <br>
@@ -17,11 +15,12 @@ This page recognizes all the amazing people who have contributed to the KubeElas
 <script>
   document.addEventListener('DOMContentLoaded', async () => {
     try {
-      // Fetch contributors from GitHub API
-      const response = await fetch('https://api.github.com/repos/truefoundry/elasti/contributors');
+      // Fetch contributors from prebuilt JSON file
+      // This file is generated during the build process
+      const response = await fetch('/assets/contributors.json');
       
       if (!response.ok) {
-        throw new Error(`GitHub API responded with status: ${response.status}`);
+        throw new Error(`Failed to load contributors: ${response.status}`);
       }
       
       const contributors = await response.json();
@@ -29,38 +28,14 @@ This page recognizes all the amazing people who have contributed to the KubeElas
       // Clear loading message
       document.querySelector('#contributors-grid .loading-message').remove();
       
-      // Filter out bot accounts
-      const botPatterns = [
-        /-bot$/i,                // ends with -bot
-        /-automation$/i,        // ends with -automation
-        /\[bot\]$/i,            // ends with [bot]
-        /^dependabot/i,         // starts with dependabot
-        /^renovate/i,          // starts with renovate
-        /^github-actions/i,     // starts with github-actions
-        /^semantic-release/i,   // starts with semantic-release
-        /^imgbot/i,             // starts with imgbot
-        /^codecov/i,            // starts with codecov
-        /^snyk/i,               // starts with snyk
-        /^greenkeeper/i,        // starts with greenkeeper
-        /^depfu/i,              // starts with depfu
-        /^pyup-bot/i,           // starts with pyup-bot
-      ];
-      
-      const isBot = (username) => {
-        return botPatterns.some(pattern => pattern.test(username));
-      };
-      
-      // Filter and display human contributors only
-      const humanContributors = contributors.filter(contributor => !isBot(contributor.login));
-      
       // Process and display contributors
-      humanContributors.forEach(contributor => {
+      contributors.forEach(contributor => {
         const contributorElement = createContributorElement(contributor);
         document.getElementById('contributors-grid').appendChild(contributorElement);
       });
       
-      // Show message if no human contributors found (unlikely but just in case)
-      if (humanContributors.length === 0) {
+      // Show message if no contributors found
+      if (contributors.length === 0) {
         const message = document.createElement('p');
         message.textContent = 'No contributors found.';
         document.getElementById('contributors-grid').appendChild(message);
