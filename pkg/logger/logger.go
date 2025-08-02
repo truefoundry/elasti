@@ -18,13 +18,14 @@ func MaskMiddle(input string, unmaskedPrefix, unmaskedSuffix int) string {
 		unmaskedSuffix = 0
 	}
 
-	n := len(input)
+	runes := []rune(input)
+	n := len(runes)
 	if n <= unmaskedPrefix+unmaskedSuffix {
 		return strings.Repeat("*", n)
 	}
 
-	prefix := input[:unmaskedPrefix]
-	suffix := input[n-unmaskedSuffix:]
+	prefix := string(runes[:unmaskedPrefix])
+	suffix := string(runes[n-unmaskedSuffix:])
 	masked := strings.Repeat("*", n-unmaskedPrefix-unmaskedSuffix)
 
 	return prefix + masked + suffix
