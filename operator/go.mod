@@ -15,6 +15,11 @@ require (
 	sigs.k8s.io/controller-runtime v0.19.0
 )
 
+require (
+	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
+	github.com/posthog/posthog-go v1.6.1 // indirect
+)
+
 replace github.com/truefoundry/elasti/pkg v0.0.0 => ../pkg
 
 require (

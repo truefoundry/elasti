@@ -33,6 +33,7 @@ import (
 	"truefoundry/elasti/operator/internal/crddirectory"
 	"truefoundry/elasti/operator/internal/informer"
 
+	"github.com/posthog/posthog-go"
 	tfLogger "github.com/truefoundry/elasti/pkg/logger"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -94,6 +95,18 @@ func mainWithError() error {
 		}
 		defer sentry.Flush(2 * time.Second)
 	}
+
+	// TODO: Check if telemetry is enabled or not
+	client, _ := posthog.NewWithConfig(
+		"phc_hlVTQvSWqDUBwXrsph0v8xhfc5lsSK9lvejrlZ5AiOG",
+		posthog.Config{Endpoint: "https://us.i.posthog.com"},
+	)
+	defer client.Close()
+
+	client.Enqueue(posthog.Capture{
+		DistinctId: "test-user",
+		Event:      "test-snippet",
+	})
 
 	var watchNamespace string
 	flag.StringVar(&watchNamespace, "watch-namespace", metav1.NamespaceAll, "Namespace to watch for resources")
