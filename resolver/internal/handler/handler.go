@@ -15,6 +15,7 @@ import (
 	"github.com/truefoundry/elasti/resolver/internal/prom"
 	"github.com/truefoundry/elasti/resolver/internal/throttler"
 
+	"github.com/truefoundry/elasti/pkg/logger"
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
 )
@@ -105,14 +106,14 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 		h.logger.Error("error getting host", zap.Error(err))
 		return host, fmt.Errorf("error getting host: %w", err)
 	}
-	h.logger.Debug("request received", zap.Any("host", host))
+	h.logger.Debug("request received", zap.Any("host", logger.MaskMiddle(host.IncomingHost, 4, 4)))
 
 	prom.QueuedRequestGauge.WithLabelValues(host.SourceService, host.Namespace).Inc()
 	defer prom.QueuedRequestGauge.WithLabelValues(host.SourceService, host.Namespace).Dec()
 
 	// This closes the connections, in case the host is scaled up by the controller.
 	if !host.TrafficAllowed {
-		h.logger.Info("Traffic not allowed", zap.Any("host", host))
+		h.logger.Info("Traffic not allowed", zap.Any("host", logger.MaskMiddle(host.IncomingHost, 4, 4)))
 		w.Header().Set("Connection", "close")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
