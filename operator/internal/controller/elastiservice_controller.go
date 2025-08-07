@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -44,10 +45,14 @@ const (
 
 	// These are resolver details, ideally in future we can move this to a configmap, or find a better way to serve this
 	// TODO: Move this to configmap
-	resolverNamespace      = "elasti"
 	resolverDeploymentName = "elasti-resolver"
 	resolverServiceName    = "elasti-resolver-service"
 	resolverPort           = 8012
+)
+
+var (
+	// TODO: move this to configmap as const above
+	resolverNamespace = os.Getenv("ELASTI_POD_NAMESPACE")
 )
 
 //+kubebuilder:rbac:groups=elasti.truefoundry.com,resources=elastiservices,verbs=get;list;watch;create;update;patch;delete
