@@ -1,6 +1,8 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
 timeout: 30
-assert:
-  - command: |
-      kubectl get svc elasti-target-deployment-pvt-9696239e87 -n default && exit 1 || exit 0
+commands:
+  - script: |
+      #!/bin/sh
+      kubectl get svc elasti-target-deployment-pvt-9696239e87 -n default
+      if [ "$?" = "0" ]; then exit 1; fi

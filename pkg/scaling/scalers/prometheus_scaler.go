@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	httpClientTimeout = 5 * time.Second
-	uptimeQuery       = "min_over_time((max(up{container=\"prometheus\"}) or vector(0))[%ds:])"
+	httpClientTimeout   = 5 * time.Second
+	uptimeQuery         = "min_over_time((max(up{%s}) or vector(0))[%ds:])"
+	defaultUptimeFilter = "container=\"prometheus\""
 )
 
 type prometheusScaler struct {
@@ -27,6 +28,7 @@ type prometheusMetadata struct {
 	ServerAddress string  `json:"serverAddress"`
 	Query         string  `json:"query"`
 	Threshold     float64 `json:"threshold,string"`
+	UptimeFilter  string  `json:"uptimeFilter"`
 }
 
 var promQueryResponse struct {
@@ -167,13 +169,20 @@ func (s *prometheusScaler) Close(_ context.Context) error {
 }
 
 func (s *prometheusScaler) IsHealthy(ctx context.Context) (bool, error) {
+	uptimeFilter := s.metadata.UptimeFilter
+	if uptimeFilter == "" {
+		uptimeFilter = defaultUptimeFilter
+	}
+
 	cooldownPeriodSeconds := int(math.Ceil(s.cooldownPeriod.Seconds()))
+	finalUptimeQuery := fmt.Sprintf(uptimeQuery, uptimeFilter, cooldownPeriodSeconds)
+
 	metricValue, err := s.executePromQuery(
 		ctx,
-		fmt.Sprintf(uptimeQuery, cooldownPeriodSeconds),
+		finalUptimeQuery,
 	)
 	if err != nil {
-		return false, fmt.Errorf("failed to execute prometheus query %s: %w", fmt.Sprintf(uptimeQuery, cooldownPeriodSeconds), err)
+		return false, fmt.Errorf("failed to execute prometheus query %s: %w", finalUptimeQuery, err)
 	}
 	return metricValue == 1, nil
 }
