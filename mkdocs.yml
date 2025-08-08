@@ -38,7 +38,7 @@ theme:
   #     example: octicons/beaker-16
   #     quote: octicons/quote-16
   features:
-    # - announce.dismiss
+    - announce.dismiss
     # - content.action.edit
     # - content.action.view
     - content.code.annotate
@@ -104,11 +104,16 @@ markdown_extensions:
 plugins:
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
-
+  - blog
 
 # Additional configuration
 extra:
+  announce:
+    type: info
+    content: Join our <a href="https://discord.gg/qFyN73htgE"><strong>Discord community</strong></a> for support and discussions!
   social:
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/qFyN73htgE
     - icon: fontawesome/brands/github
       link: https://github.com/truefoundry
     - icon: fontawesome/brands/x-twitter
@@ -135,5 +140,7 @@ nav:
       - Load Testing: src/dev-test-load.md
       - E2E Testing: src/dev-test-e2e.md
       - Test Monitoring: src/dev-test-monitoring.md
+      - Contributors: src/dev-contributors.md
   - Comparisons: src/comparisons.md
-
+  - Blog: 
+      - Blog: blog/index.md
