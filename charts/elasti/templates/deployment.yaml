@@ -138,3 +138,4 @@ spec:
           {{- toYaml .Values.elastiResolver.proxy.containerSecurityContext | nindent 10 }}
       securityContext:
         {{- toYaml .Values.elastiResolver.proxy.podSecurityContext | nindent 8 }}
+      serviceAccountName: {{ include "elasti.fullname" . }}-resolver
