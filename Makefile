@@ -16,7 +16,7 @@ generate-manifest: ## Generate deploy manifest
 
 .PHONY: setup-registry
 setup-registry: ## Setup docker registry, where we publish our images
-	docker run -d -p 5001:5000 --name registry registry:2
+	docker run -d -p 5001:5000 --name registry registry:3
 
 .PHONY: stop-registry
 stop-registry: ## Stop docker registry

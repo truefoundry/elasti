@@ -19,7 +19,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.23"
+          go-version: "1.24"
           cache: true
 
       - name: Set up Docker Buildx
@@ -27,12 +27,12 @@ jobs:
 
       - name: Start local registry
         run: |
-          docker run -d --name kind-registry -p 5002:5000 registry:2
+          docker run -d --name kind-registry -p 5002:5000 registry:3
           docker network create kind || true
           docker network connect "kind" kind-registry || true
 
       - name: Install Kind with Registry
-        uses: helm/kind-action@v1.5.0
+        uses: helm/kind-action@v1.12.0
         with:
           install_only: true
 
@@ -56,7 +56,7 @@ jobs:
 
       - name: Install Kuttl
         run: |
-          curl -Lo kuttl.tar.gz https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kuttl_0.15.0_linux_x86_64.tar.gz
+          curl -Lo kuttl.tar.gz https://github.com/kudobuilder/kuttl/releases/download/v0.22.0/kuttl_0.22.0_linux_x86_64.tar.gz
           tar -xvf kuttl.tar.gz
           sudo mv kubectl-kuttl /usr/local/bin/
           kubectl kuttl version

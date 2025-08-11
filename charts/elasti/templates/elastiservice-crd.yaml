@@ -97,6 +97,9 @@ spec:
                     - type
                   type: object
                 type: array
+            required:
+            - scaleTargetRef
+            - service
             type: object
           status:
             description: ElastiServiceStatus defines the observed state of ElastiService

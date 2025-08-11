@@ -5,10 +5,10 @@ ELASTI_NAMESPACE := elasti
 T ?= ./tests
 REGISTRY_HOST := localhost:5002
 REGISTRY_NAME := kind-registry
-ISTIO_VERSION := 1.26.1
-PROMETHEUS_VERSION := 73.2.3
+ISTIO_VERSION := 1.26.3
+PROMETHEUS_VERSION := 76.2.0
 PROMETHEUS_PUSHGATEWAY_VERSION := 3.4.1
-KEDA_VERSION := 2.17.1
+KEDA_VERSION := 2.17.2
 
 
 
@@ -34,7 +34,7 @@ start-registry: ## Setup docker registry, where we publish our images
 		docker start $(REGISTRY_NAME) 2>/dev/null || true; \
 	else \
 		echo "Creating new registry container..."; \
-		docker run -d --restart=always -p 5002:5000 --name $(REGISTRY_NAME) registry:2; \
+		docker run -d --restart=always -p 5002:5000 --name $(REGISTRY_NAME) registry:3; \
 	fi
 	@docker network inspect kind >/dev/null 2>&1 || docker network create kind
 	@docker network inspect kind -f "{{range .Containers}}{{.Name}}{{end}}" | grep -q $(REGISTRY_NAME) || \
