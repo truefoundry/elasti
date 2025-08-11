@@ -10,26 +10,13 @@ permissions:
   contents: read
 
 jobs:
-  build-operator:
+  build-elasti:
     name: Build and Push Operator Docker Images
     uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}
-      image_artifact_name: 'elasti-operator'
-      dockerfile_path: 'operator/Dockerfile'
-      artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
-      artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
-    secrets:
-      artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
-      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
-
-  build-resolver:
-    name: Build and Push Resolver Docker Images
-    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
-    with:
-      image_tag: ${{ github.sha }}
-      image_artifact_name: 'elasti-resolver'
-      dockerfile_path: 'resolver/Dockerfile'
+      image_artifact_name: 'elasti'
+      dockerfile_path: 'Dockerfile'
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
     secrets:
@@ -42,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    needs: [build-operator, build-resolver]
+    needs: [build-elasti]
     steps:
       - name: Checkout helm-main branch
         uses: actions/checkout@v4
@@ -60,8 +47,7 @@ jobs:
       - name: Update Helm values.yaml
         run: |
           cd charts/elasti
-          yq -i '.elastiController.manager.image.tag="${{ github.sha }}"' values.yaml
-          yq -i '.elastiResolver.proxy.image.tag="${{ github.sha }}"' values.yaml
+          yq -i '.global.image.tag="${{ github.sha }}"' values.yaml
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
           git add values.yaml
