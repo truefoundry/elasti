@@ -26,8 +26,6 @@ spec:
       containers:
       - args:
         {{- toYaml .Values.elastiController.manager.args | nindent 8 }}
-        command:
-        - /manager
         env:
         - name: KUBERNETES_CLUSTER_DOMAIN
           value: {{ .Values.global.kubernetesClusterDomain }}
@@ -42,7 +40,7 @@ spec:
         - name: SENTRY_ENVIRONMENT
           value: {{ .Values.elastiController.manager.sentry.environment }}
         {{- end }}
-        image: {{ .Values.elastiController.manager.image.repository }}:{{ .Values.elastiController.manager.image.tag | default .Chart.AppVersion }}
+        image: {{ .Values.global.image.repository }}:{{ .Values.global.image.tag | default .Chart.AppVersion }}
         imagePullPolicy: {{ .Values.elastiController.manager.imagePullPolicy }}
         livenessProbe:
           httpGet:
@@ -94,7 +92,9 @@ spec:
         prometheus.io/scrape: "true"
     spec:
       containers:
-      - env:
+      - args:
+        {{- toYaml .Values.elastiResolver.proxy.args | nindent 8 }}
+        env:
         - name: MAX_IDLE_PROXY_CONNS
           value: {{ quote .Values.elastiResolver.proxy.env.maxIdleProxyConns }}
         - name: MAX_IDLE_PROXY_CONNS_PER_HOST
@@ -126,7 +126,7 @@ spec:
         - name: SENTRY_ENVIRONMENT
           value: {{ .Values.elastiResolver.proxy.sentry.environment }}
         {{- end }}
-        image: {{ .Values.elastiResolver.proxy.image.repository }}:{{ .Values.elastiResolver.proxy.image.tag | default .Chart.AppVersion }}
+        image: {{ .Values.global.image.repository }}:{{ .Values.global.image.tag | default .Chart.AppVersion }}
         imagePullPolicy: {{ .Values.elastiResolver.proxy.imagePullPolicy }}
         name: proxy
         ports:
