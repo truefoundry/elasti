@@ -28,10 +28,10 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/truefoundry/elasti/pkg/scaling"
 
-	"truefoundry/elasti/operator/internal/elastiserver"
+	"github.com/truefoundry/elasti/operator/internal/elastiserver"
 
-	"truefoundry/elasti/operator/internal/crddirectory"
-	"truefoundry/elasti/operator/internal/informer"
+	"github.com/truefoundry/elasti/operator/internal/crddirectory"
+	"github.com/truefoundry/elasti/operator/internal/informer"
 
 	tfLogger "github.com/truefoundry/elasti/pkg/logger"
 
@@ -49,8 +49,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	elastiv1alpha1 "truefoundry/elasti/operator/api/v1alpha1"
-	"truefoundry/elasti/operator/internal/controller"
+	elastiv1alpha1 "github.com/truefoundry/elasti/operator/api/v1alpha1"
+	"github.com/truefoundry/elasti/operator/internal/controller"
 	//+kubebuilder:scaffold:imports
 )
 

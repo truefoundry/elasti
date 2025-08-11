@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"truefoundry/elasti/operator/api/v1alpha1"
+	"github.com/truefoundry/elasti/operator/api/v1alpha1"
 
 	argo "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
 	"github.com/truefoundry/elasti/pkg/k8shelper"

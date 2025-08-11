@@ -11,9 +11,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"truefoundry/elasti/operator/api/v1alpha1"
-	"truefoundry/elasti/operator/internal/informer"
-	"truefoundry/elasti/operator/internal/prom"
+	"github.com/truefoundry/elasti/operator/api/v1alpha1"
+	"github.com/truefoundry/elasti/operator/internal/informer"
+	"github.com/truefoundry/elasti/operator/internal/prom"
 )
 
 const (

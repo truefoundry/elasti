@@ -9,9 +9,9 @@ import (
 	"github.com/truefoundry/elasti/pkg/scaling"
 	"k8s.io/apimachinery/pkg/types"
 
-	"truefoundry/elasti/operator/internal/crddirectory"
-	"truefoundry/elasti/operator/internal/informer"
-	"truefoundry/elasti/operator/internal/prom"
+	"github.com/truefoundry/elasti/operator/internal/crddirectory"
+	"github.com/truefoundry/elasti/operator/internal/informer"
+	"github.com/truefoundry/elasti/operator/internal/prom"
 
 	"github.com/truefoundry/elasti/pkg/values"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	"truefoundry/elasti/operator/api/v1alpha1"
+	"github.com/truefoundry/elasti/operator/api/v1alpha1"
 
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

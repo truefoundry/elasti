@@ -9,7 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"truefoundry/elasti/operator/internal/prom"
+
+	"github.com/truefoundry/elasti/operator/internal/prom"
 
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"

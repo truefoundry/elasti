@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"truefoundry/elasti/operator/api/v1alpha1"
+	"github.com/truefoundry/elasti/operator/api/v1alpha1"
 
 	"github.com/truefoundry/elasti/pkg/values"
 	"go.uber.org/zap"
