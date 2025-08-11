@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package operator
 
 import (
 	"context"
@@ -70,7 +70,7 @@ const (
 	elastiServerPort = ":8013"
 )
 
-func main() {
+func Main() {
 	err := mainWithError()
 	if err != nil {
 		os.Exit(1)
