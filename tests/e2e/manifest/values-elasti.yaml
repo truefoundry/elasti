@@ -1,10 +1,11 @@
 ---
 enableMonitoring: true
+global:
+  image:
+    repository: localhost:5002/elasti
+    tag: v1alpha1
 elastiController:
   manager:
-    image:
-      repository: localhost:5002/elasti-operator
-      tag: v1alpha1
     imagePullPolicy: Always
     resources:
       limits:
@@ -15,9 +16,6 @@ elastiController:
         memory: 64Mi
 elastiResolver:
   proxy:
-    image:
-      repository: localhost:5002/elasti-resolver
-      tag: v1alpha1
     imagePullPolicy: Always
     resources:
       limits:
