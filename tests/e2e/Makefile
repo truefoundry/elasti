@@ -87,15 +87,7 @@ apply-deps: apply-ingress apply-prometheus apply-elasti apply-keda
 .PHONY: apply-elasti
 apply-elasti:
 	@echo "Installing Elasti Operator..."
-	@kubectl create namespace $(ELASTI_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@if ! kubectl get deployment -n $(ELASTI_NAMESPACE) | grep -q "elasti"; then \
-		helm template elasti ../../charts/elasti -n $(ELASTI_NAMESPACE) -f ./manifest/values-elasti.yaml | kubectl apply -f -; \
-		echo "Waiting for Elasti Operator to be ready..."; \
-		kubectl -n $(ELASTI_NAMESPACE) wait --for=condition=ready pod -l app.kubernetes.io/name=elasti --timeout=180s; \
-		echo "Elasti Operator installed successfully."; \
-	else \
-		echo "Elasti Operator already exists, skipping installation."; \
-	fi
+	@helm upgrade --install --create-namespace elasti ../../charts/elasti -n $(ELASTI_NAMESPACE) -f ./manifest/values-elasti.yaml
 
 .PHONY: apply-prometheus
 apply-prometheus:

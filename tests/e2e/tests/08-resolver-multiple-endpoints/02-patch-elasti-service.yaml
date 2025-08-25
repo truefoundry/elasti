@@ -1,0 +1,14 @@
+# Simulate always up
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  name: target-elastiservice
+  namespace: target
+spec:
+  cooldownPeriod: 300
+  triggers:
+    - metadata:
+        query: vector(1)
+        serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+        threshold: "0.01"
+      type: prometheus

@@ -10,5 +10,5 @@ roleRef:
   name: {{ include "elasti.fullname" . }}-resolver-additional-access
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: {{ include "elasti.fullname" . }}-resolver
   namespace: '{{ .Release.Namespace }}'
