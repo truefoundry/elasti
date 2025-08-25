@@ -1,0 +1,13 @@
+apiVersion: elasti.truefoundry.com/v1alpha1
+kind: ElastiService
+metadata:
+  name: target-elastiservice
+  namespace: target
+spec:
+  triggers:
+    - metadata:
+        query: round(sum(rate(some_metric[20s])),0.001) or vector(0)
+        serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+        threshold: "0.01"
+        uptimeFilter: container="foo"
+      type: prometheus

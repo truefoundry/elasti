@@ -7,6 +7,7 @@ REGISTRY_HOST := localhost:5002
 REGISTRY_NAME := kind-registry
 ISTIO_VERSION := 1.26.1
 PROMETHEUS_VERSION := 73.2.3
+PROMETHEUS_PUSHGATEWAY_VERSION := 3.4.1
 KEDA_VERSION := 2.17.1
 
 
@@ -108,8 +109,14 @@ apply-prometheus:
 	  --set alertmanager.enabled=false \
 	  --set grafana.enabled=true \
 	  --set kubeStateMetrics.enabled=false \
-	  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=true --wait --timeout 180s
+	  --set nodeExporter.enabled=false \
+	  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false --wait --timeout 180s
 	@kubectl apply -f ./manifest/istio-servicemonitor.yaml
+	@helm upgrade --install prometheus-pushgateway prometheus-community/prometheus-pushgateway --version $(PROMETHEUS_PUSHGATEWAY_VERSION) \
+	  --namespace monitoring \
+	  --set serviceMonitor.enabled=true \
+	  --set serviceMonitor.interval=5s \
+	  --wait --timeout 180s
 	@echo "Prometheus Stack installed successfully."
 
 .PHONY: apply-ingress

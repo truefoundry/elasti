@@ -121,9 +121,10 @@ spec:
       query: <query> # (9)
       serverAddress: <server-address> # (10)
       threshold: <threshold> # (11)
+      uptimeFilter: <uptime-filter> # (12)
   autoscaler:
-    name: <autoscaler-object-name> # (12)
-    type: <autoscaler-type> # (13)
+    name: <autoscaler-object-name> # (13)
+    type: <autoscaler-type> # (14)
 ```
 
 1. Replace it with the service you want managed by elasti.
@@ -137,8 +138,9 @@ spec:
 9. Replace it with the trigger query. In this case, it is the number of requests per second.
 10. Replace it with the trigger server address. In this case, it is the address of the prometheus server.
 11. Replace it with the trigger threshold. In this case, it is the number of requests per second.
-12. Replace it with the autoscaler name. In this case, it is the name of the KEDA ScaledObject.
-13. Replace it with the autoscaler type. In this case, it is `keda`.
+12. Replace it with the uptime filter of your TSDB instance. Default: `container="prometheus"`.
+13. Replace it with the autoscaler name. In this case, it is the name of the KEDA ScaledObject.
+14. Replace it with the autoscaler type. In this case, it is `keda`.
 
 
 ??? example "Demo ElastiService"
