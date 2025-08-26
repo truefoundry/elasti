@@ -11,7 +11,24 @@ kubectl apply -f  "$1/target-elastiservice.yaml" -n target
 CRD_CONTENT=$(kubectl get elastiservices/target-elastiservice -n target -o json)
 CRD_COOLDOWN_PERIOD=$(printf "%s" "$CRD_CONTENT" | jq -r '.spec.cooldownPeriod')
 CRD_CREATION_DATE=$(printf "%s" "$CRD_CONTENT" | jq -r '.metadata.creationTimestamp')
-CRD_CREATION_SECONDS=$(date -d "$CRD_CREATION_DATE" +%s)
+# Convert ISO 8601 timestamp to epoch seconds (portable across platforms)
+iso_to_epoch() {
+    local iso_date="$1"
+    # Remove Z suffix and any fractional seconds
+    iso_date=$(echo "$iso_date" | sed 's/\.[0-9]*Z$/Z/' | sed 's/Z$//')
+    
+    # Use python if available (most portable)
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -c "import datetime; print(int(datetime.datetime.fromisoformat('$iso_date'.replace('Z', '+00:00')).timestamp()))"
+    elif command -v gdate >/dev/null 2>&1; then
+        gdate -d "$1" +%s
+    else
+        # macOS date fallback
+        date -j -f "%Y-%m-%dT%H:%M:%SZ" "$1" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${1%Z}" +%s
+    fi
+}
+
+CRD_CREATION_SECONDS=$(iso_to_epoch "$CRD_CREATION_DATE")
 SECONDS_NOW=$(date +%s)
 CRD_AGE=$(($SECONDS_NOW - $CRD_CREATION_SECONDS))
 if [ "$CRD_AGE" -lt "$CRD_COOLDOWN_PERIOD" ]; then
