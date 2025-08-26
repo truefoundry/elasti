@@ -87,6 +87,8 @@ elastiResolver:
       enabled: false
       environment: ""
   replicas: 1
+  serviceAccount:
+    annotations: {}
   autoscaling:
     enabled: false
     minReplicas: 1

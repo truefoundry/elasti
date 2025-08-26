@@ -1,0 +1,6 @@
+# Instant assert
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 1
+commands:
+  - command: kubectl wait --for=jsonpath='{.status.mode}'=proxy --timeout=1s -n target elastiservice/target-elastiservice

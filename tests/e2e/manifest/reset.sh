@@ -21,6 +21,9 @@ fi
 # Reset target deployment, service & ingress back to defaults
 kubectl replace -f "$1/target-deployment.yaml" -n target
 
+# Reset keda ScaledObject
+kubectl replace -f "$1/keda-scaledObject-Target.yaml" -n target
+
 # Scale elasti-resolver back to 1
 kubectl scale deployment elasti-resolver -n elasti --replicas=1
 kubectl wait pods -l app=elasti-resolver -n elasti --for=condition=Ready --timeout=120s
