@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -30,10 +31,14 @@ import (
 
 const (
 	// TODO: Move to configMap
-	resolverNamespace      = "elasti"
 	resolverDeploymentName = "elasti-resolver"
 	resolverServiceName    = "elasti-resolver-service"
 	resolverPort           = 8012
+)
+
+var (
+	// TODO: move this to configmap as const above
+	resolverNamespace = os.Getenv("ELASTI_POD_NAMESPACE")
 )
 
 type (

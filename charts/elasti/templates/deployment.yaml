@@ -33,6 +33,10 @@ spec:
           value: {{ .Values.global.kubernetesClusterDomain }}
         - name: POLLING_INTERVAL
           value: {{ .Values.elastiController.manager.env.pollingInterval | quote }}
+        - name: ELASTI_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         {{- if .Values.elastiController.manager.sentry.enabled }}
         - name: SENTRY_DSN
           valueFrom:
