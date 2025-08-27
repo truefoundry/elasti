@@ -1,13 +1,16 @@
 package hostmanager
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/truefoundry/elasti/resolver/internal/kubecache"
 	"github.com/truefoundry/elasti/resolver/internal/prom"
 
 	"github.com/truefoundry/elasti/pkg/logger"
@@ -25,15 +28,19 @@ type HostManager struct {
 	hosts                   sync.Map
 	trafficReEnableDuration time.Duration
 	headerForHost           string
+	kubeCache               *kubecache.KubeCache
 }
 
+var ErrServiceNotFound = errors.New("service not found")
+
 // NewHostManager returns a new HostManager
-func NewHostManager(logger *zap.Logger, trafficReEnableDuration time.Duration, headerForHost string) *HostManager {
+func NewHostManager(logger *zap.Logger, trafficReEnableDuration time.Duration, headerForHost string, kubeCache *kubecache.KubeCache) *HostManager {
 	return &HostManager{
 		logger:                  logger.With(zap.String("component", "hostManager")),
 		hosts:                   sync.Map{},
 		trafficReEnableDuration: trafficReEnableDuration,
 		headerForHost:           headerForHost,
+		kubeCache:               kubeCache,
 	}
 }
 
@@ -45,16 +52,37 @@ func (hm *HostManager) GetHost(req *http.Request) (*messages.Host, error) {
 	}
 	host, ok := hm.hosts.Load(incomingHost)
 	if !ok {
-		sourceService, namespace, err := hm.extractNamespaceAndService(incomingHost)
-		if err != nil {
-			prom.HostExtractionCounter.WithLabelValues("error", incomingHost, hm.headerForHost, err.Error()).Inc()
-			return &messages.Host{}, err
+		namespace, sourceService, servicePort, ingressFound := hm.kubeCache.GetServiceForRequest(req)
+
+		if !ingressFound {
+			var err error
+
+			sourceService, namespace, err = hm.extractNamespaceAndService(incomingHost)
+			if err != nil {
+				prom.HostExtractionCounter.WithLabelValues("error", incomingHost, hm.headerForHost, err.Error()).Inc()
+				return &messages.Host{}, err
+			}
+
+			if !hm.kubeCache.ServiceExists(namespace, sourceService) {
+				err = fmt.Errorf("%w: %s/%s", ErrServiceNotFound, namespace, sourceService)
+
+				prom.HostExtractionCounter.WithLabelValues("error", incomingHost, hm.headerForHost, err.Error()).Inc()
+				return &messages.Host{}, err
+			}
 		}
+
 		targetService := utils.GetPrivateServiceName(sourceService)
 		sourceHost := hm.removeTrailingWildcardIfNeeded(incomingHost)
 		sourceHost = hm.removeTrailingPathIfNeeded(sourceHost)
 		sourceHost = hm.addHTTPIfNeeded(sourceHost)
-		targetHost := hm.replaceServiceName(sourceHost, targetService)
+
+		var targetHost string
+		if ingressFound {
+			targetHost = hm.createServiceURI(targetService, namespace, servicePort)
+		} else {
+			targetHost = hm.replaceServiceName(sourceHost, targetService)
+		}
+
 		targetHost = hm.addHTTPIfNeeded(targetHost)
 		newHost := &messages.Host{
 			IncomingHost:   incomingHost,
@@ -166,4 +194,10 @@ func (hm *HostManager) replaceServiceName(serviceURL, newServiceName string) str
 	}
 	parts[0] = newServiceName
 	return strings.Join(parts, ".")
+}
+
+func (hm *HostManager) createServiceURI(name string, namespace string, port int32) string {
+	uri := name + "." + namespace + ".svc.cluster.local:" + strconv.Itoa(int(port))
+
+	return uri
 }

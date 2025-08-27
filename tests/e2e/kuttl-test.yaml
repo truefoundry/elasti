@@ -10,6 +10,8 @@ commands:
     namespaced: false
   - command: kubectl apply -f ./manifest/istio-gateway.yaml -n istio-system
     namespaced: false
+  - command: kubectl apply -f ./manifest/istio-ingressclass.yaml -n istio-system
+    namespaced: false
   - command: kubectl apply -f ./manifest/target-deployment.yaml -n target
     namespaced: false
   - command: kubectl apply -f ./manifest/keda-scaledObject-Target.yaml -n target
