@@ -15,10 +15,47 @@ import (
 	"github.com/truefoundry/elasti/resolver/internal/prom"
 	"github.com/truefoundry/elasti/resolver/internal/throttler"
 
+	"strings"
+
 	"github.com/truefoundry/elasti/pkg/logger"
 	"github.com/truefoundry/elasti/pkg/messages"
 	"go.uber.org/zap"
 )
+
+// maskThrottlerError masks potentially sensitive values within a throttler error message
+func maskThrottlerError(err error, host *messages.Host) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	if host == nil {
+		return msg
+	}
+
+	// Create a map of sensitive values to their masked versions
+	// Order by length (longest first) to avoid substring replacement issues
+	replacements := make(map[string]string)
+
+	if host.IncomingHost != "" {
+		replacements[host.IncomingHost] = logger.MaskMiddle(host.IncomingHost, 4, 4)
+	}
+	if host.TargetService != "" {
+		replacements[host.TargetService] = logger.MaskMiddle(host.TargetService, 2, 2)
+	}
+	if host.SourceService != "" {
+		replacements[host.SourceService] = logger.MaskMiddle(host.SourceService, 2, 2)
+	}
+	if host.Namespace != "" {
+		replacements[host.Namespace] = logger.MaskMiddle(host.Namespace, 2, 2)
+	}
+
+	// Apply replacements
+	for original, masked := range replacements {
+		msg = strings.ReplaceAll(msg, original, masked)
+	}
+
+	return msg
+}
 
 type (
 	// Handler is the reverse proxy handler
@@ -145,7 +182,7 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 		}, func() {
 			h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
 		}); tryErr != nil {
-		h.logger.Error("throttler try error: ", zap.Error(tryErr))
+		h.logger.Error("throttler try error: ", zap.String("error", maskThrottlerError(tryErr, host)))
 		hub := sentry.GetHubFromContext(req.Context())
 		if hub != nil {
 			hub.CaptureException(tryErr)
