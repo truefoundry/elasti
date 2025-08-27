@@ -208,7 +208,7 @@ func (h *Handler) handleAnyRequest(w http.ResponseWriter, req *http.Request) (*m
 		}, func() {
 			h.operatorRPC.SendIncomingRequestInfo(host.Namespace, host.SourceService)
 		}); tryErr != nil {
-		h.logger.Error("throttler try error: ", zap.String("error", maskThrottlerError(tryErr, host)))
+		h.logger.Error("throttler try error", zap.String("sanitized_error", maskThrottlerError(tryErr, host)))
 		hub := sentry.GetHubFromContext(req.Context())
 		if hub != nil {
 			hub.CaptureException(tryErr)
