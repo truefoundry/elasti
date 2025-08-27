@@ -32,26 +32,52 @@ func maskThrottlerError(err error, host *messages.Host) string {
 		return msg
 	}
 
-	// Create a map of sensitive values to their masked versions
-	// Order by length (longest first) to avoid substring replacement issues
-	replacements := make(map[string]string)
+	// Create slice of replacements and sort by length (longest first)
+	// This prevents substring replacement issues
+	type replacement struct {
+		original string
+		masked   string
+	}
+	
+	var replacements []replacement
 
 	if host.IncomingHost != "" {
-		replacements[host.IncomingHost] = logger.MaskMiddle(host.IncomingHost, 4, 4)
+		replacements = append(replacements, replacement{
+			original: host.IncomingHost,
+			masked:   logger.MaskMiddle(host.IncomingHost, 4, 4),
+		})
 	}
 	if host.TargetService != "" {
-		replacements[host.TargetService] = logger.MaskMiddle(host.TargetService, 2, 2)
+		replacements = append(replacements, replacement{
+			original: host.TargetService,
+			masked:   logger.MaskMiddle(host.TargetService, 2, 2),
+		})
 	}
 	if host.SourceService != "" {
-		replacements[host.SourceService] = logger.MaskMiddle(host.SourceService, 2, 2)
+		replacements = append(replacements, replacement{
+			original: host.SourceService,
+			masked:   logger.MaskMiddle(host.SourceService, 2, 2),
+		})
 	}
 	if host.Namespace != "" {
-		replacements[host.Namespace] = logger.MaskMiddle(host.Namespace, 2, 2)
+		replacements = append(replacements, replacement{
+			original: host.Namespace,
+			masked:   logger.MaskMiddle(host.Namespace, 2, 2),
+		})
 	}
 
-	// Apply replacements
-	for original, masked := range replacements {
-		msg = strings.ReplaceAll(msg, original, masked)
+	// Sort by length (longest first) to avoid substring issues
+	for i := 0; i < len(replacements)-1; i++ {
+		for j := i + 1; j < len(replacements); j++ {
+			if len(replacements[i].original) < len(replacements[j].original) {
+				replacements[i], replacements[j] = replacements[j], replacements[i]
+			}
+		}
+	}
+
+	// Apply replacements in order
+	for _, r := range replacements {
+		msg = strings.ReplaceAll(msg, r.original, r.masked)
 	}
 
 	return msg
