@@ -1,29 +1,19 @@
----
+# Istio Gateway Helm values for version 1.26+
 service:
+  type: LoadBalancer
   ports:
-    ## You can add custom gateway ports in user values overrides,
-    # but it must include those ports since helm replaces.
-    # Note that AWS ELB will by default perform health checks
-    # on the first port in the list. Setting this to the health
-    # check port will ensure that health checks always work.
-    # https://github.com/istio/istio/issues/12503
-    - port: 15020
-      targetPort: 15020
-      name: http-envoy-prom
-      protocol: TCP
-    - port: 15021
-      targetPort: 15021
-      name: status-port
-    - port: 80
-      targetPort: 8080
-      name: http2
-    - port: 443
-      targetPort: 8443
-      name: https
-    - port: 31400
-      targetPort: 31400
-      name: tcp
-      # This is the port where sni routing happens
-    - port: 15443
-      targetPort: 15443
-      name: tls
+  - name: status-port
+    port: 15021
+    protocol: TCP
+    targetPort: 15021
+  - name: http2
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 8443
+
+labels:
+  istio: ingressgateway
