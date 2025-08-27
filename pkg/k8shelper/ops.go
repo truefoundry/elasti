@@ -49,7 +49,7 @@ func (k *Ops) CheckIfServiceEndpointSliceActive(ns, svc string) (bool, error) {
 	for _, slice := range endpointSlices.Items {
 		for _, endpoint := range slice.Endpoints {
 			if endpoint.Conditions.Ready != nil && *endpoint.Conditions.Ready {
-				k.logger.Debug("Service endpoint is active", zap.String("service", svc), zap.String("namespace", logger.MaskMiddle(ns, 2, 2)))
+				k.logger.Debug("Service endpoint is active", zap.String("service", logger.MaskMiddle(svc,2,2)), zap.String("namespace", logger.MaskMiddle(ns, 2, 2)))
 				return true, nil
 			}
 		}
