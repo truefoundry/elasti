@@ -7,7 +7,7 @@ metadata:
 rules:
 - apiGroups: ["elasti.truefoundry.com"]
   resources: ["elastiservices"]
-  verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  verbs: ["get", "list", "watch", "update"]
 - apiGroups: ["elasti.truefoundry.com"]
   resources: ["elastiservices/finalizers"]
   verbs: ["update"]
