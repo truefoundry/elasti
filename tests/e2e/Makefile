@@ -5,17 +5,17 @@ ELASTI_NAMESPACE := elasti
 T ?= ./tests
 REGISTRY_HOST := localhost:5002
 REGISTRY_NAME := kind-registry
-ISTIO_VERSION := 1.26.1
-PROMETHEUS_VERSION := 73.2.3
+ISTIO_VERSION := 1.26.3
+PROMETHEUS_VERSION := 76.2.0
 PROMETHEUS_PUSHGATEWAY_VERSION := 3.4.1
-KEDA_VERSION := 2.17.1
+KEDA_VERSION := 2.17.2
 
 
 
 .PHONY: all setup destroy reset-kind reset-setup
 all: setup test
 setup: start-registry build-images kind-up chmod-reset apply-deps
-destroy: kind-down stop-registry 
+destroy: kind-down stop-registry
 # in reset-kind, we destroy the cluster.
 reset-kind: kind-down kind-up apply-deps
 # In reset-setup, we destroy the whole setup, and setup again.
@@ -34,7 +34,7 @@ start-registry: ## Setup docker registry, where we publish our images
 		docker start $(REGISTRY_NAME) 2>/dev/null || true; \
 	else \
 		echo "Creating new registry container..."; \
-		docker run -d --restart=always -p 5002:5000 --name $(REGISTRY_NAME) registry:2; \
+		docker run -d --restart=always -p 5002:5000 --name $(REGISTRY_NAME) registry:3; \
 	fi
 	@docker network inspect kind >/dev/null 2>&1 || docker network create kind
 	@docker network inspect kind -f "{{range .Containers}}{{.Name}}{{end}}" | grep -q $(REGISTRY_NAME) || \
@@ -56,8 +56,7 @@ stop-registry: ## Stop docker registry
 
 .PHONY: build-images
 build-images: ## Build and push images
-	$(MAKE) -C ../../operator docker-build docker-push IMG=$(REGISTRY_HOST)/elasti-operator:v1alpha1
-	$(MAKE) -C ../../resolver docker-build docker-push IMG=$(REGISTRY_HOST)/elasti-resolver:v1alpha1
+	$(MAKE) -C ../.. docker-build docker-push IMG=$(REGISTRY_HOST)/elasti:v1alpha1
 
 .PHONY: kind-up
 kind-up: ## Create Kind cluster
@@ -132,7 +131,7 @@ uninstall-ingress:
 	@echo "Istio uninstalled successfully."
 
 .PHONY: apply-keda
-apply-keda: 
+apply-keda:
 	@echo "Installing KEDA..."
 	@kubectl create namespace keda --dry-run=client -o yaml | kubectl apply -f -
 	@helm repo add kedacore https://kedacore.github.io/charts
@@ -160,12 +159,12 @@ pf-prom:
 	@kubectl --namespace monitoring port-forward service/prometheus-operated 9090:9090
 
 .PHONY: pf-graf
-pf-graf: 
+pf-graf:
 	@echo "Portforwarding grafana on port 9001..."
 	@kubectl --namespace monitoring port-forward service/kube-prometheus-stack-grafana 9001:80
 
 .PHONY: pf-ingress
-pf-ingress: 
+pf-ingress:
 	@echo "Portforwarding ingress gateway on port 8080..."
 	@kubectl --namespace istio-system port-forward service/istio-ingressgateway 8080:80
 

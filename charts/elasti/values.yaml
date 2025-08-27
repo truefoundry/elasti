@@ -4,9 +4,13 @@ global:
   fullnameOverride: ""
   enableMonitoring: false
   secretName: elasti-secret
+  image:
+    repository: tfy.jfrog.io/tfy-images/elasti
+    tag: 0.1.15
 elastiController:
   manager:
     args:
+      - operator
       - --leader-elect
       - --health-probe-bind-address=:8081
       - --metrics-bind-address=0
@@ -22,9 +26,6 @@ elastiController:
       runAsGroup: 65532
       seccompProfile:
         type: RuntimeDefault
-    image:
-      repository: tfy.jfrog.io/tfy-images/elasti-operator
-      tag: 0.1.15
     imagePullPolicy: IfNotPresent
     resources:
       limits:
@@ -49,6 +50,8 @@ elastiController:
     type: ClusterIP
 elastiResolver:
   proxy:
+    args:
+      - resolver
     env:
       headerForHost: X-Envoy-Decorator-Operation
       initialCapacity: "500"
@@ -60,9 +63,6 @@ elastiResolver:
       queueSize: "50000"
       reqTimeout: "600"
       trafficReEnableDuration: "5"
-    image:
-      repository: tfy.jfrog.io/tfy-images/elasti-resolver
-      tag: 0.1.15
     imagePullPolicy: IfNotPresent
     resources:
       limits:

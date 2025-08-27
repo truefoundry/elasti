@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"truefoundry/elasti/operator/api/v1alpha1"
+	"github.com/truefoundry/elasti/operator/api/v1alpha1"
 
 	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/utils"

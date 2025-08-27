@@ -8,7 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"truefoundry/elasti/operator/api/v1alpha1"
+
+	"github.com/truefoundry/elasti/operator/api/v1alpha1"
 
 	"github.com/truefoundry/elasti/pkg/scaling/scalers"
 	"github.com/truefoundry/elasti/pkg/values"

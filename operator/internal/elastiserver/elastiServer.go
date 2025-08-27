@@ -16,8 +16,8 @@ import (
 	"github.com/truefoundry/elasti/pkg/scaling"
 	"k8s.io/apimachinery/pkg/types"
 
-	"truefoundry/elasti/operator/internal/crddirectory"
-	"truefoundry/elasti/operator/internal/prom"
+	"github.com/truefoundry/elasti/operator/internal/crddirectory"
+	"github.com/truefoundry/elasti/operator/internal/prom"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/truefoundry/elasti/pkg/messages"

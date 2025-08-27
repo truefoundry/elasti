@@ -30,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	elastiv1alpha1 "truefoundry/elasti/operator/api/v1alpha1"
+	elastiv1alpha1 "github.com/truefoundry/elasti/operator/api/v1alpha1"
 
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

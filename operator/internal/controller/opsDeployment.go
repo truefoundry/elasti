@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"truefoundry/elasti/operator/api/v1alpha1"
-	"truefoundry/elasti/operator/internal/crddirectory"
+
+	"github.com/truefoundry/elasti/operator/api/v1alpha1"
+	"github.com/truefoundry/elasti/operator/internal/crddirectory"
 
 	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/values"

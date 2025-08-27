@@ -24,8 +24,9 @@ import (
 	"sync"
 	"testing"
 	"time"
-	"truefoundry/elasti/operator/internal/crddirectory"
-	"truefoundry/elasti/operator/internal/informer"
+
+	"github.com/truefoundry/elasti/operator/internal/crddirectory"
+	"github.com/truefoundry/elasti/operator/internal/informer"
 
 	uberZap "go.uber.org/zap"
 
@@ -43,7 +44,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	elastiv1alpha1 "truefoundry/elasti/operator/api/v1alpha1"
+	elastiv1alpha1 "github.com/truefoundry/elasti/operator/api/v1alpha1"
 )
 
 var cfg *rest.Config

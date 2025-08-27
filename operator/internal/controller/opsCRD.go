@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"truefoundry/elasti/operator/api/v1alpha1"
-	"truefoundry/elasti/operator/internal/crddirectory"
-	"truefoundry/elasti/operator/internal/informer"
-	"truefoundry/elasti/operator/internal/prom"
+
+	"github.com/truefoundry/elasti/operator/api/v1alpha1"
+	"github.com/truefoundry/elasti/operator/internal/crddirectory"
+	"github.com/truefoundry/elasti/operator/internal/informer"
+	"github.com/truefoundry/elasti/operator/internal/prom"
 
 	"github.com/truefoundry/elasti/pkg/k8shelper"
 	"github.com/truefoundry/elasti/pkg/utils"

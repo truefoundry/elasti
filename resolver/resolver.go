@@ -1,4 +1,4 @@
-package main
+package resolver
 
 import (
 	"fmt"
@@ -54,7 +54,7 @@ const (
 	internalPort     = ":8013"
 )
 
-func main() {
+func Main() {
 	var env config
 	if err := envconfig.Process("", &env); err != nil {
 		log.Fatal("Failed to process env: ", err)

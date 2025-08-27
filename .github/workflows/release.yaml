@@ -19,8 +19,7 @@ jobs:
       chart_version: ${{ steps.read_chart.outputs.CHART_VERSION }}
       app_version: ${{ steps.read_chart.outputs.APP_VERSION }}
       chart_name: ${{ steps.read_chart.outputs.CHART_NAME }}
-      resolver_tag: ${{ steps.read_chart.outputs.RESOLVER_TAG }}
-      operator_tag: ${{ steps.read_chart.outputs.OPERATOR_TAG }}
+      elasti_tag: ${{ steps.read_chart.outputs.ELASTI_TAG }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -44,40 +43,21 @@ jobs:
           CHART_NAME=$(yq -r '.name' charts/elasti/Chart.yaml)
           echo "CHART_NAME=$CHART_NAME" >> $GITHUB_OUTPUT
 
-          RESOLVER_TAG=$(yq -r '.elastiResolver.proxy.image.tag' charts/elasti/values.yaml)
-          echo "RESOLVER_TAG=$RESOLVER_TAG" >> $GITHUB_OUTPUT
-
-          OPERATOR_TAG=$(yq -r '.elastiController.manager.image.tag' charts/elasti/values.yaml)
-          echo "OPERATOR_TAG=$OPERATOR_TAG" >> $GITHUB_OUTPUT
+          ELASTI_TAG=$(yq -r '.global.image.tag' charts/elasti/values.yaml)
+          echo "ELASTI_TAG=$RESOLVER_TAG" >> $GITHUB_OUTPUT
 
           echo "Chart values read: $CHART_NAME v$CHART_VERSION (app v$APP_VERSION)"
-          echo "Resolver tag: $RESOLVER_TAG"
-          echo "Operator tag: $OPERATOR_TAG"
+          echo "Elasti tag: $ELASTI_TAG"
 
-  # Build and push operator image
-  build-operator:
+  # Build and push elasti image
+  build-elasti:
     name: Build and Push Operator Docker Images
     needs: [read-chart-values]
     uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
     with:
-      image_tag: ${{ needs.read-chart-values.outputs.operator_tag }}
-      image_artifact_name: "elasti-operator"
-      dockerfile_path: "operator/Dockerfile"
-      artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
-      artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
-    secrets:
-      artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
-      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
-
-  # Build and push resolver image
-  build-resolver:
-    name: Build and Push Resolver Docker Images
-    needs: [read-chart-values]
-    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
-    with:
-      image_tag: ${{ needs.read-chart-values.outputs.resolver_tag }}
-      image_artifact_name: "elasti-resolver"
-      dockerfile_path: "resolver/Dockerfile"
+      image_tag: ${{ needs.read-chart-values.outputs.elasti_tag }}
+      image_artifact_name: "elasti"
+      dockerfile_path: "Dockerfile"
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
     secrets:
@@ -87,7 +67,7 @@ jobs:
   # Release the Helm chart
   release:
     runs-on: ubuntu-latest
-    needs: [build-operator, build-resolver, read-chart-values]
+    needs: [build-elasti, read-chart-values]
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -104,7 +84,7 @@ jobs:
           CHART_DIR=elasti
           CHART_NAME=${{ needs.read-chart-values.outputs.chart_name }}
           CHART_VERSION=${{ needs.read-chart-values.outputs.chart_version }}
-              
+
           # packaging chart
           helm dependency update $CHART_DIR
           helm package $CHART_DIR
