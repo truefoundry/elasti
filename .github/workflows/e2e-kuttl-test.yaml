@@ -56,7 +56,7 @@ jobs:
 
       - name: Install Kuttl
         run: |
-          curl -Lo kuttl.tar.gz https://github.com/kudobuilder/kuttl/releases/download/v0.15.0/kuttl_0.15.0_linux_x86_64.tar.gz
+          curl -Lo kuttl.tar.gz https://github.com/kudobuilder/kuttl/releases/download/v0.22.0/kuttl_0.22.0_linux_x86_64.tar.gz
           tar -xvf kuttl.tar.gz
           sudo mv kubectl-kuttl /usr/local/bin/
           kubectl kuttl version
