@@ -38,7 +38,7 @@ func maskThrottlerError(err error, host *messages.Host) string {
 		original string
 		masked   string
 	}
-	
+
 	var replacements []replacement
 
 	if host.IncomingHost != "" {
