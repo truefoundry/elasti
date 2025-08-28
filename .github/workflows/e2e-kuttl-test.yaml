@@ -11,9 +11,9 @@ on:
 jobs:
   kuttl-tests:
     name: Run Kuttl E2E Tests
-    # Pin to ubuntu-20.04 to avoid issues with newer runner versions (2.328.0+)
+    # Pin to ubuntu-22.04 to avoid issues with newer runner versions (2.328.0+)
     # that have Helm schema validation changes affecting Istio gateway installation
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
