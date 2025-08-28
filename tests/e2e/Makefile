@@ -10,8 +10,6 @@ PROMETHEUS_VERSION := 73.2.3
 PROMETHEUS_PUSHGATEWAY_VERSION := 3.4.1
 KEDA_VERSION := 2.17.1
 
-
-
 .PHONY: all setup destroy reset-kind reset-setup
 all: setup test
 setup: start-registry build-images kind-up chmod-reset apply-deps
