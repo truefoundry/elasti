@@ -5,12 +5,10 @@ ELASTI_NAMESPACE := elasti
 T ?= ./tests
 REGISTRY_HOST := localhost:5002
 REGISTRY_NAME := kind-registry
-ISTIO_VERSION := 1.25.0
+ISTIO_VERSION := 1.26.1
 PROMETHEUS_VERSION := 73.2.3
 PROMETHEUS_PUSHGATEWAY_VERSION := 3.4.1
 KEDA_VERSION := 2.17.1
-
-
 
 .PHONY: all setup destroy reset-kind reset-setup
 all: setup test
@@ -118,7 +116,7 @@ apply-ingress:
 	@helm repo update
 	@helm upgrade --install istio-base istio/base -n istio-system --create-namespace --version $(ISTIO_VERSION) --wait --timeout 180s
 	@helm upgrade --install istiod istio/istiod -n istio-system --version $(ISTIO_VERSION) --wait --timeout 180s
-	@helm upgrade --install istio-ingressgateway istio/gateway -n istio-system --version $(ISTIO_VERSION) 
+	@helm upgrade --install istio-ingressgateway istio/gateway -n istio-system -f ./manifest/values-istio-ingress.yaml --version $(ISTIO_VERSION)
 	@kubectl -n istio-system wait --for=condition=available deployment/istio-ingressgateway --timeout=180s
 	@kubectl create namespace target --dry-run=client -o yaml | kubectl apply -f -
 	@kubectl label namespace target istio-injection=enabled --overwrite
