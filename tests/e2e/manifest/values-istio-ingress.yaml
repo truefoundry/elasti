@@ -1,4 +1,4 @@
-# Istio Gateway Helm values for version 1.26+
+# Istio Gateway Helm values for version 1.27+
 service:
   type: LoadBalancer
   ports:
